@@ -243,7 +243,7 @@ function BrandProfileCard({ brand }: { brand: Brand }) {
         >
           Target Audience
         </p>
-        <p className="text-sm font-medium leading-snug" style={{ color: "#4A3428" }}>
+        <p className="text-sm font-medium leading-snug whitespace-pre-line" style={{ color: "#4A3428" }}>
           {(brand.target_audience ?? "Not specified").replace(/\* /g, "• ").replace(/\*/g, "")}
         </p>
       </div>

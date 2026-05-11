@@ -154,6 +154,9 @@ export function SocialConnect({
   }
 
   const handleDisconnect = (platformId: string) => {
+    const platform = platforms.find((p) => p.id === platformId)
+    const confirmed = window.confirm(`Disconnect ${platform?.name ?? platformId}? This will remove your saved handle.`)
+    if (!confirmed) return
     startTransition(async () => {
       try {
         const result = await removeSocialHandle(platformId)

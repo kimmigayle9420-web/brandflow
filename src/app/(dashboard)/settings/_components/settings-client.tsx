@@ -278,6 +278,9 @@ export function SettingsPageClient() {
 
   const handleDisconnectSocial = async (platformId: string) => {
     if (!user?.id) return
+    const meta = PLATFORM_META[platformId]
+    const confirmed = window.confirm(`Disconnect ${meta?.name ?? platformId}? This will remove your saved handle.`)
+    if (!confirmed) return
     setDisconnecting(platformId)
     const { [platformId]: _removed, ...updated } = socialAccounts
     const { error } = await supabase.from("profiles").update({ social_accounts: updated }).eq("id", user.id)
