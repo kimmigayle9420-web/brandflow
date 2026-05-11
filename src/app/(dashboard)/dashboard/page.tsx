@@ -3,12 +3,9 @@ import { Header } from "@/components/layout/header"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
-import { getInitials, formatDate } from "@/lib/utils"
+import { getInitials } from "@/lib/utils"
 import { SocialConnect } from "./_components/social-connect"
-import { PillarsGenerator } from "./_components/pillars-generator"
-import { NicheResearch } from "./_components/niche-research"
-import { ProfileResearch } from "./_components/profile-research"
-import type { Brand } from "@/types"
+import type { Brand, ContentPillar } from "@/types"
 
 export default async function DashboardPage() {
   const supabase = createClient()
@@ -32,6 +29,17 @@ export default async function DashboardPage() {
   const firstName = profileResult.data?.full_name?.split(" ")[0] ?? "there"
   const primaryBrand = brands?.[0] ?? null
   const socialAccounts = (profileResult.data?.social_accounts ?? {}) as Record<string, string>
+
+  // Fetch content pillars for the primary brand
+  let pillars: ContentPillar[] | null = null
+  if (primaryBrand) {
+    const { data } = await supabase
+      .from("content_pillars")
+      .select("id, name, color, sort_order")
+      .eq("brand_id", primaryBrand.id)
+      .order("sort_order")
+    pillars = data ?? []
+  }
 
   return (
     <div className="flex flex-col min-h-full bg-slate-50">
@@ -58,44 +66,26 @@ export default async function DashboardPage() {
           {!primaryBrand ? (
             <EmptyBrandState />
           ) : (
-            <BrandProfileCards brand={primaryBrand} totalBrands={brands?.length ?? 1} />
+            <BrandProfileCard brand={primaryBrand} />
           )}
         </section>
 
-        {/* ─── Section 2: Connect Social Platforms ────────────────── */}
+        {/* ─── Section 2: Social Profiles ─────────────────────────── */}
         <section>
           <SectionHeader
-            title="Connect Social Platforms"
-            subtitle="Link your accounts to start scheduling content"
+            title="Social Profiles"
+            subtitle="Your connected social accounts"
           />
           <SocialConnect initialAccounts={socialAccounts} />
         </section>
 
-        {/* ─── Section 3: Content Pillars Generator ───────────────── */}
+        {/* ─── Section 3: Content Pillars ─────────────────────────── */}
         <section>
           <SectionHeader
-            title="Content Pillars Generator"
-            subtitle="Enter your niche to generate AI-powered content pillars"
+            title="Content Pillars"
+            subtitle="Your saved topic pillars"
           />
-          <PillarsGenerator defaultNiche={primaryBrand?.niche ?? ""} brandId={primaryBrand?.id} />
-        </section>
-
-        {/* ─── Section 4: Niche Research ──────────────────────────── */}
-        <section>
-          <SectionHeader
-            title="Niche Research"
-            subtitle="Trending topics and content ideas for your niche"
-          />
-          <NicheResearch niche={primaryBrand?.niche ?? "content creation"} />
-        </section>
-
-        {/* ─── Section 5: Research a Profile or Website ───────────── */}
-        <section>
-          <SectionHeader
-            title="Research a Profile or Website"
-            subtitle="Paste any social profile or website URL to extract brand intelligence"
-          />
-          <ProfileResearch />
+          <ContentPillarsSummary pillars={pillars} hasBrand={!!primaryBrand} />
         </section>
 
       </div>
@@ -148,35 +138,25 @@ function EmptyBrandState() {
   )
 }
 
-function BrandProfileCards({ brand, totalBrands }: { brand: Brand; totalBrands: number }) {
+function BrandProfileCard({ brand }: { brand: Brand }) {
   const initials = getInitials(brand.name)
 
-  const infoCards = [
-    { label: "Brand Name", value: brand.name, emoji: "🏷️" },
-    { label: "Niche", value: brand.niche, emoji: "🎯" },
-    {
-      label: "Tone of Voice",
-      value: brand.tone_of_voice ?? "Not specified",
-      emoji: "🎙️",
-    },
-  ]
-
   return (
-    <div className="space-y-4">
-      {/* Brand header card */}
-      <Card className="bg-white border-0 ring-1 ring-slate-100 shadow-sm">
-        <CardContent className="flex items-center gap-5 py-5 px-6">
+    <Card className="bg-white border-0 ring-1 ring-slate-100 shadow-sm">
+      <CardContent className="p-6">
+        {/* Top row: avatar + name + niche pill + tone */}
+        <div className="flex items-start gap-4">
           {/* Avatar */}
           {brand.logo_url ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
               src={brand.logo_url}
               alt={brand.name}
-              className="w-16 h-16 rounded-2xl object-cover flex-shrink-0"
+              className="w-14 h-14 rounded-2xl object-cover flex-shrink-0"
             />
           ) : (
             <div
-              className="w-16 h-16 rounded-2xl flex items-center justify-center text-white text-xl font-bold flex-shrink-0 shadow-sm"
+              className="w-14 h-14 rounded-2xl flex items-center justify-center text-white text-lg font-bold flex-shrink-0 shadow-sm"
               style={{ backgroundColor: brand.primary_color || "#6366f1" }}
             >
               {initials}
@@ -184,75 +164,80 @@ function BrandProfileCards({ brand, totalBrands }: { brand: Brand; totalBrands: 
           )}
 
           <div className="flex-1 min-w-0">
-            <h3 className="text-xl font-bold text-slate-900 truncate">{brand.name}</h3>
-            <p className="text-sm text-slate-500 mt-0.5">{brand.niche}</p>
-            {brand.website_url && (
-              <a
-                href={brand.website_url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-xs text-indigo-500 hover:text-indigo-700 mt-1.5 inline-block"
-              >
-                {brand.website_url}
-              </a>
-            )}
-          </div>
+            {/* Name + niche pill */}
+            <div className="flex items-center gap-2.5 flex-wrap">
+              <h3 className="text-2xl font-bold text-slate-900 leading-tight">{brand.name}</h3>
+              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-50 text-indigo-700 ring-1 ring-inset ring-indigo-200 shrink-0">
+                {brand.niche}
+              </span>
+            </div>
 
-          <div className="hidden sm:block text-right shrink-0">
-            <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest mb-1">
-              Created
-            </p>
-            <p className="text-sm font-medium text-slate-600">{formatDate(brand.created_at)}</p>
-            {totalBrands > 1 && (
-              <Link href="/brands">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="text-xs text-indigo-500 hover:text-indigo-700 mt-1 h-auto p-0"
-                >
-                  View all brands →
-                </Button>
-              </Link>
-            )}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Info cards grid — 3-up */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        {infoCards.map((card) => (
-          <Card
-            key={card.label}
-            className="bg-white border-0 ring-1 ring-slate-100 shadow-sm hover:shadow-md transition-shadow"
-          >
-            <CardContent className="p-4">
-              <div className="flex items-center gap-1.5 mb-2">
-                <span className="text-sm">{card.emoji}</span>
-                <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest">
-                  {card.label}
-                </p>
-              </div>
-              <p className="text-sm font-semibold text-slate-700 leading-snug">{card.value}</p>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
-      {/* Target Audience — full-width horizontal banner */}
-      <Card className="bg-white border-0 ring-1 ring-slate-100 shadow-sm hover:shadow-md transition-shadow">
-        <CardContent className="flex items-center gap-4 py-3.5 px-5">
-          <div className="flex items-center gap-1.5 shrink-0">
-            <span className="text-sm">👥</span>
-            <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest">
-              Target Audience
+            {/* Tone of voice */}
+            <p className="text-sm text-slate-500 mt-1.5">
+              <span className="font-medium text-slate-600">Tone:</span>{" "}
+              {brand.tone_of_voice ?? "Not specified"}
             </p>
           </div>
-          <div className="w-px h-4 bg-slate-200 shrink-0" />
-          <p className="text-sm font-semibold text-slate-700 leading-snug">
+        </div>
+
+        {/* Target audience — full-width strip */}
+        <div className="mt-5 pt-4 border-t border-slate-100 flex items-start gap-4">
+          <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest shrink-0 mt-0.5 w-28">
+            Target Audience
+          </p>
+          <p className="text-sm text-slate-700 font-medium leading-snug">
             {brand.target_audience ?? "Not specified"}
           </p>
-        </CardContent>
-      </Card>
+        </div>
+      </CardContent>
+    </Card>
+  )
+}
+
+function ContentPillarsSummary({
+  pillars,
+  hasBrand,
+}: {
+  pillars: ContentPillar[] | null
+  hasBrand: boolean
+}) {
+  if (!hasBrand) {
+    return (
+      <p className="text-sm text-slate-400">
+        Create your brand first to start building content pillars.
+      </p>
+    )
+  }
+
+  if (!pillars || pillars.length === 0) {
+    return (
+      <p className="text-sm text-slate-400">
+        No pillars saved yet —{" "}
+        <Link
+          href="/content-research"
+          className="text-indigo-500 hover:text-indigo-700 hover:underline transition-colors"
+        >
+          go to Content Research to generate some
+        </Link>
+      </p>
+    )
+  }
+
+  return (
+    <div className="flex flex-wrap gap-2">
+      {pillars.map((pillar) => (
+        <span
+          key={pillar.id}
+          className="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium border"
+          style={{
+            backgroundColor: pillar.color + "18",
+            color: pillar.color,
+            borderColor: pillar.color + "50",
+          }}
+        >
+          {pillar.name}
+        </span>
+      ))}
     </div>
   )
 }

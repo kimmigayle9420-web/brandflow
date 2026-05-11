@@ -4,7 +4,7 @@ import { useState, useTransition } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { saveSocialHandle } from "../_actions/social-accounts"
+import { saveSocialHandle, removeSocialHandle } from "../_actions/social-accounts"
 
 type OAuthMessage =
   | { type: "setup"; url: string; envVar: string }
@@ -112,10 +112,15 @@ export function SocialConnect({
 }) {
   const [accounts, setAccounts] = useState<Record<string, string>>(initialAccounts)
   const [expandedPlatform, setExpandedPlatform] = useState<string | null>(null)
+  const [showAddPanel, setShowAddPanel] = useState(false)
   const [inputValue, setInputValue] = useState("")
   const [saveError, setSaveError] = useState<string | null>(null)
   const [oauthMessage, setOauthMessage] = useState<OAuthMessage | null>(null)
   const [isPending, startTransition] = useTransition()
+
+  const connectedPlatforms = platforms.filter((p) => !!accounts[p.id])
+  const unconnectedPlatforms = platforms.filter((p) => !accounts[p.id])
+  const hasAnyConnected = connectedPlatforms.length > 0
 
   const openInput = (platformId: string) => {
     setExpandedPlatform(platformId)
@@ -141,8 +146,21 @@ export function SocialConnect({
         const result = await saveSocialHandle(platformId, trimmed)
         setAccounts(result.accounts)
         closeInput()
+        setShowAddPanel(false)
       } catch (err: any) {
         setSaveError(err.message ?? "Failed to save. Please try again.")
+      }
+    })
+  }
+
+  const handleDisconnect = (platformId: string) => {
+    startTransition(async () => {
+      try {
+        const result = await removeSocialHandle(platformId)
+        setAccounts(result.accounts)
+        if (expandedPlatform === platformId) closeInput()
+      } catch {
+        // silent
       }
     })
   }
@@ -155,7 +173,6 @@ export function SocialConnect({
       return
     }
 
-    // Instagram & Facebook share the Meta OAuth flow
     const endpoint = platform.id === "facebook" ? "instagram" : platform.id
     try {
       const res = await fetch(`/api/auth/${endpoint}/initiate`)
@@ -173,147 +190,300 @@ export function SocialConnect({
     }
   }
 
-  return (
-    <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3 items-start">
-      {platforms.map((platform) => {
-        const connected = accounts[platform.id]
-        const isExpanded = expandedPlatform === platform.id
-
-        return (
-          <Card
-            key={platform.id}
-            className="bg-white shadow-sm border-0 ring-1 ring-slate-100 hover:ring-indigo-200 hover:shadow-md transition-all duration-200 group"
-          >
-            <CardContent className="flex flex-col items-center gap-2.5 py-4 px-2">
-              {/* Platform icon */}
-              <div
-                className={`w-9 h-9 rounded-xl ${platform.bg} flex items-center justify-center text-sm shadow-sm shrink-0`}
-              >
-                <span role="img" aria-label={platform.name}>
-                  {platform.emoji}
-                </span>
-              </div>
-
-              <p className="text-xs font-semibold text-slate-700 text-center leading-tight">
-                {platform.name}
-              </p>
-
-              {/* States: expanded input / connected / disconnected */}
-              {isExpanded ? (
-                <div className="w-full space-y-1.5">
-                  {/* Manual handle input */}
-                  <Input
-                    autoFocus
-                    placeholder={platform.placeholder}
-                    value={inputValue}
-                    onChange={(e) => setInputValue(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" && !isPending) handleSave(platform.id)
-                      if (e.key === "Escape") closeInput()
-                    }}
-                    className="h-7 text-[11px] px-2 border-slate-200 focus-visible:ring-indigo-400"
-                  />
-                  {saveError && (
-                    <p className="text-[10px] text-red-500 leading-tight px-0.5">{saveError}</p>
-                  )}
-                  <div className="flex gap-1">
-                    <Button
-                      size="sm"
-                      disabled={isPending || !inputValue.trim()}
-                      onClick={() => handleSave(platform.id)}
-                      className="flex-1 h-6 text-[11px] bg-indigo-600 hover:bg-indigo-700 px-1"
-                    >
-                      {isPending ? (
-                        <span className="inline-block w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                      ) : (
-                        "Save"
-                      )}
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={closeInput}
-                      className="h-6 w-6 p-0 text-slate-400 hover:text-slate-600 text-xs"
-                    >
-                      ✕
-                    </Button>
-                  </div>
-
-                  {/* OAuth divider */}
-                  <div className="flex items-center gap-1.5 pt-0.5">
-                    <div className="flex-1 h-px bg-slate-100" />
-                    <span className="text-[9px] text-slate-300 uppercase tracking-wide">or</span>
-                    <div className="flex-1 h-px bg-slate-100" />
-                  </div>
-
-                  {/* OAuth connect button */}
-                  <button
-                    type="button"
-                    onClick={() => handleOAuthConnect(platform)}
-                    className={`w-full h-6 rounded text-[10px] font-medium transition-all ${platform.oauthColor}`}
-                  >
-                    Login with {platform.name.split(" ")[0]}
-                  </button>
-
-                  {/* OAuth feedback message */}
-                  {oauthMessage && (
-                    oauthMessage.type === "setup" ? (
-                      <p className="text-[9px] text-amber-600 leading-snug px-0.5">
-                        OAuth setup required — add{" "}
-                        <code className="bg-amber-50 rounded px-0.5">
-                          {oauthMessage.envVar}_CLIENT_ID
-                        </code>{" "}
-                        to env vars.{" "}
-                        <a
-                          href={oauthMessage.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="underline hover:text-amber-700"
-                        >
-                          Dev docs ↗
-                        </a>
-                      </p>
-                    ) : (
-                      <p className="text-[9px] text-red-500 leading-snug px-0.5">
-                        {oauthMessage.message}
-                      </p>
-                    )
-                  )}
+  // ─── No platforms connected → show the full setup grid ───────────────────────
+  if (!hasAnyConnected) {
+    return (
+      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3 items-start">
+        {platforms.map((platform) => {
+          const isExpanded = expandedPlatform === platform.id
+          return (
+            <Card
+              key={platform.id}
+              className="bg-white shadow-sm border-0 ring-1 ring-slate-100 hover:ring-indigo-200 hover:shadow-md transition-all duration-200 group"
+            >
+              <CardContent className="flex flex-col items-center gap-2.5 py-4 px-2">
+                <div className={`w-9 h-9 rounded-xl ${platform.bg} flex items-center justify-center text-sm shadow-sm shrink-0`}>
+                  <span role="img" aria-label={platform.name}>{platform.emoji}</span>
                 </div>
-              ) : connected ? (
-                <div className="w-full space-y-0.5 text-center">
-                  <p className="text-[11px] font-semibold text-green-600">✓ Connected</p>
-                  <a
-                    href={buildProfileUrl(platform.id, connected)}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-[10px] text-indigo-500 hover:text-indigo-700 hover:underline truncate px-1 block transition-colors"
-                  >
-                    {connected}
-                  </a>
+                <p className="text-xs font-semibold text-slate-700 text-center leading-tight">{platform.name}</p>
+                {isExpanded ? (
+                  <PlatformInputForm
+                    platform={platform}
+                    inputValue={inputValue}
+                    setInputValue={setInputValue}
+                    isPending={isPending}
+                    saveError={saveError}
+                    oauthMessage={oauthMessage}
+                    onSave={() => handleSave(platform.id)}
+                    onClose={closeInput}
+                    onOAuth={() => handleOAuthConnect(platform)}
+                  />
+                ) : (
                   <Button
                     size="sm"
-                    variant="ghost"
+                    variant="outline"
+                    className="w-full text-xs h-7 group-hover:border-indigo-300 group-hover:text-indigo-600 transition-colors"
                     onClick={() => openInput(platform.id)}
-                    className="h-5 text-[10px] text-slate-400 hover:text-indigo-600 p-0 w-full"
                   >
-                    Edit
+                    Connect
                   </Button>
-                </div>
-              ) : (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="w-full text-xs h-7 group-hover:border-indigo-300 group-hover:text-indigo-600 transition-colors"
-                  onClick={() => openInput(platform.id)}
-                >
-                  Connect
-                </Button>
-              )}
-            </CardContent>
-          </Card>
+                )}
+              </CardContent>
+            </Card>
+          )
+        })}
+      </div>
+    )
+  }
+
+  // ─── Some platforms connected → smart display ─────────────────────────────────
+  return (
+    <div className="space-y-3">
+      {/* Connected platform rows */}
+      <div className="space-y-2">
+        {connectedPlatforms.map((platform) => {
+          const handle = accounts[platform.id]
+          const isEditing = expandedPlatform === platform.id
+
+          return (
+            <Card
+              key={platform.id}
+              className="bg-white border-0 ring-1 ring-slate-100 shadow-sm"
+            >
+              <CardContent className="py-3 px-4">
+                {isEditing ? (
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-3 mb-2">
+                      <div className={`w-7 h-7 rounded-lg ${platform.bg} flex items-center justify-center text-xs shadow-sm shrink-0`}>
+                        <span role="img" aria-label={platform.name}>{platform.emoji}</span>
+                      </div>
+                      <p className="text-sm font-semibold text-slate-700">{platform.name}</p>
+                      <button
+                        onClick={closeInput}
+                        className="ml-auto text-slate-400 hover:text-slate-600 text-xs"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                    <PlatformInputForm
+                      platform={platform}
+                      inputValue={inputValue}
+                      setInputValue={setInputValue}
+                      isPending={isPending}
+                      saveError={saveError}
+                      oauthMessage={oauthMessage}
+                      onSave={() => handleSave(platform.id)}
+                      onClose={closeInput}
+                      onOAuth={() => handleOAuthConnect(platform)}
+                    />
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-3">
+                    {/* Icon */}
+                    <div className={`w-7 h-7 rounded-lg ${platform.bg} flex items-center justify-center text-xs shadow-sm shrink-0`}>
+                      <span role="img" aria-label={platform.name}>{platform.emoji}</span>
+                    </div>
+
+                    {/* Name + handle */}
+                    <div className="flex-1 min-w-0 flex items-center gap-2 flex-wrap">
+                      <p className="text-sm font-semibold text-slate-700 shrink-0">{platform.name}</p>
+                      <a
+                        href={buildProfileUrl(platform.id, handle)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-sm text-indigo-500 hover:text-indigo-700 hover:underline truncate transition-colors"
+                      >
+                        {handle}
+                      </a>
+                    </div>
+
+                    {/* Actions */}
+                    <div className="flex items-center gap-1 shrink-0">
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => openInput(platform.id)}
+                        className="h-7 text-xs text-slate-400 hover:text-indigo-600 px-2"
+                      >
+                        Edit
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        disabled={isPending}
+                        onClick={() => handleDisconnect(platform.id)}
+                        className="h-7 text-xs text-slate-400 hover:text-red-500 px-2"
+                      >
+                        Disconnect
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )
+        })}
+      </div>
+
+      {/* Add social account */}
+      {unconnectedPlatforms.length > 0 && (
+        <div className="space-y-3">
+          <button
+            type="button"
+            onClick={() => setShowAddPanel((v) => !v)}
+            className="flex items-center gap-1.5 text-sm font-medium text-indigo-600 hover:text-indigo-700 transition-colors"
+          >
+            <span className="text-base leading-none">{showAddPanel ? "−" : "+"}</span>
+            {showAddPanel ? "Hide platforms" : "Add social account"}
+          </button>
+
+          {showAddPanel && (
+            <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3 items-start">
+              {unconnectedPlatforms.map((platform) => {
+                const isExpanded = expandedPlatform === platform.id
+                return (
+                  <Card
+                    key={platform.id}
+                    className="bg-white shadow-sm border-0 ring-1 ring-slate-100 hover:ring-indigo-200 hover:shadow-md transition-all duration-200 group"
+                  >
+                    <CardContent className="flex flex-col items-center gap-2.5 py-4 px-2">
+                      <div className={`w-9 h-9 rounded-xl ${platform.bg} flex items-center justify-center text-sm shadow-sm shrink-0`}>
+                        <span role="img" aria-label={platform.name}>{platform.emoji}</span>
+                      </div>
+                      <p className="text-xs font-semibold text-slate-700 text-center leading-tight">{platform.name}</p>
+                      {isExpanded ? (
+                        <PlatformInputForm
+                          platform={platform}
+                          inputValue={inputValue}
+                          setInputValue={setInputValue}
+                          isPending={isPending}
+                          saveError={saveError}
+                          oauthMessage={oauthMessage}
+                          onSave={() => handleSave(platform.id)}
+                          onClose={closeInput}
+                          onOAuth={() => handleOAuthConnect(platform)}
+                        />
+                      ) : (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="w-full text-xs h-7 group-hover:border-indigo-300 group-hover:text-indigo-600 transition-colors"
+                          onClick={() => openInput(platform.id)}
+                        >
+                          Connect
+                        </Button>
+                      )}
+                    </CardContent>
+                  </Card>
+                )
+              })}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ─── Shared input form sub-component ──────────────────────────────────────────
+
+function PlatformInputForm({
+  platform,
+  inputValue,
+  setInputValue,
+  isPending,
+  saveError,
+  oauthMessage,
+  onSave,
+  onClose,
+  onOAuth,
+}: {
+  platform: (typeof platforms)[0]
+  inputValue: string
+  setInputValue: (v: string) => void
+  isPending: boolean
+  saveError: string | null
+  oauthMessage: OAuthMessage | null
+  onSave: () => void
+  onClose: () => void
+  onOAuth: () => void
+}) {
+  return (
+    <div className="w-full space-y-1.5">
+      <Input
+        autoFocus
+        placeholder={platform.placeholder}
+        value={inputValue}
+        onChange={(e) => setInputValue(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" && !isPending) onSave()
+          if (e.key === "Escape") onClose()
+        }}
+        className="h-7 text-[11px] px-2 border-slate-200 focus-visible:ring-indigo-400"
+      />
+      {saveError && (
+        <p className="text-[10px] text-red-500 leading-tight px-0.5">{saveError}</p>
+      )}
+      <div className="flex gap-1">
+        <Button
+          size="sm"
+          disabled={isPending || !inputValue.trim()}
+          onClick={onSave}
+          className="flex-1 h-6 text-[11px] bg-indigo-600 hover:bg-indigo-700 px-1"
+        >
+          {isPending ? (
+            <span className="inline-block w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
+          ) : (
+            "Save"
+          )}
+        </Button>
+        <Button
+          size="sm"
+          variant="ghost"
+          onClick={onClose}
+          className="h-6 w-6 p-0 text-slate-400 hover:text-slate-600 text-xs"
+        >
+          ✕
+        </Button>
+      </div>
+
+      <div className="flex items-center gap-1.5 pt-0.5">
+        <div className="flex-1 h-px bg-slate-100" />
+        <span className="text-[9px] text-slate-300 uppercase tracking-wide">or</span>
+        <div className="flex-1 h-px bg-slate-100" />
+      </div>
+
+      <button
+        type="button"
+        onClick={onOAuth}
+        className={`w-full h-6 rounded text-[10px] font-medium transition-all ${platform.oauthColor}`}
+      >
+        Login with {platform.name.split(" ")[0]}
+      </button>
+
+      {oauthMessage && (
+        oauthMessage.type === "setup" ? (
+          <p className="text-[9px] text-amber-600 leading-snug px-0.5">
+            OAuth setup required — add{" "}
+            <code className="bg-amber-50 rounded px-0.5">
+              {oauthMessage.envVar}_CLIENT_ID
+            </code>{" "}
+            to env vars.{" "}
+            <a
+              href={oauthMessage.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline hover:text-amber-700"
+            >
+              Dev docs ↗
+            </a>
+          </p>
+        ) : (
+          <p className="text-[9px] text-red-500 leading-snug px-0.5">
+            {oauthMessage.message}
+          </p>
         )
-      })}
+      )}
     </div>
   )
 }
