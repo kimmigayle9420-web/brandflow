@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useRef } from "react"
 import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -49,12 +49,20 @@ interface HashtagGroups {
 }
 
 type ProfileAnalysis = {
-  niche: string
-  contentThemes: string[]
-  postingStyle: string
-  targetAudience: string
-  topTopics: string[]
-  brandVoice: string
+  contentStrategy: string
+  postingPatterns: string
+  hookStyles: string[]
+  topicClusters: string[]
+  toneAndVoice: string
+  whatToSteal: string[]
+  gaps: string[]
+}
+
+type ContentOpportunity = {
+  contentGaps: string[]
+  topOpportunities: Array<{ angle: string; why: string; format: "Reel" | "Carousel" | "Post" }>
+  audienceInsights: string
+  suggestedPillars: string[]
 }
 
 type ContentAngle = { angle: string; rationale: string }
@@ -83,8 +91,12 @@ const PILLAR_COLORS = [
   "#0ea5e9", "#64748b",
 ]
 
-const LS_PROFILE_KEY = "brandflow:profile-analyser"
-const LS_NICHE_KEY = "brandflow:niche-research"
+const LS_OPPORTUNITY_KEY_PREFIX = "content-opportunity"
+const LS_PROFILE_LEFT_KEY = "brandflow:profile-analyser-left"
+const LS_PROFILE_RIGHT_KEY = "brandflow:profile-analyser-right"
+const LS_NICHE_RESULTS_KEY = "brandflow:niche-results"
+const LS_NICHE_CUSTOM_KEY = "brandflow:niche-custom-topics"
+const OPPORTUNITY_TTL = 24 * 60 * 60 * 1000
 
 // ── localStorage helpers ──────────────────────────────────────────────────────
 
@@ -116,6 +128,21 @@ function buildPollinationsUrl(prompt: string, niche?: string, seed?: number): st
 
 function cn(...classes: (string | undefined | false | null)[]): string {
   return classes.filter(Boolean).join(" ")
+}
+
+function buildProfileUrl(platform: string, handle: string): string | null {
+  const h = handle.replace(/^@/, "")
+  if (!h) return null
+  switch (platform.toLowerCase()) {
+    case "instagram": return `https://instagram.com/${h}`
+    case "tiktok": return `https://tiktok.com/@${h}`
+    case "youtube": return `https://youtube.com/@${h}`
+    case "twitter": case "x": return `https://twitter.com/${h}`
+    case "facebook": return `https://facebook.com/${h}`
+    case "linkedin": return `https://linkedin.com/in/${h}`
+    case "pinterest": return `https://pinterest.com/${h}`
+    default: return null
+  }
 }
 
 // ── Copy Button ──────────────────────────────────────────────────────────────
@@ -427,40 +454,304 @@ function CarouselMobilePreview({
   )
 }
 
-// ── Research Strip ────────────────────────────────────────────────────────────
+// ── Section 1: Content Opportunity Hero ──────────────────────────────────────
 
-function ResearchStrip({ brand }: { brand: Brand | null }) {
-  const supabase = createClient()
-  const { toast } = useToast()
+function ContentOpportunityHero({
+  brand,
+  socialAccounts,
+  userId,
+  onOpportunityLoaded,
+}: {
+  brand: Brand | null
+  socialAccounts: Record<string, string>
+  userId: string
+  onOpportunityLoaded?: (opp: ContentOpportunity) => void
+}) {
+  const lsKey = `${LS_OPPORTUNITY_KEY_PREFIX}-${userId}`
+  const [result, setResult] = useState<ContentOpportunity | null>(null)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const hasFetched = useRef(false)
 
-  // Profile Analyser state
-  const [profileUrl, setProfileUrl] = useState<string>(() =>
-    lsGet<{ url: string; result: ProfileAnalysis }>(LS_PROFILE_KEY)?.url ?? ""
-  )
-  const [profileResult, setProfileResult] = useState<ProfileAnalysis | null>(() =>
-    lsGet<{ url: string; result: ProfileAnalysis }>(LS_PROFILE_KEY)?.result ?? null
-  )
-  const [profileLoading, setProfileLoading] = useState(false)
-  const [profileError, setProfileError] = useState<string | null>(null)
-  const [savingToBrand, setSavingToBrand] = useState(false)
+  const hasSocials = Object.keys(socialAccounts).length > 0
+  const socialUrls = Object.entries(socialAccounts)
+    .map(([platform, handle]) => buildProfileUrl(platform, handle))
+    .filter((url): url is string => Boolean(url))
 
-  // Niche Research state
-  const [nicheTopic, setNicheTopic] = useState<string>(() =>
-    lsGet<{ topic: string; result: NicheResearchResult }>(LS_NICHE_KEY)?.topic ?? brand?.niche ?? ""
-  )
-  const [nicheResult, setNicheResult] = useState<NicheResearchResult | null>(() =>
-    lsGet<{ topic: string; result: NicheResearchResult }>(LS_NICHE_KEY)?.result ?? null
-  )
-  const [nicheLoading, setNicheLoading] = useState(false)
-  const [nicheError, setNicheError] = useState<string | null>(null)
-  const [nicheOpen, setNicheOpen] = useState<string | null>(null)
+  const fetchOpportunity = async (force = false) => {
+    if (!brand?.niche) return
+    if (!force) {
+      const cached = lsGet<{ result: ContentOpportunity; timestamp: number }>(lsKey)
+      if (cached && Date.now() - cached.timestamp < OPPORTUNITY_TTL) {
+        setResult(cached.result)
+        onOpportunityLoaded?.(cached.result)
+        return
+      }
+    }
+    setLoading(true)
+    setError(null)
+    try {
+      const res = await fetch("/api/research-opportunity", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          niche: brand.niche,
+          targetAudience: brand.target_audience ?? "",
+          tone: brand.tone_of_voice ?? "",
+          socialUrls,
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error ?? "Failed to fetch opportunity")
+      setResult(data)
+      lsSet(lsKey, { result: data, timestamp: Date.now() })
+      onOpportunityLoaded?.(data)
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Failed to analyse opportunity")
+    } finally {
+      setLoading(false)
+    }
+  }
 
-  const analyseProfile = async () => {
-    const trimmed = profileUrl.trim()
+  useEffect(() => {
+    if (!hasFetched.current) {
+      hasFetched.current = true
+      fetchOpportunity()
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  const formatColor = (fmt: string) => {
+    if (fmt === "Reel") return { bg: "#FEF0EA", text: "#D4432A" }
+    if (fmt === "Carousel") return { bg: "#F0F4FF", text: "#5B6AC4" }
+    return { bg: "#F0FDF4", text: "#16A34A" }
+  }
+
+  if (!brand?.niche) return null
+
+  return (
+    <div className="rounded-2xl p-6 space-y-5"
+      style={{
+        background: "linear-gradient(135deg, #FFF7F0 0%, #FFF0EF 50%, #FFF5F0 100%)",
+        border: "1px solid #F5D0C8",
+        boxShadow: "0 2px 12px rgba(249,112,102,0.10)",
+      }}>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <div className="flex items-center gap-2 mb-1">
+            <div className="h-6 w-6 rounded-lg flex items-center justify-center"
+              style={{ backgroundColor: "#F97066" }}>
+              <Sparkles className="h-3.5 w-3.5 text-white" />
+            </div>
+            <h2 className="text-base font-bold" style={{ color: "#2D1810" }}>Your Content Opportunity</h2>
+          </div>
+          {!loading && result && (
+            <p className="text-xs" style={{ color: "#A07060" }}>Personalised for {brand.niche}</p>
+          )}
+        </div>
+        {(result || error) && !loading && (
+          <button
+            onClick={() => fetchOpportunity(true)}
+            className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border transition-colors hover:bg-white/60"
+            style={{ borderColor: "#F5D0C8", color: "#C05040" }}>
+            <RefreshCw className="h-3 w-3" />
+            Refresh
+          </button>
+        )}
+      </div>
+
+      {!hasSocials && !loading && !result && !error && (
+        <div className="py-3">
+          <p className="text-sm" style={{ color: "#7A5C50" }}>
+            Connect your social accounts on the{" "}
+            <a href="/dashboard" className="font-semibold underline" style={{ color: "#F97066" }}>Dashboard</a>
+            {" "}to unlock personalised content opportunities.
+          </p>
+          <button onClick={() => fetchOpportunity(true)} className="mt-3 text-xs underline" style={{ color: "#A07060" }}>
+            Continue without social accounts →
+          </button>
+        </div>
+      )}
+
+      {loading && (
+        <div className="space-y-4">
+          <div className="space-y-2">
+            {[0.75, 1, 0.6].map((w, i) => (
+              <div key={i} className="h-4 rounded animate-pulse" style={{ width: `${w * 100}%`, backgroundColor: "#F5C4BC" }} />
+            ))}
+          </div>
+          <div className="grid grid-cols-3 gap-3">
+            {[0, 1, 2].map(i => (
+              <div key={i} className="h-28 rounded-xl animate-pulse" style={{ backgroundColor: "#F5C4BC" }} />
+            ))}
+          </div>
+          <div className="flex gap-2">
+            {[0, 1, 2, 3].map(i => (
+              <div key={i} className="h-6 w-24 rounded-full animate-pulse" style={{ backgroundColor: "#F5C4BC" }} />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {error && !loading && (
+        <div className="flex items-center justify-between gap-3">
+          <p className="text-sm" style={{ color: "#ef4444" }}>{error}</p>
+        </div>
+      )}
+
+      {result && !loading && (
+        <div className="space-y-5">
+          <p className="text-sm leading-relaxed" style={{ color: "#5A3828" }}>
+            {result.audienceInsights}
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            {result.topOpportunities?.map((opp, i) => {
+              const { bg, text } = formatColor(opp.format)
+              return (
+                <div key={i} className="rounded-xl bg-white/70 border p-4 space-y-2"
+                  style={{ borderColor: "#F0C8C0" }}>
+                  <span className="inline-block text-[10px] font-bold px-2 py-0.5 rounded-full"
+                    style={{ backgroundColor: bg, color: text }}>
+                    {opp.format}
+                  </span>
+                  <p className="text-sm font-semibold leading-snug" style={{ color: "#2D1810" }}>
+                    {opp.angle}
+                  </p>
+                  <p className="text-[11px] leading-relaxed" style={{ color: "#8A7060" }}>
+                    {opp.why}
+                  </p>
+                </div>
+              )
+            })}
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {result.contentGaps?.map((gap, i) => (
+              <span key={i} className="inline-flex items-center gap-1 text-xs px-3 py-1 rounded-full font-medium"
+                style={{ backgroundColor: "#FDE8E5", color: "#C05040", border: "1px solid #F5C4BC" }}>
+                <span style={{ color: "#F97066" }}>✦</span>
+                {gap}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ── Profile Analysis Display ───────────────────────────────────────────────────
+
+function ProfileAnalysisDisplay({ result }: { result: ProfileAnalysis }) {
+  return (
+    <div className="space-y-2 pt-1">
+      <div className="grid grid-cols-2 gap-2">
+        {[
+          { label: "Strategy", value: result.contentStrategy, span: 2 },
+          { label: "Patterns", value: result.postingPatterns, span: 1 },
+          { label: "Tone & Voice", value: result.toneAndVoice, span: 1 },
+        ].map(({ label, value, span }) => value ? (
+          <div key={label}
+            className={cn("rounded-xl border p-3 space-y-1", span === 2 ? "col-span-2" : "")}
+            style={{ borderColor: "#E5DDD5", backgroundColor: "#FAFAF5" }}>
+            <span className="text-[10px] font-bold uppercase tracking-wide" style={{ color: "#A07060" }}>{label}</span>
+            <p className="text-xs leading-relaxed" style={{ color: "#2D1810" }}>
+              {value.length > 100 ? value.substring(0, 100) + "…" : value}
+            </p>
+          </div>
+        ) : null)}
+      </div>
+      {result.hookStyles?.length > 0 && (
+        <div className="rounded-xl border p-3 space-y-2" style={{ borderColor: "#E5DDD5" }}>
+          <span className="text-[10px] font-bold uppercase tracking-wide" style={{ color: "#A07060" }}>Hook Styles</span>
+          <div className="flex flex-wrap gap-1.5">
+            {result.hookStyles.map((h, i) => (
+              <span key={i} className="text-[10px] px-2 py-0.5 rounded-full font-medium"
+                style={{ backgroundColor: "#FEF0EA", color: "#D4432A" }}>{h}</span>
+            ))}
+          </div>
+        </div>
+      )}
+      {result.topicClusters?.length > 0 && (
+        <div className="rounded-xl border p-3 space-y-2" style={{ borderColor: "#E5DDD5" }}>
+          <span className="text-[10px] font-bold uppercase tracking-wide" style={{ color: "#A07060" }}>Topic Clusters</span>
+          <div className="flex flex-wrap gap-1.5">
+            {result.topicClusters.map((t, i) => (
+              <span key={i} className="text-[10px] px-2 py-0.5 rounded-full"
+                style={{ backgroundColor: "#F0F4FF", color: "#5B6AC4" }}>{t}</span>
+            ))}
+          </div>
+        </div>
+      )}
+      {result.whatToSteal?.length > 0 && (
+        <div className="rounded-xl border p-3 space-y-1.5" style={{ borderColor: "#E5DDD5" }}>
+          <span className="text-[10px] font-bold uppercase tracking-wide" style={{ color: "#A07060" }}>What To Steal</span>
+          {result.whatToSteal.map((idea, i) => (
+            <div key={i} className="flex items-start gap-1.5 text-xs" style={{ color: "#2D1810" }}>
+              <span className="mt-0.5 shrink-0" style={{ color: "#F97066" }}>→</span>
+              <span>{idea}</span>
+            </div>
+          ))}
+        </div>
+      )}
+      {result.gaps?.length > 0 && (
+        <div className="rounded-xl border p-3 space-y-2" style={{ borderColor: "#E5DDD5" }}>
+          <span className="text-[10px] font-bold uppercase tracking-wide" style={{ color: "#A07060" }}>Gaps to Own</span>
+          <div className="flex flex-wrap gap-1.5">
+            {result.gaps.map((g, i) => (
+              <span key={i} className="text-[10px] px-2 py-0.5 rounded-full"
+                style={{ backgroundColor: "#F0FDF4", color: "#16A34A" }}>{g}</span>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ── Section 2: Dual Column Analyser ──────────────────────────────────────────
+
+function DualColumnAnalyser({ socialAccounts }: { socialAccounts: Record<string, string> }) {
+  const connectedPlatforms = Object.keys(socialAccounts)
+
+  const [leftUrl, setLeftUrl] = useState<string>(() =>
+    lsGet<{ url: string; result: ProfileAnalysis }>(LS_PROFILE_LEFT_KEY)?.url ?? ""
+  )
+  const [leftResult, setLeftResult] = useState<ProfileAnalysis | null>(() =>
+    lsGet<{ url: string; result: ProfileAnalysis }>(LS_PROFILE_LEFT_KEY)?.result ?? null
+  )
+  const [leftLoading, setLeftLoading] = useState(false)
+  const [leftError, setLeftError] = useState<string | null>(null)
+  const [selectedPlatform, setSelectedPlatform] = useState<string>("")
+
+  const [rightUrl, setRightUrl] = useState<string>(() =>
+    lsGet<{ url: string; result: ProfileAnalysis }>(LS_PROFILE_RIGHT_KEY)?.url ?? ""
+  )
+  const [rightResult, setRightResult] = useState<ProfileAnalysis | null>(() =>
+    lsGet<{ url: string; result: ProfileAnalysis }>(LS_PROFILE_RIGHT_KEY)?.result ?? null
+  )
+  const [rightLoading, setRightLoading] = useState(false)
+  const [rightError, setRightError] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (selectedPlatform && socialAccounts[selectedPlatform]) {
+      const url = buildProfileUrl(selectedPlatform, socialAccounts[selectedPlatform])
+      if (url) setLeftUrl(url)
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedPlatform])
+
+  const analyse = async (url: string, side: "left" | "right") => {
+    const trimmed = url.trim()
     if (!trimmed) return
-    setProfileLoading(true)
-    setProfileError(null)
-    setProfileResult(null)
+    const setLoading = side === "left" ? setLeftLoading : setRightLoading
+    const setError = side === "left" ? setLeftError : setRightError
+    const setResult = side === "left" ? setLeftResult : setRightResult
+    const setUrl = side === "left" ? setLeftUrl : setRightUrl
+    const lsKey = side === "left" ? LS_PROFILE_LEFT_KEY : LS_PROFILE_RIGHT_KEY
+
+    setLoading(true)
+    setError(null)
+    setResult(null)
     try {
       const res = await fetch("/api/research-profile", {
         method: "POST",
@@ -469,37 +760,179 @@ function ResearchStrip({ brand }: { brand: Brand | null }) {
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error ?? "Analysis failed")
-      setProfileResult(data)
-      lsSet(LS_PROFILE_KEY, { url: trimmed, result: data })
+      setResult(data)
+      setUrl(trimmed)
+      lsSet(lsKey, { url: trimmed, result: data })
     } catch (err: unknown) {
-      setProfileError(err instanceof Error ? err.message : "Analysis failed.")
+      setError(err instanceof Error ? err.message : "Analysis failed.")
     } finally {
-      setProfileLoading(false)
+      setLoading(false)
     }
   }
 
-  const saveToBrand = async () => {
-    if (!brand?.id || !profileResult) return
-    setSavingToBrand(true)
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) { toast({ title: "Not logged in", variant: "destructive" }); setSavingToBrand(false); return }
-    const updates: Partial<Brand> = {}
-    if (profileResult.niche && !brand.niche) updates.niche = profileResult.niche
-    if (profileResult.targetAudience && !brand.target_audience) updates.target_audience = profileResult.targetAudience
-    if (profileResult.brandVoice && !brand.tone_of_voice) updates.tone_of_voice = profileResult.brandVoice
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { error: dbError } = await (supabase as any).from("brands").update(updates).eq("id", brand.id)
-    if (dbError) { toast({ title: "Failed to update brand", description: dbError.message, variant: "destructive" }) }
-    else { toast({ title: "Brand updated with insights!" }) }
-    setSavingToBrand(false)
-  }
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      {/* Left: Social Profile */}
+      <div className="rounded-2xl border bg-white p-5 space-y-3"
+        style={{ borderColor: "#E5DDD5", boxShadow: "0 1px 4px rgba(45,24,16,0.06)" }}>
+        <div className="flex items-center gap-2">
+          <div className="h-6 w-6 rounded-lg flex items-center justify-center" style={{ backgroundColor: "#FEF0EA" }}>
+            <Globe className="h-3.5 w-3.5" style={{ color: "#D4432A" }} />
+          </div>
+          <span className="text-sm font-semibold" style={{ color: "#2D1810" }}>Social Profile Analyser</span>
+        </div>
 
-  const researchNiche = async () => {
-    const trimmed = nicheTopic.trim()
+        {connectedPlatforms.length > 0 && (
+          <select
+            value={selectedPlatform}
+            onChange={(e) => setSelectedPlatform(e.target.value)}
+            className="w-full text-sm rounded-xl border px-3 h-9"
+            style={{ borderColor: "#E5DDD5", color: "#2D1810" }}>
+            <option value="">Select a connected account…</option>
+            {connectedPlatforms.map((p) => (
+              <option key={p} value={p}>
+                {p.charAt(0).toUpperCase() + p.slice(1)} (@{socialAccounts[p]})
+              </option>
+            ))}
+          </select>
+        )}
+
+        <div className="flex gap-2">
+          <Input
+            value={leftUrl}
+            onChange={(e) => setLeftUrl(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && !leftLoading && analyse(leftUrl, "left")}
+            placeholder={connectedPlatforms.length > 0 ? "Or paste a competitor URL…" : "Paste an Instagram, TikTok, or profile URL…"}
+            className="flex-1 text-sm h-9"
+            style={{ borderColor: "#E5DDD5" }}
+          />
+          <Button onClick={() => analyse(leftUrl, "left")} disabled={leftLoading || !leftUrl.trim()} size="sm"
+            className="shrink-0 gap-1.5" style={{ backgroundColor: "#F97066", color: "white" }}>
+            {leftLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
+            {leftLoading ? "Analysing…" : "Analyse"}
+          </Button>
+        </div>
+
+        {leftError && <p className="text-xs" style={{ color: "#ef4444" }}>{leftError}</p>}
+
+        {leftLoading && (
+          <div className="grid grid-cols-2 gap-2 pt-1">
+            {[...Array(6)].map((_, i) => (
+              <div key={i} className="h-14 rounded-xl animate-pulse" style={{ backgroundColor: "#F5F0EA" }} />
+            ))}
+          </div>
+        )}
+
+        {leftResult && !leftLoading && (
+          <div>
+            <ProfileAnalysisDisplay result={leftResult} />
+            <button
+              onClick={() => { setLeftResult(null); setLeftUrl(""); localStorage.removeItem(LS_PROFILE_LEFT_KEY) }}
+              className="mt-2 text-[10px] underline" style={{ color: "#C4B5A5" }}>
+              Clear
+            </button>
+          </div>
+        )}
+
+        {!leftResult && !leftLoading && !leftError && (
+          <p className="text-xs" style={{ color: "#C4B5A5" }}>
+            Select a connected account or paste any profile URL for content strategy analysis.
+          </p>
+        )}
+      </div>
+
+      {/* Right: Website / URL */}
+      <div className="rounded-2xl border bg-white p-5 space-y-3"
+        style={{ borderColor: "#E5DDD5", boxShadow: "0 1px 4px rgba(45,24,16,0.06)" }}>
+        <div className="flex items-center gap-2">
+          <div className="h-6 w-6 rounded-lg flex items-center justify-center" style={{ backgroundColor: "#FEF0EA" }}>
+            <Search className="h-3.5 w-3.5" style={{ color: "#D4432A" }} />
+          </div>
+          <span className="text-sm font-semibold" style={{ color: "#2D1810" }}>Website / URL Analyser</span>
+        </div>
+
+        <div className="flex gap-2">
+          <Input
+            value={rightUrl}
+            onChange={(e) => setRightUrl(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && !rightLoading && analyse(rightUrl, "right")}
+            placeholder="Paste any website, blog, or landing page URL…"
+            className="flex-1 text-sm h-9"
+            style={{ borderColor: "#E5DDD5" }}
+          />
+          <Button onClick={() => analyse(rightUrl, "right")} disabled={rightLoading || !rightUrl.trim()} size="sm"
+            className="shrink-0 gap-1.5" style={{ backgroundColor: "#F97066", color: "white" }}>
+            {rightLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
+            {rightLoading ? "Analysing…" : "Analyse"}
+          </Button>
+        </div>
+
+        {rightError && <p className="text-xs" style={{ color: "#ef4444" }}>{rightError}</p>}
+
+        {rightLoading && (
+          <div className="grid grid-cols-2 gap-2 pt-1">
+            {[...Array(6)].map((_, i) => (
+              <div key={i} className="h-14 rounded-xl animate-pulse" style={{ backgroundColor: "#F5F0EA" }} />
+            ))}
+          </div>
+        )}
+
+        {rightResult && !rightLoading && (
+          <div>
+            <ProfileAnalysisDisplay result={rightResult} />
+            <button
+              onClick={() => { setRightResult(null); setRightUrl(""); localStorage.removeItem(LS_PROFILE_RIGHT_KEY) }}
+              className="mt-2 text-[10px] underline" style={{ color: "#C4B5A5" }}>
+              Clear
+            </button>
+          </div>
+        )}
+
+        {!rightResult && !rightLoading && !rightError && (
+          <p className="text-xs" style={{ color: "#C4B5A5" }}>
+            Paste any website or URL to extract content strategy intelligence — great for competitor research.
+          </p>
+        )}
+      </div>
+    </div>
+  )
+}
+
+// ── Section 3: Niche Research ─────────────────────────────────────────────────
+
+const NICHE_CATEGORY_ICONS: Record<string, string> = {
+  angles: "💡", pain: "😣", trending: "🔥", formats: "🎯", gaps: "✦",
+}
+
+function NicheResearch({ opportunityResult }: { opportunityResult: ContentOpportunity | null }) {
+  const autoTopics: string[] = opportunityResult
+    ? [
+        ...(opportunityResult.topOpportunities?.map((o) => o.angle) ?? []),
+        ...(opportunityResult.contentGaps ?? []),
+      ]
+    : []
+
+  const [customTopics, setCustomTopics] = useState<string[]>(() =>
+    lsGet<string[]>(LS_NICHE_CUSTOM_KEY) ?? []
+  )
+  const allPills = [...autoTopics, ...customTopics]
+
+  const [selectedTopic, setSelectedTopic] = useState<string>("")
+  const [customInput, setCustomInput] = useState("")
+  const [nicheResults, setNicheResults] = useState<Record<string, NicheResearchResult>>(() =>
+    lsGet<Record<string, NicheResearchResult>>(LS_NICHE_RESULTS_KEY) ?? {}
+  )
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const hasAutoRunRef = useRef(false)
+
+  const researchTopic = async (topic: string) => {
+    const trimmed = topic.trim()
     if (!trimmed) return
-    setNicheLoading(true)
-    setNicheError(null)
-    setNicheResult(null)
+    setSelectedTopic(trimmed)
+    if (nicheResults[trimmed]) return // Already cached
+    setLoading(true)
+    setError(null)
     try {
       const res = await fetch("/api/research-niche", {
         method: "POST",
@@ -508,299 +941,202 @@ function ResearchStrip({ brand }: { brand: Brand | null }) {
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error ?? "Research failed")
-      setNicheResult(data)
-      lsSet(LS_NICHE_KEY, { topic: trimmed, result: data })
+      setNicheResults((prev) => {
+        const updated = { ...prev, [trimmed]: data }
+        lsSet(LS_NICHE_RESULTS_KEY, updated)
+        return updated
+      })
     } catch (err: unknown) {
-      setNicheError(err instanceof Error ? err.message : "Research failed.")
+      setError(err instanceof Error ? err.message : "Research failed.")
     } finally {
-      setNicheLoading(false)
+      setLoading(false)
     }
   }
 
-  const toggleNiche = (key: string) => setNicheOpen((prev) => prev === key ? null : key)
+  // Auto-research first pill once opportunity data arrives
+  useEffect(() => {
+    if (!hasAutoRunRef.current && allPills.length > 0) {
+      hasAutoRunRef.current = true
+      researchTopic(allPills[0])
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [allPills.length])
+
+  const addCustomTopic = () => {
+    const trimmed = customInput.trim()
+    if (!trimmed) return
+    if (!allPills.includes(trimmed)) {
+      const updated = [...customTopics, trimmed]
+      setCustomTopics(updated)
+      lsSet(LS_NICHE_CUSTOM_KEY, updated)
+    }
+    setCustomInput("")
+    researchTopic(trimmed)
+  }
+
+  const currentResult = selectedTopic ? nicheResults[selectedTopic] : null
+
+  const categories = [
+    { key: "angles",   label: "Content Angles",       items: currentResult?.contentAngles?.map((a) => a.angle) ?? [] },
+    { key: "pain",     label: "Audience Pain Points",  items: currentResult?.painPoints ?? [] },
+    { key: "trending", label: "Trending Topics",       items: currentResult?.trendingTopics ?? [] },
+    { key: "formats",  label: "Best Formats",          items: currentResult?.postingFormats?.map((f) => `${f.format} · ${f.priority} priority`) ?? [] },
+    { key: "gaps",     label: "Content Gaps",          items: currentResult?.contentGaps ?? [] },
+  ]
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+    <div className="rounded-2xl border bg-white p-5 space-y-4"
+      style={{ borderColor: "#E5DDD5", boxShadow: "0 1px 4px rgba(45,24,16,0.06)" }}>
+      <div className="flex items-center gap-2">
+        <div className="h-6 w-6 rounded-lg flex items-center justify-center" style={{ backgroundColor: "#FEF0EA" }}>
+          <Search className="h-3.5 w-3.5" style={{ color: "#D4432A" }} />
+        </div>
+        <span className="text-sm font-semibold" style={{ color: "#2D1810" }}>Niche Research</span>
+      </div>
 
-      {/* ── Left: Profile / Website Analyser ── */}
-      <div className="rounded-2xl border bg-white p-5 space-y-3"
-        style={{ borderColor: "#E5DDD5", boxShadow: "0 1px 4px rgba(45,24,16,0.06)" }}>
-        <div className="flex items-center gap-2">
-          <div className="h-6 w-6 rounded-lg flex items-center justify-center" style={{ backgroundColor: "#FEF0EA" }}>
-            <Globe className="h-3.5 w-3.5" style={{ color: "#D4432A" }} />
+      {/* Smart pills */}
+      {allPills.length > 0 && (
+        <div className="space-y-2">
+          <p className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: "#A07060" }}>
+            {autoTopics.length > 0 ? "From your content opportunity — click to research:" : "Your research topics:"}
+          </p>
+          <div className="flex flex-wrap gap-1.5">
+            {autoTopics.map((topic, i) => (
+              <button key={`auto-${i}`}
+                onClick={() => researchTopic(topic)}
+                className={cn(
+                  "text-xs px-3 py-1 rounded-full border font-medium transition-all",
+                  selectedTopic === topic
+                    ? "border-[#F97066] bg-[#F97066] text-white"
+                    : "border-[#F5C4BC] bg-[#FEF0EA] text-[#C05040] hover:bg-[#FDDBD8]"
+                )}>
+                {topic.length > 44 ? topic.substring(0, 44) + "…" : topic}
+              </button>
+            ))}
+            {customTopics.map((topic, i) => (
+              <button key={`custom-${i}`}
+                onClick={() => researchTopic(topic)}
+                className={cn(
+                  "text-xs px-3 py-1 rounded-full border font-medium transition-all",
+                  selectedTopic === topic
+                    ? "border-[#8B5CF6] bg-[#8B5CF6] text-white"
+                    : "border-[#DDD6FE] bg-[#F5F3FF] text-[#7C3AED] hover:bg-[#EDE9FE]"
+                )}>
+                {topic.length > 44 ? topic.substring(0, 44) + "…" : topic}
+              </button>
+            ))}
           </div>
-          <span className="text-sm font-semibold" style={{ color: "#2D1810" }}>Profile / Website Analyser</span>
         </div>
+      )}
 
-        <div className="flex gap-2">
-          <Input
-            value={profileUrl}
-            onChange={(e) => setProfileUrl(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && !profileLoading && analyseProfile()}
-            placeholder="Paste a URL (instagram.com/…, example.com)"
-            className="flex-1 text-sm h-9"
-            style={{ borderColor: "#E5DDD5" }}
-          />
-          <Button
-            onClick={analyseProfile}
-            disabled={profileLoading || !profileUrl.trim()}
-            size="sm"
-            className="shrink-0 gap-1.5"
-            style={{ backgroundColor: "#F97066", color: "white" }}
-          >
-            {profileLoading
-              ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              : <Sparkles className="h-3.5 w-3.5" />}
-            {profileLoading ? "Analysing…" : "Analyse"}
-          </Button>
+      {/* Custom input */}
+      <div className="flex gap-2">
+        <Input
+          value={customInput}
+          onChange={(e) => setCustomInput(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && !loading && addCustomTopic()}
+          placeholder={allPills.length > 0 ? "＋ Add your own topic…" : "Enter a niche or topic (e.g. plant-based fitness)"}
+          className="flex-1 text-sm h-9"
+          style={{ borderColor: "#E5DDD5" }}
+        />
+        <Button
+          onClick={addCustomTopic}
+          disabled={loading || !customInput.trim()}
+          size="sm"
+          className="shrink-0 gap-1.5"
+          style={{ backgroundColor: "#F97066", color: "white" }}>
+          {loading && selectedTopic === customInput.trim()
+            ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            : <Sparkles className="h-3.5 w-3.5" />}
+          Research
+        </Button>
+      </div>
+
+      {error && <p className="text-xs" style={{ color: "#ef4444" }}>{error}</p>}
+
+      {/* "Showing results for" label */}
+      {selectedTopic && (loading || currentResult) && (
+        <p className="text-xs" style={{ color: "#8A7060" }}>
+          {loading ? "Researching " : "Showing results for "}
+          <span className="font-semibold" style={{ color: "#2D1810" }}>
+            {selectedTopic.length > 60 ? selectedTopic.substring(0, 60) + "…" : selectedTopic}
+          </span>
+          {loading && <Loader2 className="inline h-3 w-3 animate-spin ml-1" style={{ color: "#F97066" }} />}
+        </p>
+      )}
+
+      {/* Loading skeleton */}
+      {loading && (
+        <div className="overflow-x-auto -mx-5 px-5">
+          <div className="grid grid-cols-5 gap-3 min-w-[900px]">
+            {[...Array(5)].map((_, i) => (
+              <div key={i} className="h-48 rounded-xl animate-pulse" style={{ backgroundColor: "#F5F0EA" }} />
+            ))}
+          </div>
         </div>
+      )}
 
-        {profileError && <p className="text-xs" style={{ color: "#ef4444" }}>{profileError}</p>}
-
-        {profileLoading && (
-          <div className="space-y-2 pt-1">
-            {[...Array(4)].map((_, i) => (
-              <div key={i} className="flex items-center gap-2">
-                <div className="h-3 w-14 rounded animate-pulse" style={{ backgroundColor: "#F5F0EA" }} />
-                <div className="h-5 w-28 rounded-full animate-pulse" style={{ backgroundColor: "#F5F0EA" }} />
+      {/* 5-card horizontal layout */}
+      {currentResult && !loading && (
+        <div className="overflow-x-auto -mx-5 px-5">
+          <div className="grid grid-cols-5 gap-3 min-w-[900px]">
+            {categories.map(({ key, label, items }) => (
+              <div key={key} className="rounded-xl border bg-[#FAFAF5] p-4 space-y-3"
+                style={{ borderColor: "#E5DDD5" }}>
+                <div className="flex items-center gap-1.5 pb-1 border-b" style={{ borderColor: "#F0EAE3" }}>
+                  <span className="text-base leading-none">{NICHE_CATEGORY_ICONS[key]}</span>
+                  <span className="text-xs font-bold leading-tight" style={{ color: "#2D1810" }}>{label}</span>
+                </div>
+                <ul className="space-y-2">
+                  {items.slice(0, 5).map((item, i) => (
+                    <li key={i} className="flex items-start gap-1.5">
+                      <span className="text-[10px] font-bold mt-0.5 shrink-0" style={{ color: "#F97066" }}>→</span>
+                      <span className="text-[11px] leading-relaxed" style={{ color: "#5A3828" }}>{item}</span>
+                    </li>
+                  ))}
+                </ul>
               </div>
             ))}
           </div>
-        )}
-
-        {profileResult && !profileLoading && (
-          <div className="space-y-1.5 pt-1">
-            {[
-              { label: "Niche", value: profileResult.niche },
-              { label: "Voice", value: profileResult.brandVoice },
-              { label: "Style", value: profileResult.postingStyle },
-              { label: "Audience", value: profileResult.targetAudience },
-            ].map(({ label, value }) => value ? (
-              <div key={label} className="flex items-start gap-2 text-xs">
-                <span className="shrink-0 font-semibold w-14 pt-0.5" style={{ color: "#8A7060" }}>{label}</span>
-                <span className="px-2 py-0.5 rounded-full text-xs leading-snug"
-                  style={{ backgroundColor: "#FEF0EA", color: "#D4432A" }}>
-                  {value.length > 60 ? value.substring(0, 60) + "…" : value}
-                </span>
-              </div>
-            ) : null)}
-
-            {profileResult.contentThemes?.length > 0 && (
-              <div className="flex items-start gap-2 text-xs">
-                <span className="shrink-0 font-semibold w-14 pt-0.5" style={{ color: "#8A7060" }}>Themes</span>
-                <div className="flex flex-wrap gap-1">
-                  {profileResult.contentThemes.slice(0, 6).map((t, i) => (
-                    <span key={i} className="px-1.5 py-0.5 rounded-full text-[10px]"
-                      style={{ backgroundColor: "#F5F0EA", color: "#7A5C50" }}>{t}</span>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {profileResult.topTopics?.length > 0 && (
-              <div className="flex items-start gap-2 text-xs">
-                <span className="shrink-0 font-semibold w-14 pt-0.5" style={{ color: "#8A7060" }}>Topics</span>
-                <div className="flex flex-wrap gap-1">
-                  {profileResult.topTopics.slice(0, 4).map((t, i) => (
-                    <span key={i} className="px-1.5 py-0.5 rounded-full text-[10px]"
-                      style={{ backgroundColor: "#F0F4FF", color: "#5B6AC4" }}>{t}</span>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {brand?.id && (
-              <Button size="sm" variant="outline" onClick={saveToBrand} disabled={savingToBrand}
-                className="h-6 text-[10px] gap-1 mt-1"
-                style={{ borderColor: "#E5DDD5", color: "#8A7060" }}>
-                {savingToBrand
-                  ? <Loader2 className="h-3 w-3 animate-spin" />
-                  : <Save className="h-3 w-3" />}
-                {savingToBrand ? "Saving…" : "Save to Brand"}
-              </Button>
-            )}
-          </div>
-        )}
-
-        {!profileResult && !profileLoading && !profileError && (
-          <p className="text-xs" style={{ color: "#C4B5A5" }}>
-            Paste any Instagram, TikTok, or website URL to extract brand intelligence.
-          </p>
-        )}
-      </div>
-
-      {/* ── Right: Niche Research ── */}
-      <div className="rounded-2xl border bg-white p-5 space-y-3"
-        style={{ borderColor: "#E5DDD5", boxShadow: "0 1px 4px rgba(45,24,16,0.06)" }}>
-        <div className="flex items-center gap-2">
-          <div className="h-6 w-6 rounded-lg flex items-center justify-center" style={{ backgroundColor: "#FEF0EA" }}>
-            <Search className="h-3.5 w-3.5" style={{ color: "#D4432A" }} />
-          </div>
-          <span className="text-sm font-semibold" style={{ color: "#2D1810" }}>Niche Research</span>
         </div>
+      )}
 
-        <div className="flex gap-2">
-          <Input
-            value={nicheTopic}
-            onChange={(e) => setNicheTopic(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && !nicheLoading && researchNiche()}
-            placeholder="Enter a niche or topic (e.g. plant-based fitness)"
-            className="flex-1 text-sm h-9"
-            style={{ borderColor: "#E5DDD5" }}
-          />
-          <Button
-            onClick={researchNiche}
-            disabled={nicheLoading || !nicheTopic.trim()}
-            size="sm"
-            className="shrink-0 gap-1.5"
-            style={{ backgroundColor: "#F97066", color: "white" }}
-          >
-            {nicheLoading
-              ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              : <Sparkles className="h-3.5 w-3.5" />}
-            {nicheLoading ? "Researching…" : "Research"}
-          </Button>
-        </div>
-
-        {nicheError && <p className="text-xs" style={{ color: "#ef4444" }}>{nicheError}</p>}
-
-        {nicheLoading && (
-          <div className="space-y-2 pt-1">
-            {[...Array(4)].map((_, i) => (
-              <div key={i} className="h-8 w-full rounded-xl animate-pulse" style={{ backgroundColor: "#F5F0EA" }} />
-            ))}
-          </div>
-        )}
-
-        {nicheResult && !nicheLoading && (
-          <div className="space-y-0.5">
-            {/* Trending Topics */}
-            {nicheResult.trendingTopics?.length > 0 && (
-              <div>
-                <button onClick={() => toggleNiche("trends")}
-                  className="flex items-center justify-between w-full text-xs font-semibold py-1.5 px-2 rounded-lg hover:bg-[#FEF0EA] transition-colors"
-                  style={{ color: "#2D1810" }}>
-                  <span>🔥 Trending Topics ({nicheResult.trendingTopics.length})</span>
-                  <ChevronDown className={cn("h-3.5 w-3.5 transition-transform shrink-0", nicheOpen === "trends" ? "rotate-180" : "")}
-                    style={{ color: "#8A7060" }} />
-                </button>
-                {nicheOpen === "trends" && (
-                  <div className="flex flex-wrap gap-1.5 px-2 pb-2">
-                    {nicheResult.trendingTopics.map((t, i) => (
-                      <span key={i} className="text-[10px] px-2 py-0.5 rounded-full font-medium"
-                        style={{ backgroundColor: "#FEF0EA", color: "#D4432A" }}>{t}</span>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Content Angles */}
-            {nicheResult.contentAngles?.length > 0 && (
-              <div>
-                <button onClick={() => toggleNiche("angles")}
-                  className="flex items-center justify-between w-full text-xs font-semibold py-1.5 px-2 rounded-lg hover:bg-[#FEF0EA] transition-colors"
-                  style={{ color: "#2D1810" }}>
-                  <span>💡 Content Angles ({nicheResult.contentAngles.length})</span>
-                  <ChevronDown className={cn("h-3.5 w-3.5 transition-transform shrink-0", nicheOpen === "angles" ? "rotate-180" : "")}
-                    style={{ color: "#8A7060" }} />
-                </button>
-                {nicheOpen === "angles" && (
-                  <div className="space-y-1.5 px-2 pb-2">
-                    {nicheResult.contentAngles.slice(0, 5).map((a, i) => (
-                      <div key={i} className="text-xs" style={{ color: "#2D1810" }}>
-                        <span className="font-semibold" style={{ color: "#F97066" }}>{i + 1}. </span>
-                        {a.angle}
-                        {a.rationale && (
-                          <span className="ml-1 text-[10px]" style={{ color: "#8A7060" }}>— {a.rationale}</span>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Pain Points */}
-            {nicheResult.painPoints?.length > 0 && (
-              <div>
-                <button onClick={() => toggleNiche("pain")}
-                  className="flex items-center justify-between w-full text-xs font-semibold py-1.5 px-2 rounded-lg hover:bg-[#FEF0EA] transition-colors"
-                  style={{ color: "#2D1810" }}>
-                  <span>😣 Pain Points ({nicheResult.painPoints.length})</span>
-                  <ChevronDown className={cn("h-3.5 w-3.5 transition-transform shrink-0", nicheOpen === "pain" ? "rotate-180" : "")}
-                    style={{ color: "#8A7060" }} />
-                </button>
-                {nicheOpen === "pain" && (
-                  <div className="space-y-1 px-2 pb-2">
-                    {nicheResult.painPoints.map((p, i) => (
-                      <p key={i} className="text-xs" style={{ color: "#7A5C50" }}>• {p}</p>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Content Gaps */}
-            {nicheResult.contentGaps?.length > 0 && (
-              <div>
-                <button onClick={() => toggleNiche("gaps")}
-                  className="flex items-center justify-between w-full text-xs font-semibold py-1.5 px-2 rounded-lg hover:bg-[#FEF0EA] transition-colors"
-                  style={{ color: "#2D1810" }}>
-                  <span>✦ Content Gaps ({nicheResult.contentGaps.length})</span>
-                  <ChevronDown className={cn("h-3.5 w-3.5 transition-transform shrink-0", nicheOpen === "gaps" ? "rotate-180" : "")}
-                    style={{ color: "#8A7060" }} />
-                </button>
-                {nicheOpen === "gaps" && (
-                  <div className="space-y-1 px-2 pb-2">
-                    {nicheResult.contentGaps.map((g, i) => (
-                      <p key={i} className="text-xs" style={{ color: "#7A5C50" }}>• {g}</p>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Posting Formats */}
-            {nicheResult.postingFormats?.length > 0 && (
-              <div>
-                <button onClick={() => toggleNiche("formats")}
-                  className="flex items-center justify-between w-full text-xs font-semibold py-1.5 px-2 rounded-lg hover:bg-[#FEF0EA] transition-colors"
-                  style={{ color: "#2D1810" }}>
-                  <span>🎯 Best Formats ({nicheResult.postingFormats.length})</span>
-                  <ChevronDown className={cn("h-3.5 w-3.5 transition-transform shrink-0", nicheOpen === "formats" ? "rotate-180" : "")}
-                    style={{ color: "#8A7060" }} />
-                </button>
-                {nicheOpen === "formats" && (
-                  <div className="space-y-1.5 px-2 pb-2">
-                    {nicheResult.postingFormats.map((f, i) => (
-                      <div key={i} className="flex items-center gap-2 text-xs">
-                        <span className="font-semibold" style={{ color: "#2D1810" }}>{f.format}</span>
-                        <span className="text-[9px] px-1.5 py-0.5 rounded-full font-semibold"
-                          style={{
-                            backgroundColor: f.priority === "high" ? "#FFF7ED" : f.priority === "medium" ? "#FFFBEB" : "#F8FAFC",
-                            color: f.priority === "high" ? "#C2410C" : f.priority === "medium" ? "#92400E" : "#64748B",
-                          }}>
-                          {f.priority}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-        )}
-
-        {!nicheResult && !nicheLoading && !nicheError && (
-          <p className="text-xs" style={{ color: "#C4B5A5" }}>
-            Enter any niche and Claude will analyse content angles, audience needs, trending topics, and gaps.
-          </p>
-        )}
-      </div>
+      {!selectedTopic && allPills.length === 0 && !loading && (
+        <p className="text-xs" style={{ color: "#C4B5A5" }}>
+          Enter any niche and Claude will analyse content angles, audience needs, trending topics, and gaps.
+        </p>
+      )}
     </div>
   )
 }
+
+// ── Research Strip (wrapper) ──────────────────────────────────────────────────
+
+function ResearchStrip({
+  brand,
+  socialAccounts,
+  userId,
+}: {
+  brand: Brand | null
+  socialAccounts: Record<string, string>
+  userId: string
+}) {
+  const [opportunityResult, setOpportunityResult] = useState<ContentOpportunity | null>(null)
+
+  return (
+    <div className="space-y-6">
+      <ContentOpportunityHero
+        brand={brand}
+        socialAccounts={socialAccounts}
+        userId={userId}
+        onOpportunityLoaded={setOpportunityResult}
+      />
+      <DualColumnAnalyser socialAccounts={socialAccounts} />
+      <NicheResearch opportunityResult={opportunityResult} />
+    </div>
+  )
+}
+
 
 // ── Pillars Strip ─────────────────────────────────────────────────────────────
 
@@ -1036,9 +1372,13 @@ function PillarsStrip({ brand, initialPillars }: { brand: Brand | null; initialP
 export function ContentCreatorClient({
   brand,
   initialPillars,
+  socialAccounts,
+  userId,
 }: {
   brand: Brand | null
   initialPillars: ContentPillar[]
+  socialAccounts: Record<string, string>
+  userId: string
 }) {
   const supabase = createClient()
   const { toast } = useToast()
@@ -1399,7 +1739,7 @@ export function ContentCreatorClient({
       {/* ══ Section 1: Research ══ */}
       <div>
         <SectionLabel label="Research" icon={<Search className="h-3.5 w-3.5" />} />
-        <ResearchStrip brand={brand} />
+        <ResearchStrip brand={brand} socialAccounts={socialAccounts} userId={userId} />
       </div>
 
       <div style={{ borderTop: "1px solid #E5DDD5" }} />

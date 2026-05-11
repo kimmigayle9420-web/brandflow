@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
 
-function stripHtml(html: string): string {
+export function stripHtml(html: string): string {
   return html
     .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, " ")
     .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, " ")
@@ -10,8 +10,7 @@ function stripHtml(html: string): string {
     .trim()
 }
 
-function extractMetaContent(html: string, nameOrProperty: string): string {
-  // Matches <meta name="..." content="..."> or <meta property="..." content="...">
+export function extractMetaContent(html: string, nameOrProperty: string): string {
   const re = new RegExp(
     `<meta[^>]+(?:name|property)=["']${nameOrProperty}["'][^>]+content=["']([^"']*)["']`,
     "i"
@@ -23,8 +22,40 @@ function extractMetaContent(html: string, nameOrProperty: string): string {
   return html.match(re)?.[1] ?? html.match(re2)?.[1] ?? ""
 }
 
+export async function fetchPageText(url: string): Promise<string> {
+  try {
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 8000)
+    const res = await fetch(url, {
+      headers: {
+        "User-Agent":
+          "Mozilla/5.0 (compatible; BrandFlow/1.0; +https://brandflow.app) AppleWebKit/537.36",
+        Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        "Accept-Language": "en-US,en;q=0.5",
+      },
+      signal: controller.signal,
+    })
+    clearTimeout(timeoutId)
+    if (res.ok) {
+      const html = await res.text()
+      const title = html.match(/<title[^>]*>([^<]*)<\/title>/i)?.[1]?.trim() ?? ""
+      const description = extractMetaContent(html, "description")
+      const ogTitle = extractMetaContent(html, "og:title")
+      const ogDesc = extractMetaContent(html, "og:description")
+      const ogType = extractMetaContent(html, "og:type")
+      const bodyText = stripHtml(html).slice(0, 2500)
+      return [title, ogTitle, ogType, description, ogDesc, bodyText]
+        .filter(Boolean)
+        .join(" | ")
+        .slice(0, 3000)
+    }
+  } catch {
+    // fall through
+  }
+  return "(Page content could not be fetched — analyse from URL only)"
+}
+
 export async function POST(request: Request) {
-  // Guard: API key must be configured
   const apiKey = process.env.ANTHROPIC_API_KEY
   if (!apiKey || apiKey === "placeholder-key" || apiKey.trim() === "") {
     const isProduction = process.env.NODE_ENV === "production"
@@ -34,16 +65,12 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: msg }, { status: 503 })
   }
 
-  // Auth check
   const supabase = createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const { data: { user } } = await supabase.auth.getUser()
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
 
-  // Parse body
   let url: string
   try {
     const body = await request.json()
@@ -56,46 +83,9 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "URL is required" }, { status: 400 })
   }
 
-  // Normalise URL
   const normalizedUrl = /^https?:\/\//i.test(url) ? url : `https://${url}`
+  const extractedText = await fetchPageText(normalizedUrl)
 
-  // Attempt to fetch page content
-  let extractedText = ""
-  try {
-    const controller = new AbortController()
-    const timeoutId = setTimeout(() => controller.abort(), 8000)
-
-    const res = await fetch(normalizedUrl, {
-      headers: {
-        "User-Agent":
-          "Mozilla/5.0 (compatible; BrandFlow/1.0; +https://brandflow.app) AppleWebKit/537.36",
-        Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-        "Accept-Language": "en-US,en;q=0.5",
-      },
-      signal: controller.signal,
-    })
-    clearTimeout(timeoutId)
-
-    if (res.ok) {
-      const html = await res.text()
-      const title = html.match(/<title[^>]*>([^<]*)<\/title>/i)?.[1]?.trim() ?? ""
-      const description = extractMetaContent(html, "description")
-      const ogTitle = extractMetaContent(html, "og:title")
-      const ogDesc = extractMetaContent(html, "og:description")
-      const ogType = extractMetaContent(html, "og:type")
-      const bodyText = stripHtml(html).slice(0, 2500)
-
-      extractedText = [title, ogTitle, ogType, description, ogDesc, bodyText]
-        .filter(Boolean)
-        .join(" | ")
-        .slice(0, 3000)
-    }
-  } catch {
-    // Fall back to analysing from the URL string alone
-    extractedText = "(Page content could not be fetched — analyse from URL only)"
-  }
-
-  // Send to Claude Haiku for brand intelligence extraction
   try {
     const response = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
@@ -106,22 +96,23 @@ export async function POST(request: Request) {
       },
       body: JSON.stringify({
         model: "claude-haiku-4-5-20251001",
-        max_tokens: 800,
+        max_tokens: 1000,
         messages: [
           {
             role: "user",
-            content: `Analyse this social media profile or website content and extract brand intelligence.
+            content: `You are a content strategy expert. Analyse this social media profile or website and give a content creator actionable intelligence they can use to improve their own content strategy.
 
 URL: ${normalizedUrl}
 Content: ${extractedText}
 
-Return a JSON object with:
-- "niche": the primary niche/industry (2-4 words)
-- "contentThemes": array of 4-6 content theme tags
-- "postingStyle": brief description of their content style (1 sentence)
-- "targetAudience": who they seem to target (1 sentence)
-- "topTopics": array of 4-5 specific topics they cover
-- "brandVoice": tone description (e.g. "Educational and motivational", "Casual and relatable")
+Return a JSON object with these exact keys:
+- "contentStrategy": 1-2 sentences describing what content is working for this account and why
+- "postingPatterns": 1 sentence describing their posting frequency, timing, and format mix
+- "hookStyles": array of 3-4 short strings describing hook styles they use (e.g. "Controversial takes", "Personal story openers")
+- "topicClusters": array of 4-5 short strings of the main topic clusters they own
+- "toneAndVoice": 1 sentence describing their tone, voice, and personality
+- "whatToSteal": array of exactly 3 short actionable strings — specific tactics or ideas a competitor could adopt (start with a verb, e.g. "Use before/after transformations", "Post behind-the-scenes process content")
+- "gaps": array of 2-3 short strings describing what this account is NOT doing that represents an opportunity
 
 Return ONLY raw JSON, no markdown.`,
           },
@@ -147,7 +138,6 @@ Return ONLY raw JSON, no markdown.`,
     return NextResponse.json(data)
   } catch (error: any) {
     console.error("[research-profile] Error:", error?.message ?? error)
-
     if (error?.status === 401) {
       const isProduction = process.env.NODE_ENV === "production"
       const msg = isProduction
@@ -155,7 +145,6 @@ Return ONLY raw JSON, no markdown.`,
         : "Invalid Anthropic API key. Check ANTHROPIC_API_KEY in .env.local."
       return NextResponse.json({ error: msg }, { status: 503 })
     }
-
     return NextResponse.json(
       { error: "Analysis failed: " + (error?.message ?? String(error)) },
       { status: 500 }
