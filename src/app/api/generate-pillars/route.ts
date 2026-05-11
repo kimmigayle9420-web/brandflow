@@ -41,7 +41,7 @@ export async function POST(request: Request) {
     const client = new Anthropic({ apiKey })
 
     const message = await client.messages.create({
-      model: "claude-haiku-4-5-20251001",
+      model: "claude-3-5-haiku-20241022",
       max_tokens: 1200,
       messages: [
         {
@@ -86,7 +86,7 @@ Return ONLY the raw JSON array. No markdown, no code fences, no explanation, no 
 
     return NextResponse.json({ pillars: normalised })
   } catch (error: any) {
-    console.error("[generate-pillars] Error:", error)
+    console.error("[generate-pillars] Error:", error?.message ?? error, "status:", error?.status)
 
     // Surface auth errors clearly
     if (error?.status === 401) {
