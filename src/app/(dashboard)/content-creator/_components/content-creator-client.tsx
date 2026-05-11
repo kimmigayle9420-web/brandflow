@@ -2589,7 +2589,7 @@ function GenerationStrip({
       const { data, error } = await (supabase.from("ideas") as any).insert(payload).select().single()
       if (error) {
         const msg = error.message ?? ""
-        if (msg.includes("relation") || msg.includes("does not exist") || msg.includes("table") || msg.includes("ideas")) {
+        if (msg.includes("relation") && msg.includes("does not exist")) {
           toast({
             title: "Ideas Bank needs a database setup",
             description: "Check Settings to run the migration SQL.",
@@ -3478,7 +3478,7 @@ export function ContentCreatorClient({
       .order("created_at", { ascending: false })
     if (error) {
       const msg = error.message ?? ""
-      if (msg.includes("relation") || msg.includes("does not exist") || msg.includes("ideas")) {
+      if (msg.includes("relation") && msg.includes("does not exist")) {
         setShowMigrationBanner(true)
       }
     }
