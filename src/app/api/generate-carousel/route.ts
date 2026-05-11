@@ -32,16 +32,31 @@ export async function POST(request: Request) {
     )
   }
 
-  let body: { topic?: string; slideCount?: number; brandName?: string; niche?: string; tone?: string; targetAudience?: string }
+  let body: {
+    topic?: string
+    slideCount?: number
+    brandName?: string
+    niche?: string
+    tone?: string
+    targetAudience?: string
+    pillarName?: string
+    pillarVoiceDirection?: string
+    pillarFormatPreference?: string
+  }
   try {
     body = await request.json()
   } catch {
     return NextResponse.json({ error: 'Invalid request body' }, { status: 400 })
   }
 
-  const { topic, slideCount = 5, brandName, niche, tone, targetAudience } = body
+  const { topic, slideCount = 5, brandName, niche, tone, targetAudience, pillarName, pillarVoiceDirection, pillarFormatPreference } = body
   const clampedCount = Math.min(10, Math.max(3, slideCount))
   const contentSlideCount = clampedCount - 2 // minus cover + CTA
+
+  const pillarContext = pillarName ? `
+Content Pillar: ${pillarName}
+${pillarVoiceDirection ? `Voice direction: ${pillarVoiceDirection}` : ''}
+${pillarFormatPreference && pillarFormatPreference !== 'any' ? `Preferred format: ${pillarFormatPreference}` : ''}` : ''
 
   const prompt = `You are an expert carousel content strategist for Instagram and LinkedIn.
 
@@ -52,6 +67,7 @@ Brand context:
 - Target audience: ${targetAudience || 'general audience'}
 - Carousel topic: ${topic || 'general content'}
 - Total slides requested: ${clampedCount}
+${pillarContext}
 
 ${NBP_EXAMPLE}
 
@@ -64,7 +80,7 @@ Quality rules:
 - Every slide must be value-dense and specific to this niche — no generic advice
 - Bullet points should be concrete, specific insights — not vague ("eat better" is bad; "cut seed oils for 2 weeks first" is good)
 - Content must flow logically: problem → insight → solution → action
-- CTA must tell them exactly what to do and why right now
+- CTA must tell them exactly what to do and why right now${pillarVoiceDirection ? `\n- Voice and tone throughout: ${pillarVoiceDirection}` : ''}
 
 Return ONLY a valid JSON object — no markdown fences, no explanation:
 {

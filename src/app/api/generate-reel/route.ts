@@ -35,17 +35,32 @@ export async function POST(request: Request) {
     )
   }
 
-  let body: { concept?: string; duration?: string; brandName?: string; niche?: string; tone?: string; targetAudience?: string }
+  let body: {
+    concept?: string
+    duration?: string
+    brandName?: string
+    niche?: string
+    tone?: string
+    targetAudience?: string
+    pillarName?: string
+    pillarVoiceDirection?: string
+    pillarFormatPreference?: string
+  }
   try {
     body = await request.json()
   } catch {
     return NextResponse.json({ error: 'Invalid request body' }, { status: 400 })
   }
 
-  const { concept, duration = '30s', brandName, niche, tone, targetAudience } = body
+  const { concept, duration = '30s', brandName, niche, tone, targetAudience, pillarName, pillarVoiceDirection, pillarFormatPreference } = body
 
   const sceneCount = duration === '15s' ? 3 : duration === '30s' ? 4 : duration === '60s' ? 6 : 8
   const voiceoverLength = duration === '15s' ? '25–40' : duration === '30s' ? '50–70' : duration === '60s' ? '90–120' : '150–200'
+
+  const pillarContext = pillarName ? `
+Content Pillar: ${pillarName}
+${pillarVoiceDirection ? `Voice direction: ${pillarVoiceDirection}` : ''}
+${pillarFormatPreference && pillarFormatPreference !== 'any' ? `Preferred format: ${pillarFormatPreference}` : ''}` : ''
 
   const prompt = `You are an expert short-form video content strategist for Instagram Reels and TikTok.
 
@@ -56,6 +71,7 @@ Brand context:
 - Target audience: ${targetAudience || 'general audience'}
 - Reel concept: ${concept || 'general content'}
 - Duration: ${duration}
+${pillarContext}
 
 ${NBP_EXAMPLE}
 
@@ -65,7 +81,7 @@ HOOK (0:00–0:03): The exact first 3 seconds. Must immediately create curiosity
 
 SCENES (${sceneCount} total): Each scene has a timestamp + specific description of what to film and/or say. Be concrete and visual — not vague.
 
-VOICEOVER (~${voiceoverLength} words): A cohesive spoken script for the whole reel. Should feel natural, not scripted. Match the brand's tone exactly.
+VOICEOVER (~${voiceoverLength} words): A cohesive spoken script for the whole reel. Should feel natural, not scripted. Match the brand's tone exactly.${pillarVoiceDirection ? ` Voice direction for this pillar: ${pillarVoiceDirection}.` : ''}
 
 AUDIO MOOD: Specific genre + vibe + example artist/song if possible.
 

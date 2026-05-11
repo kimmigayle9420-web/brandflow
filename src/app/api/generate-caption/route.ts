@@ -37,14 +37,29 @@ export async function POST(request: Request) {
     )
   }
 
-  let body: { hook?: string; notes?: string; brandName?: string; niche?: string; tone?: string; targetAudience?: string }
+  let body: {
+    hook?: string
+    notes?: string
+    brandName?: string
+    niche?: string
+    tone?: string
+    targetAudience?: string
+    pillarName?: string
+    pillarVoiceDirection?: string
+    pillarFormatPreference?: string
+  }
   try {
     body = await request.json()
   } catch {
     return NextResponse.json({ error: 'Invalid request body' }, { status: 400 })
   }
 
-  const { hook, notes, brandName, niche, tone, targetAudience } = body
+  const { hook, notes, brandName, niche, tone, targetAudience, pillarName, pillarVoiceDirection, pillarFormatPreference } = body
+
+  const pillarContext = pillarName ? `
+Content Pillar: ${pillarName}
+${pillarVoiceDirection ? `Voice direction: ${pillarVoiceDirection}` : ''}
+${pillarFormatPreference && pillarFormatPreference !== 'any' ? `Preferred format: ${pillarFormatPreference}` : ''}` : ''
 
   const prompt = `You are an expert social media caption writer who creates scroll-stopping, on-brand content.
 
@@ -55,6 +70,7 @@ Brand context:
 - Target audience: ${targetAudience || 'general audience'}
 - Hook to open with: ${hook || 'general content hook'}
 ${notes ? `- Additional context / notes: ${notes}` : ''}
+${pillarContext}
 
 ${NBP_EXAMPLE}
 
@@ -63,7 +79,7 @@ Write a full Instagram caption that:
 2. Delivers genuine value — insight, story, practical tip, or relatable experience
 3. Uses line breaks and white space for easy reading
 4. Ends with a strong, specific CTA (not generic "follow me for more")
-5. Matches the brand's exact tone of voice
+5. Matches the brand's exact tone of voice${pillarVoiceDirection ? ` — specifically: ${pillarVoiceDirection}` : ''}
 6. Runs 150–300 words (substantial but not overwhelming)
 7. Uses 1–3 relevant emojis woven naturally (not one at the end of every line)
 8. Does NOT include hashtags (those come separately)

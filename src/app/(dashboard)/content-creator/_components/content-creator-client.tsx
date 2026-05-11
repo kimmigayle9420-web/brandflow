@@ -14,7 +14,7 @@ import {
   ChevronLeft, ChevronRight, ImageIcon, RefreshCw,
   FileText, Film, LayoutGrid, Save, Download, Wand2,
   Hash, AlignLeft, Music, Globe, Search, Layers, Plus, Trash2,
-  Bookmark, BookmarkCheck, ArrowLeft, Zap, Type, Mic2,
+  Bookmark, BookmarkCheck, ArrowLeft, Zap, Type, Mic2, Pencil,
 } from "lucide-react"
 import type { Brand, ContentPillar, Idea } from "@/types"
 
@@ -80,9 +80,11 @@ type GeneratedPillar = {
   name: string
   emoji: string
   description: string
+  perspective: string
   postIdeas: string[]
-  voice_direction?: string
-  format_preference?: string
+  voice_direction: string
+  format_preference: string
+  weekly_quota: number
 }
 
 type SavedInsight = {
@@ -103,6 +105,15 @@ const PILLAR_COLORS = [
   "#f97316", "#ec4899", "#8b5cf6", "#6366f1",
   "#14b8a6", "#22c55e", "#eab308", "#f43f5e",
   "#0ea5e9", "#64748b",
+]
+
+const PILLAR_PASTELS = [
+  { bg: "#FEF0EA", border: "#F5C4BC", accent: "#D4432A", text: "#7A2015" },  // coral
+  { bg: "#F0F7EE", border: "#B8DDB0", accent: "#3A7D44", text: "#1A4D25" },  // sage
+  { bg: "#FFFBEA", border: "#F5DFA0", accent: "#B07D10", text: "#6B4D00" },  // amber
+  { bg: "#F3F0FF", border: "#C9BFF0", accent: "#6B5EA8", text: "#3A2D78" },  // lavender
+  { bg: "#FFF5F0", border: "#F5C8B0", accent: "#C05830", text: "#7A2810" },  // peach
+  { bg: "#EFF7FF", border: "#B0D0F0", accent: "#2070B8", text: "#103A68" },  // sky
 ]
 
 const LS_OPPORTUNITY_KEY_PREFIX = "content-opportunity"
@@ -1253,28 +1264,40 @@ function PillarsStrip({ brand, initialPillars, onPillarsChange }: {
   const { toast } = useToast()
 
   const [savedPillars, setSavedPillars] = useState<ContentPillar[]>(initialPillars)
-  const [expanded, setExpanded] = useState(false)
   const [niche, setNiche] = useState(brand?.niche ?? "")
   const [generated, setGenerated] = useState<GeneratedPillar[]>([])
   const [editedPillars, setEditedPillars] = useState<GeneratedPillar[]>([])
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [editingPillarId, setEditingPillarId] = useState<string | null>(null)
+  const [regenWarning, setRegenWarning] = useState(false)
+  const [regenNiche, setRegenNiche] = useState(brand?.niche ?? "")
 
   useEffect(() => { setEditedPillars(generated) }, [generated])
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { onPillarsChange?.(savedPillars) }, [savedPillars])
 
-  const updateField = (
-    index: number,
-    field: keyof Pick<GeneratedPillar, "name" | "emoji" | "description" | "voice_direction" | "format_preference">,
-    value: string
-  ) => {
+  // ── helpers ─────────────────────────────────────────────────────────────────
+
+  const updateField = (index: number, field: keyof GeneratedPillar, value: string | number) => {
     setEditedPillars((prev) => prev.map((p, i) => (i === index ? { ...p, [field]: value } : p)))
   }
 
-  const generate = async () => {
-    const trimmed = niche.trim()
+  const addEmptyPillar = () => {
+    if (editedPillars.length >= 6) return
+    setEditedPillars((prev) => [...prev, {
+      name: "New Pillar", emoji: "📌", description: "", perspective: "",
+      postIdeas: [], voice_direction: "", format_preference: "any", weekly_quota: 2,
+    }])
+  }
+
+  const removeGeneratedPillar = (index: number) => {
+    setEditedPillars((prev) => prev.filter((_, i) => i !== index))
+  }
+
+  const generate = async (nicheOverride?: string) => {
+    const trimmed = (nicheOverride ?? niche).trim()
     if (!trimmed) return
     setLoading(true)
     setError(null)
@@ -1288,6 +1311,7 @@ function PillarsStrip({ brand, initialPillars, onPillarsChange }: {
       const data = await res.json()
       if (!res.ok) throw new Error(data.error ?? "Generation failed")
       setGenerated(data.pillars)
+      setRegenWarning(false)
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Something went wrong.")
     } finally {
@@ -1295,32 +1319,36 @@ function PillarsStrip({ brand, initialPillars, onPillarsChange }: {
     }
   }
 
-  const savePillars = async () => {
+  const saveAllPillars = async () => {
     if (!brand?.id || editedPillars.length === 0) return
     setSaving(true)
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { toast({ title: "Not logged in", variant: "destructive" }); setSaving(false); return }
+
+    // Delete all existing pillars for this brand first
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await (supabase.from("content_pillars") as any).delete().eq("brand_id", brand.id)
+
     const inserts = editedPillars.map((p, i) => ({
       brand_id: brand.id,
       user_id: user.id,
-      name: p.name.trim(),
+      name: p.name.trim() || "Untitled",
       emoji: p.emoji || "📌",
-      description: p.description || null,
+      description: p.perspective || p.description || null,
       voice_direction: p.voice_direction || null,
       format_preference: p.format_preference || "any",
-      weekly_quota: 2,
+      weekly_quota: p.weekly_quota ?? 2,
       color: PILLAR_COLORS[i % PILLAR_COLORS.length],
-      sort_order: savedPillars.length + i,
+      sort_order: i,
     }))
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data: inserted, error: dbError } = await supabase.from("content_pillars").insert(inserts as any).select()
+    const { data: inserted, error: dbError } = await (supabase.from("content_pillars") as any).insert(inserts).select()
     if (dbError) {
       toast({ title: "Failed to save pillars", description: dbError.message, variant: "destructive" })
     } else {
-      setSavedPillars((prev) => [...prev, ...(inserted ?? [])])
+      setSavedPillars(inserted ?? [])
       setGenerated([])
-      setExpanded(false)
-      toast({ title: `${editedPillars.length} pillars saved!` })
+      toast({ title: `✓ ${editedPillars.length} pillars saved!` })
     }
     setSaving(false)
   }
@@ -1330,164 +1358,464 @@ function PillarsStrip({ brand, initialPillars, onPillarsChange }: {
     if (error) { toast({ title: "Failed to delete", variant: "destructive" }) }
     else {
       setSavedPillars((prev) => prev.filter((p) => p.id !== pillarId))
+      if (editingPillarId === pillarId) setEditingPillarId(null)
       toast({ title: "Pillar deleted" })
     }
   }
 
-  return (
-    <div className="rounded-2xl border bg-white p-5 space-y-3"
-      style={{ borderColor: "#E5DDD5", boxShadow: "0 1px 4px rgba(45,24,16,0.06)" }}>
+  const updateSavedPillar = async (pillarId: string, fields: Partial<ContentPillar>) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { error } = await (supabase.from("content_pillars") as any).update(fields).eq("id", pillarId)
+    if (error) { toast({ title: "Failed to update", variant: "destructive" }) }
+    else {
+      setSavedPillars((prev) => prev.map((p) => p.id === pillarId ? { ...p, ...fields } : p))
+    }
+  }
 
-      {/* Top row: header + pills + button */}
-      <div className="flex items-center gap-2 flex-wrap">
-        <div className="flex items-center gap-2 shrink-0">
-          <div className="h-6 w-6 rounded-lg flex items-center justify-center" style={{ backgroundColor: "#FEF0EA" }}>
-            <Layers className="h-3.5 w-3.5" style={{ color: "#D4432A" }} />
+  // ── Rotation preview ─────────────────────────────────────────────────────────
+
+  const buildRotation = (pillars: ContentPillar[]) => {
+    const pool: ContentPillar[] = []
+    pillars.forEach((p) => { for (let i = 0; i < (p.weekly_quota ?? 2); i++) pool.push(p) })
+    const days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+    return days.map((day, i) => ({ day, pillar: pool.length > 0 ? pool[i % pool.length] : null }))
+  }
+
+  // ── State: no pillars and nothing generated ──────────────────────────────────
+
+  if (savedPillars.length === 0 && generated.length === 0 && !loading) {
+    return (
+      <div className="rounded-2xl border bg-white p-6 space-y-5"
+        style={{ borderColor: "#E5DDD5", boxShadow: "0 1px 4px rgba(45,24,16,0.06)" }}>
+        <div className="flex items-center gap-2">
+          <div className="h-7 w-7 rounded-lg flex items-center justify-center" style={{ backgroundColor: "#FEF0EA" }}>
+            <Layers className="h-4 w-4" style={{ color: "#D4432A" }} />
           </div>
           <span className="text-sm font-semibold" style={{ color: "#2D1810" }}>Content Pillars</span>
         </div>
 
-        <div className="flex items-center gap-1.5 flex-wrap flex-1 min-w-0">
-          {savedPillars.length > 0 ? (
-            savedPillars.map((pillar) => (
-              <div key={pillar.id}
-                className="group flex items-center gap-1.5 px-3 py-1 rounded-full border text-xs font-medium shrink-0"
-                style={{ backgroundColor: pillar.color + "18", color: pillar.color, borderColor: pillar.color + "45" }}>
-                <span>{pillar.name}</span>
-                <button onClick={() => deletePillar(pillar.id)}
-                  className="opacity-0 group-hover:opacity-100 transition-opacity hover:text-red-500 shrink-0">
-                  <Trash2 className="h-2.5 w-2.5" />
-                </button>
-              </div>
-            ))
-          ) : (
-            !expanded && (
-              <span className="text-xs" style={{ color: "#C4B5A5" }}>No pillars yet — generate some below</span>
-            )
-          )}
+        <div className="space-y-2 max-w-lg">
+          <p className="text-sm font-medium" style={{ color: "#5A3828" }}>
+            Your pillars are creative lenses — distinct angles that shape every piece of content you create.
+          </p>
+          <p className="text-xs" style={{ color: "#A07060" }}>
+            Each pillar has its own voice, format preference, and weekly posting rhythm. Once generated, they'll guide all your AI-assisted content.
+          </p>
         </div>
 
-        <Button size="sm" variant="outline" onClick={() => setExpanded((v) => !v)}
-          className="gap-1.5 h-7 text-xs shrink-0"
-          style={{ borderColor: "#E5DDD5", color: "#7A5C50" }}>
-          {expanded
-            ? <ChevronUp className="h-3 w-3" />
-            : <Plus className="h-3 w-3" />}
-          {expanded ? "Collapse" : "Generate Pillars"}
-        </Button>
+        {error && <p className="text-xs rounded-lg px-3 py-2" style={{ color: "#ef4444", backgroundColor: "#FFF0F0" }}>{error}</p>}
+
+        <div className="flex gap-2 max-w-xl">
+          <Input
+            placeholder="Describe your niche (e.g. sustainable fashion, fitness for mums)"
+            value={niche}
+            onChange={(e) => setNiche(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && !loading && generate()}
+            className="flex-1 text-sm"
+            style={{ borderColor: "#E5DDD5" }}
+          />
+          <Button onClick={() => generate()} disabled={loading || !niche.trim()}
+            className="gap-1.5 shrink-0 font-semibold"
+            style={{ backgroundColor: "#F97066", color: "white" }}>
+            <Sparkles className="h-4 w-4" />
+            Generate My Pillars
+          </Button>
+        </div>
+      </div>
+    )
+  }
+
+  // ── State: loading skeleton ──────────────────────────────────────────────────
+
+  if (loading) {
+    return (
+      <div className="rounded-2xl border bg-white p-6 space-y-5"
+        style={{ borderColor: "#E5DDD5", boxShadow: "0 1px 4px rgba(45,24,16,0.06)" }}>
+        <div className="flex items-center gap-2">
+          <div className="h-7 w-7 rounded-lg flex items-center justify-center" style={{ backgroundColor: "#FEF0EA" }}>
+            <Loader2 className="h-4 w-4 animate-spin" style={{ color: "#D4432A" }} />
+          </div>
+          <span className="text-sm font-semibold" style={{ color: "#2D1810" }}>Generating pillars…</span>
+          <span className="text-xs" style={{ color: "#A07060" }}>Claude is crafting 5 creative lenses for your brand</span>
+        </div>
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+          {[...Array(5)].map((_, i) => (
+            <div key={i} className="h-40 rounded-xl animate-pulse" style={{ backgroundColor: "#F5F0EA" }} />
+          ))}
+        </div>
+      </div>
+    )
+  }
+
+  // ── State: generated (editing before save) ───────────────────────────────────
+
+  if (editedPillars.length > 0) {
+    return (
+      <div className="rounded-2xl border bg-white p-6 space-y-5"
+        style={{ borderColor: "#E5DDD5", boxShadow: "0 1px 4px rgba(45,24,16,0.06)" }}>
+        <div className="flex items-center justify-between gap-2 flex-wrap">
+          <div className="flex items-center gap-2">
+            <div className="h-7 w-7 rounded-lg flex items-center justify-center" style={{ backgroundColor: "#FEF0EA" }}>
+              <Sparkles className="h-4 w-4" style={{ color: "#D4432A" }} />
+            </div>
+            <span className="text-sm font-semibold" style={{ color: "#2D1810" }}>Review & edit your pillars</span>
+            <span className="text-xs" style={{ color: "#A07060" }}>All fields are editable — make them yours</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button size="sm" variant="outline" onClick={() => generate()}
+              className="gap-1.5 h-8 text-xs" style={{ borderColor: "#E5DDD5", color: "#7A5C50" }}>
+              <RefreshCw className="h-3 w-3" />
+              Regenerate
+            </Button>
+            {editedPillars.length < 6 && (
+              <Button size="sm" variant="outline" onClick={addEmptyPillar}
+                className="gap-1.5 h-8 text-xs" style={{ borderColor: "#E5DDD5", color: "#7A5C50" }}>
+                <Plus className="h-3 w-3" />
+                Add Pillar
+              </Button>
+            )}
+            {brand?.id ? (
+              <Button size="sm" onClick={saveAllPillars} disabled={saving}
+                className="gap-1.5 h-8 text-xs font-semibold" style={{ backgroundColor: "#F97066", color: "white" }}>
+                {saving ? <Loader2 className="h-3 w-3 animate-spin" /> : <Save className="h-3 w-3" />}
+                {saving ? "Saving…" : "Save All Pillars"}
+              </Button>
+            ) : (
+              <span className="text-xs" style={{ color: "#8A7060" }}>
+                <a href="/brands/new" className="underline" style={{ color: "#F97066" }}>Create a brand</a> to save
+              </span>
+            )}
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {editedPillars.map((pillar, i) => {
+            const pastel = PILLAR_PASTELS[i % PILLAR_PASTELS.length]
+            return (
+              <div key={i} className="rounded-xl border p-4 space-y-3"
+                style={{ backgroundColor: pastel.bg, borderColor: pastel.border }}>
+                {/* Header: emoji + name + delete */}
+                <div className="flex items-start gap-2">
+                  <input
+                    value={pillar.emoji}
+                    onChange={(e) => updateField(i, "emoji", e.target.value)}
+                    className="text-2xl w-9 bg-transparent border-none outline-none cursor-text shrink-0 mt-0.5"
+                    maxLength={2}
+                    aria-label="Pillar emoji"
+                  />
+                  <input
+                    value={pillar.name}
+                    onChange={(e) => updateField(i, "name", e.target.value)}
+                    className="flex-1 text-sm font-bold bg-transparent border-none outline-none focus:bg-white/60 rounded px-1 py-0.5"
+                    style={{ color: pastel.text }}
+                    aria-label="Pillar name"
+                  />
+                  <button onClick={() => removeGeneratedPillar(i)}
+                    className="shrink-0 opacity-40 hover:opacity-80 transition-opacity mt-1">
+                    <Trash2 className="h-3.5 w-3.5" style={{ color: pastel.text }} />
+                  </button>
+                </div>
+
+                {/* Perspective */}
+                <div className="space-y-1">
+                  <span className="text-[9px] font-bold uppercase tracking-wide" style={{ color: pastel.accent }}>Angle / Perspective</span>
+                  <textarea
+                    value={pillar.perspective || pillar.description}
+                    onChange={(e) => updateField(i, "perspective", e.target.value)}
+                    className="w-full text-xs leading-relaxed bg-white/70 border rounded-lg px-2.5 py-1.5 resize-none focus:outline-none"
+                    style={{ borderColor: pastel.border, color: "#5A3828" }}
+                    rows={2}
+                    placeholder="The specific POV or raw angle for this pillar…"
+                    aria-label="Pillar perspective"
+                  />
+                </div>
+
+                {/* Voice direction */}
+                <div className="space-y-1">
+                  <span className="text-[9px] font-bold uppercase tracking-wide" style={{ color: pastel.accent }}>Voice Direction</span>
+                  <textarea
+                    value={pillar.voice_direction}
+                    onChange={(e) => updateField(i, "voice_direction", e.target.value)}
+                    className="w-full text-xs leading-relaxed bg-white/70 border rounded-lg px-2.5 py-1.5 resize-none focus:outline-none"
+                    style={{ borderColor: pastel.border, color: "#5A3828" }}
+                    rows={2}
+                    placeholder="Tone and style direction…"
+                    aria-label="Voice direction"
+                  />
+                </div>
+
+                {/* Format + Quota */}
+                <div className="flex gap-2">
+                  <div className="flex-1 space-y-1">
+                    <span className="text-[9px] font-bold uppercase tracking-wide" style={{ color: pastel.accent }}>Format</span>
+                    <select
+                      value={pillar.format_preference}
+                      onChange={(e) => updateField(i, "format_preference", e.target.value)}
+                      className="w-full text-xs rounded-lg border px-2 h-7"
+                      style={{ borderColor: pastel.border, color: "#2D1810", backgroundColor: "rgba(255,255,255,0.7)" }}>
+                      {["any", "post", "carousel", "reel"].map((f) => (
+                        <option key={f} value={f}>{f.charAt(0).toUpperCase() + f.slice(1)}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="w-20 space-y-1">
+                    <span className="text-[9px] font-bold uppercase tracking-wide" style={{ color: pastel.accent }}>Posts/wk</span>
+                    <select
+                      value={pillar.weekly_quota}
+                      onChange={(e) => updateField(i, "weekly_quota", Number(e.target.value))}
+                      className="w-full text-xs rounded-lg border px-2 h-7"
+                      style={{ borderColor: pastel.border, color: "#2D1810", backgroundColor: "rgba(255,255,255,0.7)" }}>
+                      {[1, 2, 3, 4, 5].map((n) => <option key={n} value={n}>{n}×</option>)}
+                    </select>
+                  </div>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+
+        {error && <p className="text-xs" style={{ color: "#ef4444" }}>{error}</p>}
+      </div>
+    )
+  }
+
+  // ── State: saved pillars ─────────────────────────────────────────────────────
+
+  const rotation = buildRotation(savedPillars)
+
+  return (
+    <div className="rounded-2xl border bg-white p-6 space-y-5"
+      style={{ borderColor: "#E5DDD5", boxShadow: "0 1px 4px rgba(45,24,16,0.06)" }}>
+
+      {/* Header */}
+      <div className="flex items-center justify-between gap-2 flex-wrap">
+        <div className="flex items-center gap-2">
+          <div className="h-7 w-7 rounded-lg flex items-center justify-center" style={{ backgroundColor: "#FEF0EA" }}>
+            <Layers className="h-4 w-4" style={{ color: "#D4432A" }} />
+          </div>
+          <span className="text-sm font-semibold" style={{ color: "#2D1810" }}>Content Pillars</span>
+          <span className="text-xs px-2 py-0.5 rounded-full font-medium"
+            style={{ backgroundColor: "#F5F0EA", color: "#7A5C50" }}>
+            {savedPillars.length} active
+          </span>
+        </div>
+        <div className="flex items-center gap-2">
+          {savedPillars.length < 6 && (
+            <Button size="sm" variant="outline" onClick={() => {
+              // Add empty generated pillar to edit
+              setEditedPillars([{
+                name: "New Pillar", emoji: "📌", description: "", perspective: "",
+                postIdeas: [], voice_direction: "", format_preference: "any", weekly_quota: 2,
+              }])
+            }}
+              className="gap-1.5 h-8 text-xs" style={{ borderColor: "#E5DDD5", color: "#7A5C50" }}>
+              <Plus className="h-3 w-3" />
+              Add Pillar
+            </Button>
+          )}
+          <Button size="sm" variant="outline" onClick={() => setRegenWarning((v) => !v)}
+            className="gap-1.5 h-8 text-xs" style={{ borderColor: "#E5DDD5", color: "#7A5C50" }}>
+            <RefreshCw className="h-3 w-3" />
+            Regenerate All
+          </Button>
+        </div>
       </div>
 
-      {/* Expandable panel */}
-      {expanded && (
-        <div className="space-y-4 pt-3 border-t" style={{ borderColor: "#F0EAE3" }}>
+      {/* Regen warning banner */}
+      {regenWarning && (
+        <div className="rounded-xl border p-4 space-y-3"
+          style={{ backgroundColor: "#FFFBEA", borderColor: "#F5DFA0" }}>
+          <p className="text-xs font-medium" style={{ color: "#6B4D00" }}>
+            ⚠️ This will replace all your current pillars. Any saved pillars will be permanently deleted.
+          </p>
           <div className="flex gap-2">
             <Input
-              placeholder="Enter your niche (e.g. sustainable fashion, fitness for mums)"
-              value={niche}
-              onChange={(e) => setNiche(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && !loading && generate()}
-              className="flex-1 text-sm"
-              style={{ borderColor: "#E5DDD5" }}
+              placeholder="Niche to regenerate for…"
+              value={regenNiche}
+              onChange={(e) => setRegenNiche(e.target.value)}
+              className="flex-1 text-xs h-8"
+              style={{ borderColor: "#F5DFA0" }}
             />
-            <Button onClick={generate} disabled={loading || !niche.trim()} size="sm"
-              className="gap-1.5 shrink-0" style={{ backgroundColor: "#F97066", color: "white" }}>
-              {loading
-                ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                : <Sparkles className="h-3.5 w-3.5" />}
-              {loading ? "Generating…" : "Generate Pillars"}
+            <Button size="sm" onClick={() => {
+              setNiche(regenNiche)
+              generate(regenNiche)
+            }}
+              disabled={!regenNiche.trim() || loading}
+              className="gap-1.5 h-8 text-xs font-semibold" style={{ backgroundColor: "#F97066", color: "white" }}>
+              <Sparkles className="h-3 w-3" />
+              Confirm &amp; Regenerate
+            </Button>
+            <Button size="sm" variant="outline" onClick={() => setRegenWarning(false)}
+              className="h-8 text-xs" style={{ borderColor: "#E5DDD5", color: "#7A5C50" }}>
+              Cancel
             </Button>
           </div>
+        </div>
+      )}
 
-          {error && <p className="text-xs" style={{ color: "#ef4444" }}>{error}</p>}
+      {/* Pillar rich cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        {savedPillars.map((pillar, i) => {
+          const pastel = PILLAR_PASTELS[i % PILLAR_PASTELS.length]
+          const isEditing = editingPillarId === pillar.id
+          return (
+            <div key={pillar.id} className="rounded-xl border overflow-hidden"
+              style={{ borderColor: pastel.border }}>
+              {/* Card main view */}
+              <div className="p-4 space-y-2" style={{ backgroundColor: pastel.bg }}>
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex items-start gap-2">
+                    <span className="text-2xl leading-none">{pillar.emoji || "📌"}</span>
+                    <div>
+                      <p className="text-sm font-bold leading-tight" style={{ color: pastel.text }}>{pillar.name}</p>
+                      <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                        {pillar.format_preference && pillar.format_preference !== "any" && (
+                          <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full uppercase tracking-wide"
+                            style={{ backgroundColor: pastel.accent + "22", color: pastel.accent, border: `1px solid ${pastel.border}` }}>
+                            {pillar.format_preference}
+                          </span>
+                        )}
+                        {pillar.weekly_quota && (
+                          <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full"
+                            style={{ backgroundColor: "rgba(255,255,255,0.6)", color: "#7A5C50", border: "1px solid #E5DDD5" }}>
+                            {pillar.weekly_quota}×/wk
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1 shrink-0">
+                    <button onClick={() => setEditingPillarId(isEditing ? null : pillar.id)}
+                      className="p-1.5 rounded-lg hover:bg-white/60 transition-colors"
+                      title="Edit pillar">
+                      <Pencil className="h-3 w-3" style={{ color: pastel.accent }} />
+                    </button>
+                    <button onClick={() => deletePillar(pillar.id)}
+                      className="p-1.5 rounded-lg hover:bg-white/60 transition-colors"
+                      title="Delete pillar">
+                      <Trash2 className="h-3 w-3" style={{ color: pastel.accent }} />
+                    </button>
+                  </div>
+                </div>
 
-          {loading && (
-            <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
-              {[...Array(5)].map((_, i) => (
-                <div key={i} className="h-20 rounded-xl animate-pulse" style={{ backgroundColor: "#F5F0EA" }} />
-              ))}
-            </div>
-          )}
+                {pillar.description && !isEditing && (
+                  <p className="text-xs leading-snug" style={{ color: "#6A4830" }}>
+                    {pillar.description}
+                  </p>
+                )}
+                {pillar.voice_direction && !isEditing && (
+                  <p className="text-[10px] leading-snug italic" style={{ color: "#A07060" }}>
+                    {pillar.voice_direction}
+                  </p>
+                )}
+              </div>
 
-          {editedPillars.length > 0 && !loading && (
-            <div className="space-y-3">
-              <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-                {editedPillars.map((pillar, i) => (
-                  <div key={i} className="rounded-xl border p-3 space-y-2 bg-white"
-                    style={{ borderColor: "#E5DDD5" }}>
-                    <div className="flex items-center gap-1.5">
+              {/* Inline edit expansion */}
+              {isEditing && (
+                <div className="p-4 space-y-3 border-t bg-white" style={{ borderColor: pastel.border }}>
+                  <div className="space-y-1">
+                    <span className="text-[9px] font-bold uppercase tracking-wide" style={{ color: "#A07060" }}>Name &amp; Emoji</span>
+                    <div className="flex gap-2">
                       <input
-                        value={pillar.emoji}
-                        onChange={(e) => updateField(i, "emoji", e.target.value)}
-                        className="text-xl w-8 bg-transparent border-none outline-none cursor-text"
+                        defaultValue={pillar.emoji || "📌"}
+                        className="text-xl w-9 border rounded-lg text-center outline-none"
+                        style={{ borderColor: "#E5DDD5" }}
                         maxLength={2}
-                        aria-label="Pillar emoji"
+                        onBlur={(e) => updateSavedPillar(pillar.id, { emoji: e.target.value })}
                       />
                       <input
-                        value={pillar.name}
-                        onChange={(e) => updateField(i, "name", e.target.value)}
-                        className="flex-1 text-xs font-bold bg-transparent border-none outline-none focus:bg-[#F5F0EA] rounded px-1 py-0.5"
-                        style={{ color: "#2D1810" }}
-                        aria-label="Pillar name"
+                        defaultValue={pillar.name}
+                        className="flex-1 text-sm border rounded-lg px-3 py-1.5 outline-none focus:border-[#F97066]"
+                        style={{ borderColor: "#E5DDD5", color: "#2D1810" }}
+                        onBlur={(e) => updateSavedPillar(pillar.id, { name: e.target.value })}
                       />
                     </div>
+                  </div>
+                  <div className="space-y-1">
+                    <span className="text-[9px] font-bold uppercase tracking-wide" style={{ color: "#A07060" }}>Angle / Perspective</span>
                     <textarea
-                      value={pillar.description}
-                      onChange={(e) => updateField(i, "description", e.target.value)}
-                      className="w-full text-[10px] leading-relaxed bg-transparent border border-[#E5DDD5] rounded-lg px-2 py-1 resize-none focus:outline-none focus:border-[#F97066]"
-                      style={{ color: "#8A7060" }}
+                      defaultValue={pillar.description ?? ""}
+                      className="w-full text-xs border rounded-lg px-2.5 py-1.5 resize-none outline-none focus:border-[#F97066]"
+                      style={{ borderColor: "#E5DDD5", color: "#5A3828" }}
                       rows={2}
-                      aria-label="Pillar description"
+                      onBlur={(e) => updateSavedPillar(pillar.id, { description: e.target.value })}
                     />
-                    {pillar.voice_direction && (
-                      <div className="space-y-1">
-                        <span className="text-[9px] font-bold uppercase tracking-wide" style={{ color: "#A07060" }}>Voice</span>
-                        <textarea
-                          value={pillar.voice_direction}
-                          onChange={(e) => updateField(i, "voice_direction", e.target.value)}
-                          className="w-full text-[10px] leading-relaxed bg-transparent border border-[#E5DDD5] rounded-lg px-2 py-1 resize-none focus:outline-none focus:border-[#F97066]"
-                          style={{ color: "#5A3828" }}
-                          rows={2}
-                        />
-                      </div>
-                    )}
-                    <div className="space-y-1">
-                      <span className="text-[9px] font-bold uppercase tracking-wide" style={{ color: "#A07060" }}>Best Format</span>
+                  </div>
+                  <div className="space-y-1">
+                    <span className="text-[9px] font-bold uppercase tracking-wide" style={{ color: "#A07060" }}>Voice Direction</span>
+                    <textarea
+                      defaultValue={pillar.voice_direction ?? ""}
+                      className="w-full text-xs border rounded-lg px-2.5 py-1.5 resize-none outline-none focus:border-[#F97066]"
+                      style={{ borderColor: "#E5DDD5", color: "#5A3828" }}
+                      rows={2}
+                      onBlur={(e) => updateSavedPillar(pillar.id, { voice_direction: e.target.value })}
+                    />
+                  </div>
+                  <div className="flex gap-2">
+                    <div className="flex-1 space-y-1">
+                      <span className="text-[9px] font-bold uppercase tracking-wide" style={{ color: "#A07060" }}>Format</span>
                       <select
-                        value={pillar.format_preference ?? "any"}
-                        onChange={(e) => updateField(i, "format_preference", e.target.value)}
-                        className="w-full text-[10px] rounded-lg border px-2 h-7"
-                        style={{ borderColor: "#E5DDD5", color: "#2D1810" }}>
+                        defaultValue={pillar.format_preference ?? "any"}
+                        className="w-full text-xs border rounded-lg px-2 h-7 outline-none"
+                        style={{ borderColor: "#E5DDD5", color: "#2D1810" }}
+                        onChange={(e) => updateSavedPillar(pillar.id, { format_preference: e.target.value as ContentPillar["format_preference"] })}>
                         {["any", "post", "carousel", "reel"].map((f) => (
                           <option key={f} value={f}>{f.charAt(0).toUpperCase() + f.slice(1)}</option>
                         ))}
                       </select>
                     </div>
+                    <div className="w-20 space-y-1">
+                      <span className="text-[9px] font-bold uppercase tracking-wide" style={{ color: "#A07060" }}>Posts/wk</span>
+                      <select
+                        defaultValue={pillar.weekly_quota ?? 2}
+                        className="w-full text-xs border rounded-lg px-2 h-7 outline-none"
+                        style={{ borderColor: "#E5DDD5", color: "#2D1810" }}
+                        onChange={(e) => updateSavedPillar(pillar.id, { weekly_quota: Number(e.target.value) })}>
+                        {[1, 2, 3, 4, 5].map((n) => <option key={n} value={n}>{n}×</option>)}
+                      </select>
+                    </div>
                   </div>
-                ))}
-              </div>
-
-              <div className="flex items-center gap-2 flex-wrap">
-                <Button size="sm" variant="outline" onClick={generate}
-                  className="gap-1.5 h-7 text-xs" style={{ borderColor: "#E5DDD5", color: "#7A5C50" }}>
-                  <RefreshCw className="h-3 w-3" />
-                  Regenerate
-                </Button>
-                {brand?.id ? (
-                  <Button size="sm" onClick={savePillars} disabled={saving}
-                    className="gap-1.5 h-7 text-xs" style={{ backgroundColor: "#F97066", color: "white" }}>
-                    {saving
-                      ? <Loader2 className="h-3 w-3 animate-spin" />
-                      : <Save className="h-3 w-3" />}
-                    {saving ? "Saving…" : "Save Pillars"}
+                  <Button size="sm" onClick={() => setEditingPillarId(null)}
+                    className="w-full h-7 text-xs" style={{ backgroundColor: "#F97066", color: "white" }}>
+                    Done
                   </Button>
-                ) : (
-                  <p className="text-xs" style={{ color: "#8A7060" }}>
-                    <a href="/brands/new" className="underline" style={{ color: "#F97066" }}>Create a brand</a> to save pillars.
-                  </p>
-                )}
-              </div>
+                </div>
+              )}
             </div>
-          )}
+          )
+        })}
+      </div>
+
+      {/* Weekly rotation preview */}
+      {savedPillars.length > 0 && (
+        <div className="space-y-2 pt-2 border-t" style={{ borderColor: "#F0EAE3" }}>
+          <p className="text-[10px] font-bold uppercase tracking-wide" style={{ color: "#A07060" }}>
+            Weekly Posting Rotation
+          </p>
+          <div className="flex gap-1.5 flex-wrap">
+            {rotation.map(({ day, pillar }, i) => {
+              const pillarIdx = pillar ? savedPillars.findIndex((p) => p.id === pillar.id) : -1
+              const pastel = pillarIdx >= 0 ? PILLAR_PASTELS[pillarIdx % PILLAR_PASTELS.length] : null
+              return (
+                <div key={i} className="flex flex-col items-center gap-0.5">
+                  <span className="text-[9px] font-bold" style={{ color: "#A07060" }}>{day}</span>
+                  <div className="px-2 py-1 rounded-lg border text-[9px] font-medium text-center min-w-[48px]"
+                    style={{
+                      backgroundColor: pastel?.bg ?? "#F5F0EA",
+                      borderColor: pastel?.border ?? "#E5DDD5",
+                      color: pastel?.text ?? "#7A5C50",
+                    }}>
+                    {pillar ? `${pillar.emoji || "📌"}` : "·"}
+                  </div>
+                  {pillar && (
+                    <span className="text-[8px] text-center max-w-[52px] leading-tight" style={{ color: "#A07060" }}>
+                      {pillar.name.length > 8 ? pillar.name.slice(0, 8) + "…" : pillar.name}
+                    </span>
+                  )}
+                </div>
+              )
+            })}
+          </div>
         </div>
       )}
     </div>
@@ -1861,7 +2189,7 @@ function GenerationStrip({
       const data = await callApi<{ caption: string }>("/api/generate-caption", {
         hook: selectedHook || topic,
         notes: keyMessage ? `Key message to convey: ${keyMessage}` : undefined,
-        ...brandCtx(),
+        ...brandCtx(), ...pillarCtx(),
       })
       setCaption(data.caption ?? "")
     } catch (err) { showError(err) }
@@ -1906,7 +2234,7 @@ function GenerationStrip({
   const handleGenerateCarousel = async () => {
     setGeneratingCarousel(true); setSlides([]); setPreviewSlideIdx(0)
     try {
-      const data = await callApi<{ slides: CarouselSlide[] }>("/api/generate-carousel", { topic, slideCount, ...brandCtx() })
+      const data = await callApi<{ slides: CarouselSlide[] }>("/api/generate-carousel", { topic, slideCount, ...brandCtx(), ...pillarCtx() })
       setSlides(data.slides ?? [])
     } catch (err) { showError(err) }
     setGeneratingCarousel(false)
@@ -1957,7 +2285,7 @@ function GenerationStrip({
   const handleGenerateReel = async () => {
     setGeneratingReel(true); setReelScript(null); setReelCaption(null); setReelCaptionHashtags(null)
     try {
-      const data = await callApi<ReelScript>("/api/generate-reel", { concept: topic, duration: reelDuration, ...brandCtx() })
+      const data = await callApi<ReelScript>("/api/generate-reel", { concept: topic, duration: reelDuration, ...brandCtx(), ...pillarCtx() })
       setReelScript(data)
     } catch (err) { showError(err) }
     setGeneratingReel(false)
@@ -1968,7 +2296,7 @@ function GenerationStrip({
     setGeneratingReelCaption(true); setReelCaption(null)
     try {
       const [captionData, hashtagData] = await Promise.all([
-        callApi<{ caption: string }>("/api/generate-caption", { hook, notes: `Reel about: ${topic}`, ...brandCtx() }),
+        callApi<{ caption: string }>("/api/generate-caption", { hook, notes: `Reel about: ${topic}`, ...brandCtx(), ...pillarCtx() }),
         callApi<HashtagGroups>("/api/generate-hashtags", { niche: brand?.niche, caption: hook, brandName: brand?.name }),
       ])
       setReelCaption({ caption: captionData.caption ?? "", hashtags: hashtagData })
