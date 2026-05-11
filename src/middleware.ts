@@ -9,27 +9,29 @@ export async function middleware(request: NextRequest) {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
-        getAll() {
-          return request.cookies.getAll()
+        get(name: string) {
+          const val = request.cookies.get(name)?.value
+          if (val) return val
+          // fallback: combineChunks asks for key.0 but browser stores bare key
+          if (name.endsWith('.0')) return request.cookies.get(name.slice(0, -2))?.value
+          return undefined
         },
-        setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value }) =>
-            request.cookies.set(name, value)
-          )
+        set(name: string, value: string, options: any) {
+          request.cookies.set({ name, value, ...options } as any)
           supabaseResponse = NextResponse.next({ request })
-          cookiesToSet.forEach(({ name, value, options }) =>
-            supabaseResponse.cookies.set(name, value, options)
-          )
+          supabaseResponse.cookies.set({ name, value, ...options } as any)
+        },
+        remove(name: string, options: any) {
+          request.cookies.set({ name, value: '', ...options } as any)
+          supabaseResponse = NextResponse.next({ request })
+          supabaseResponse.cookies.set({ name, value: '', ...options } as any)
         },
       },
     }
   )
 
-  // Use getSession() to avoid a live network round-trip on every request.
-  // The session is read directly from the cookie and the JWT is verified locally.
   const { data: { session } } = await supabase.auth.getSession()
   const user = session?.user ?? null
-
   const { pathname } = request.nextUrl
 
   const protectedRoutes = ['/dashboard', '/brands', '/content-pillars', '/content-planner', '/niche-research', '/settings']
@@ -51,7 +53,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: [
-    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
-  ],
+  matcher: ['/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)'],
 }

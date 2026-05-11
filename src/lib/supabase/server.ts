@@ -4,23 +4,23 @@ import type { Database } from '@/types'
 
 export function createClient() {
   const cookieStore = cookies()
-
   return createServerClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
-        getAll() {
-          return cookieStore.getAll()
+        get(name: string) {
+          const val = cookieStore.get(name)?.value
+          if (val) return val
+          // fallback: combineChunks asks for key.0 but browser stores bare key
+          if (name.endsWith('.0')) return cookieStore.get(name.slice(0, -2))?.value
+          return undefined
         },
-        setAll(cookiesToSet) {
-          try {
-            cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options)
-            )
-          } catch {
-            // setAll called from Server Component — cookies can only be set in Server Actions or Route Handlers
-          }
+        set(name: string, value: string, options: any) {
+          try { cookieStore.set({ name, value, ...options }) } catch {}
+        },
+        remove(name: string, options: any) {
+          try { cookieStore.set({ name, value: '', ...options }) } catch {}
         },
       },
     }
