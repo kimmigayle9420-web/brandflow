@@ -1471,6 +1471,8 @@ function PillarsStrip({ brand, initialPillars, onPillarsChange }: {
 
     const coreInserts = editedPillars.map((p, i) => ({
       brand_id: brand.id,
+      user_id: user.id,
+      sort_order: i,
       name: p.name.trim() || "Untitled",
       description: p.perspective || p.description || null,
       color: PILLAR_COLORS[i % PILLAR_COLORS.length],
@@ -1486,8 +1488,6 @@ function PillarsStrip({ brand, initialPillars, onPillarsChange }: {
     const fullInserts = editedPillars.map((p, i) => ({
       ...baseInserts[i],
       emoji: p.emoji || "📌",
-      user_id: user.id,
-      sort_order: i,
     }))
 
     const isSchemaCacheError = (msg: string) =>
