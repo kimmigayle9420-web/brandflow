@@ -1,6 +1,5 @@
 import { createClient } from "@/lib/supabase/server"
 import { NextResponse } from "next/server"
-import Anthropic from "@anthropic-ai/sdk"
 
 export async function POST(request: Request) {
   // Guard: ensure API key is actually configured
@@ -38,15 +37,20 @@ export async function POST(request: Request) {
 
   // Generate pillars with Anthropic
   try {
-    const client = new Anthropic({ apiKey })
-
-    const message = await client.messages.create({
-      model: "claude-3-5-haiku-20241022",
-      max_tokens: 1200,
-      messages: [
-        {
-          role: "user",
-          content: `Generate exactly 5 content pillars for a "${niche.trim()}" brand on social media.
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+      },
+      body: JSON.stringify({
+        model: 'claude-3-5-haiku-20241022',
+        max_tokens: 1200,
+        messages: [
+          {
+            role: 'user',
+            content: `Generate exactly 5 content pillars for a "${niche.trim()}" brand on social media.
 
 Return a valid JSON array with exactly 5 objects. Each object MUST have these exact keys:
 - "name": short, memorable pillar name (2–4 words, title case)
@@ -55,17 +59,22 @@ Return a valid JSON array with exactly 5 objects. Each object MUST have these ex
 - "postIdeas": array of exactly 3 brief post idea examples (each 6–12 words)
 
 Return ONLY the raw JSON array. No markdown, no code fences, no explanation, no extra text.`,
-        },
-      ],
+          },
+        ],
+      }),
     })
 
-    const content = message.content[0]
-    if (content.type !== "text") {
-      throw new Error("Unexpected response type from AI")
+    if (!response.ok) {
+      const errText = await response.text()
+      throw Object.assign(new Error(errText), { status: response.status })
     }
 
+    const result = await response.json()
+    const content = result.content?.[0]
+    if (!content || content.type !== 'text') throw new Error('Unexpected response format')
+
     // Strip any accidental markdown code fences
-    const cleaned = content.text
+    const cleaned = (content as { type: string; text: string }).text
       .trim()
       .replace(/^```(?:json)?\s*/i, "")
       .replace(/\s*```$/i, "")
