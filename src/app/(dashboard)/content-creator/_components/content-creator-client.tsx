@@ -1464,28 +1464,31 @@ function PillarsStrip({ brand, initialPillars, onPillarsChange }: {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     await (supabase.from("content_pillars") as any).delete().eq("brand_id", brand.id)
 
+    // baseInserts uses only columns that existed before the 004 migration
+    // (voice_direction, format_preference, weekly_quota were added in an earlier migration)
     const baseInserts = editedPillars.map((p, i) => ({
       brand_id: brand.id,
-      user_id: user.id,
       name: p.name.trim() || "Untitled",
-      emoji: p.emoji || "📌",
       description: p.perspective || p.description || null,
       color: PILLAR_COLORS[i % PILLAR_COLORS.length],
-      sort_order: i,
-    }))
-
-    const fullInserts = editedPillars.map((p, i) => ({
-      ...baseInserts[i],
       voice_direction: p.voice_direction || null,
       format_preference: p.format_preference || "any",
       weekly_quota: p.weekly_quota ?? 2,
     }))
 
+    // fullInserts adds columns from migration 004 (emoji, user_id, sort_order)
+    const fullInserts = editedPillars.map((p, i) => ({
+      ...baseInserts[i],
+      emoji: p.emoji || "📌",
+      user_id: user.id,
+      sort_order: i,
+    }))
+
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let { data: inserted, error: dbError } = await (supabase.from("content_pillars") as any).insert(fullInserts).select()
 
-    if (dbError && (dbError.message.includes("column") || dbError.message.includes("does not exist"))) {
-      // Retry with only base columns (migration not yet run)
+    if (dbError && (dbError.message.includes("column") || dbError.message.includes("schema cache") || dbError.message.includes("does not exist"))) {
+      // Retry with only pre-migration columns (schema cache not yet refreshed)
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const retry = await (supabase.from("content_pillars") as any).insert(baseInserts).select()
       inserted = retry.data
@@ -1493,7 +1496,7 @@ function PillarsStrip({ brand, initialPillars, onPillarsChange }: {
       if (!retry.error) {
         toast({
           title: "Saved with basic fields",
-          description: "Run the database migration in Settings to enable voice direction, format & weekly quota.",
+          description: "Emoji & sort order will appear after your next session.",
         })
       }
     }
