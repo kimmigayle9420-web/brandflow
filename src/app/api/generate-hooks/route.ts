@@ -27,14 +27,32 @@ export async function POST(request: Request) {
     )
   }
 
-  let body: { topic?: string; brandName?: string; niche?: string; tone?: string; targetAudience?: string }
+  let body: {
+    topic?: string
+    keyMessage?: string
+    brandName?: string
+    niche?: string
+    tone?: string
+    targetAudience?: string
+    pillarName?: string
+    pillarVoiceDirection?: string
+    pillarFormatPreference?: string
+  }
   try {
     body = await request.json()
   } catch {
     return NextResponse.json({ error: 'Invalid request body' }, { status: 400 })
   }
 
-  const { topic, brandName, niche, tone, targetAudience } = body
+  const {
+    topic, keyMessage, brandName, niche, tone, targetAudience,
+    pillarName, pillarVoiceDirection, pillarFormatPreference,
+  } = body
+
+  const pillarContext = pillarName ? `
+Content Pillar: ${pillarName}
+${pillarVoiceDirection ? `Voice direction: ${pillarVoiceDirection}` : ''}
+${pillarFormatPreference && pillarFormatPreference !== 'any' ? `Preferred format: ${pillarFormatPreference}` : ''}` : ''
 
   const prompt = `You are an expert social media copywriter specialising in scroll-stopping hooks for Instagram and TikTok.
 
@@ -44,18 +62,29 @@ Brand context:
 - Tone: ${tone || 'conversational, authentic'}
 - Target audience: ${targetAudience || 'general audience'}
 - Topic / angle: ${topic || 'general content'}
+${keyMessage ? `- Key message to convey: ${keyMessage}` : ''}
+${pillarContext}
 
 ${NBP_EXAMPLES}
 
-Generate exactly 5 scroll-stopping hooks for the topic/angle above. Each hook must:
+Generate exactly 3 scroll-stopping hooks for the topic/angle above. Each hook must:
 - Stop the scroll in the first 3–5 words
 - Be specific to the brand's niche (not generic platitudes)
 - Create curiosity, relatability, or a bold claim
 - Be 1–2 lines maximum
-- Vary in style across the 5: (1) curiosity-gap, (2) POV / relatable situation, (3) bold or contrarian claim, (4) "nobody talks about this", (5) before/after or transformation framing
+- Vary in style: (1) curiosity-gap or "nobody talks about this", (2) POV / relatable situation, (3) bold or contrarian claim / before-after transformation
+${pillarVoiceDirection ? `- Match this voice direction: ${pillarVoiceDirection}` : ''}
 
-Return ONLY a valid JSON array of 5 strings. Nothing else. No explanation, no numbering outside the array.
-["Hook 1", "Hook 2", "Hook 3", "Hook 4", "Hook 5"]`
+Also recommend the single best content format for this topic+pillar combination.
+
+Return ONLY a valid JSON object. Nothing else. No explanation, no numbering outside the object.
+{
+  "hooks": ["Hook 1", "Hook 2", "Hook 3"],
+  "formatRecommendation": {
+    "format": "Post",
+    "reasoning": "One sentence explaining why this format works best for this topic"
+  }
+}`
 
   const res = await fetch(ANTHROPIC_URL, {
     method: 'POST',
@@ -66,7 +95,7 @@ Return ONLY a valid JSON array of 5 strings. Nothing else. No explanation, no nu
     },
     body: JSON.stringify({
       model: MODEL,
-      max_tokens: 512,
+      max_tokens: 600,
       messages: [{ role: 'user', content: prompt }],
     }),
   })
@@ -77,12 +106,16 @@ Return ONLY a valid JSON array of 5 strings. Nothing else. No explanation, no nu
   }
 
   const data = await res.json() as { content: { type: string; text: string }[] }
-  const text = data.content?.[0]?.text ?? '[]'
+  const text = data.content?.[0]?.text ?? '{}'
 
   try {
     const cleaned = text.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/, '').trim()
-    const hooks: string[] = JSON.parse(cleaned)
-    return NextResponse.json({ hooks })
+    const result = JSON.parse(cleaned)
+    // Backwards compat: also expose hooks at top level array
+    return NextResponse.json({
+      hooks: result.hooks ?? [],
+      formatRecommendation: result.formatRecommendation ?? null,
+    })
   } catch {
     return NextResponse.json({ error: 'Failed to parse hooks response', raw: text }, { status: 500 })
   }

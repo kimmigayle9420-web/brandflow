@@ -57,6 +57,8 @@ Return a valid JSON array with exactly 5 objects. Each object MUST have these ex
 - "emoji": a single relevant emoji character
 - "description": one clear sentence explaining what content belongs under this pillar
 - "postIdeas": array of exactly 3 brief post idea examples (each 6–12 words)
+- "voice_direction": one sentence describing the tone and angle for this pillar (e.g. "Warm and educational — lead with empathy, back up with data")
+- "format_preference": single string — one of "post", "carousel", "reel", or "any" — which format works best for this pillar's content type
 
 Return ONLY the raw JSON array. No markdown, no code fences, no explanation, no extra text.`,
           },
@@ -85,12 +87,17 @@ Return ONLY the raw JSON array. No markdown, no code fences, no explanation, no 
       throw new Error("Invalid pillars format returned")
     }
 
-    // Normalise: ensure postIdeas exists (handle if model returns 'examples' anyway)
+    // Normalise: ensure all fields exist (handle if model returns different keys)
+    const VALID_FORMATS = ["post", "carousel", "reel", "any"]
     const normalised = pillars.map((p: any) => ({
       name: p.name ?? "Untitled",
       emoji: p.emoji ?? "📌",
       description: p.description ?? "",
       postIdeas: p.postIdeas ?? p.examples ?? [],
+      voice_direction: p.voice_direction ?? p.voiceDirection ?? null,
+      format_preference: VALID_FORMATS.includes(p.format_preference ?? p.formatPreference ?? "")
+        ? (p.format_preference ?? p.formatPreference)
+        : "any",
     }))
 
     return NextResponse.json({ pillars: normalised })

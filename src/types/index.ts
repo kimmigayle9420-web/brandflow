@@ -27,9 +27,16 @@ export type ContentPillar = {
   brand_id: string
   user_id: string
   name: string
+  emoji: string | null
   description: string | null
   color: string
   sort_order: number
+  // ALTER TABLE content_pillars ADD COLUMN IF NOT EXISTS voice_direction text;
+  // ALTER TABLE content_pillars ADD COLUMN IF NOT EXISTS format_preference text CHECK (format_preference IN ('post','carousel','reel','any'));
+  // ALTER TABLE content_pillars ADD COLUMN IF NOT EXISTS weekly_quota integer DEFAULT 2;
+  voice_direction: string | null
+  format_preference: 'post' | 'carousel' | 'reel' | 'any' | null
+  weekly_quota: number | null
   created_at: string
   updated_at: string
 }
@@ -57,6 +64,26 @@ export type Post = {
 
 export type PostWithPillar = Post & {
   content_pillars: Pick<ContentPillar, 'name' | 'color'> | null
+}
+
+export type IdeaStatus = 'idea' | 'draft' | 'scheduled' | 'posted'
+
+export type Idea = {
+  id: string
+  user_id: string
+  brand_id: string
+  pillar_id: string | null
+  format: 'post' | 'carousel' | 'reel'
+  title: string
+  hook: string | null
+  caption: string | null
+  hashtags: string | null
+  slides: Record<string, unknown>[] | null
+  script: Record<string, unknown> | null
+  media_url: string | null
+  status: IdeaStatus
+  created_at: string
+  updated_at: string
 }
 
 export type Database = {
