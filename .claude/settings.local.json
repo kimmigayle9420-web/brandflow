@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(lsof -ti:3001)",
+      "Bash(ps -p 54996 -o command=)",
+      "Bash(PORT=3001 npm run dev)",
+      "Bash(echo \"Started, PID=$!\")",
+      "Bash(curl -s -o /dev/null -w \"HTTP %{http_code}\\\\n\" http://localhost:3001)",
+      "Bash(curl -s -o /dev/null -w 'Supabase auth health: HTTP %{http_code}\\\\n' -H 'apikey: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFzaHhtYnpza3BkcHhrc3ZrZWphIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIzOTM1MDcsImV4cCI6MjA4Nzk2OTUwN30.KaYiRUApXVUkaNYxqSFwJgSXoXbHaLDy5fNcrZFTWCE' https://qshxmbzskpdpxksvkeja.supabase.co/auth/v1/health)",
+      "Bash(curl -s -o /dev/null -w 'profiles table: HTTP %{http_code}\\\\n' -H 'apikey: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFzaHhtYnpza3BkcHhrc3ZrZWphIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIzOTM1MDcsImV4cCI6MjA4Nzk2OTUwN30.KaYiRUApXVUkaNYxqSFwJgSXoXbHaLDy5fNcrZFTWCE' 'https://qshxmbzskpdpxksvkeja.supabase.co/rest/v1/profiles?select=id&limit=1')",
+      "mcp__Claude_in_Chrome__tabs_context_mcp",
+      "mcp__Claude_in_Chrome__navigate",
+      "mcp__Claude_in_Chrome__browser_batch",
+      "Bash(xargs ps -p)",
+      "Bash(curl -s http://localhost:3001/login)",
+      "Bash(curl -s \"http://localhost:3001/_next/static/chunks/app/%28auth%29/login/page.js\")"
+    ]
+  }
+}
