@@ -30,7 +30,8 @@ export default function LoginPage() {
       return
     }
 
-    window.location.href = "/dashboard"
+    router.refresh()
+    router.push("/dashboard")
   }
 
   return (
