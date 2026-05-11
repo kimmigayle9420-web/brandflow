@@ -45,7 +45,7 @@ export async function POST(request: Request) {
         'anthropic-version': '2023-06-01',
       },
       body: JSON.stringify({
-        model: 'claude-3-5-haiku-20241022',
+        model: 'claude-3-haiku-20240307',
         max_tokens: 1200,
         messages: [
           {
@@ -107,7 +107,7 @@ Return ONLY the raw JSON array. No markdown, no code fences, no explanation, no 
     }
 
     return NextResponse.json(
-      { error: "Failed to generate content pillars. Please try again." },
+      { error: "ERR: " + (error?.message ?? String(error)), errStatus: error?.status },
       { status: 500 }
     )
   }
