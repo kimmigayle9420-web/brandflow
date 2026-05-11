@@ -199,13 +199,13 @@ export function SocialConnect({
           return (
             <Card
               key={platform.id}
-              className="bg-white shadow-sm border-0 ring-1 ring-slate-100 hover:ring-indigo-200 hover:shadow-md transition-all duration-200 group"
+              className="bg-white shadow-sm border-0 ring-1 ring-[#E5DDD5] hover:ring-[#F97066]/40 hover:shadow-md transition-all duration-200 group rounded-2xl"
             >
               <CardContent className="flex flex-col items-center gap-2.5 py-4 px-2">
                 <div className={`w-9 h-9 rounded-xl ${platform.bg} flex items-center justify-center text-sm shadow-sm shrink-0`}>
                   <span role="img" aria-label={platform.name}>{platform.emoji}</span>
                 </div>
-                <p className="text-xs font-semibold text-slate-700 text-center leading-tight">{platform.name}</p>
+                <p className="text-xs font-semibold text-center leading-tight" style={{ color: "#2D1810" }}>{platform.name}</p>
                 {isExpanded ? (
                   <PlatformInputForm
                     platform={platform}
@@ -222,7 +222,7 @@ export function SocialConnect({
                   <Button
                     size="sm"
                     variant="outline"
-                    className="w-full text-xs h-7 group-hover:border-indigo-300 group-hover:text-indigo-600 transition-colors"
+                    className="w-full text-xs h-7 group-hover:border-[#F97066]/50 group-hover:text-[#D4432A] transition-colors"
                     onClick={() => openInput(platform.id)}
                   >
                     Connect
@@ -248,7 +248,7 @@ export function SocialConnect({
           return (
             <Card
               key={platform.id}
-              className="bg-white border-0 ring-1 ring-slate-100 shadow-sm"
+              className="bg-white border-0 ring-1 ring-[#E5DDD5] shadow-sm rounded-2xl"
             >
               <CardContent className="py-3 px-4">
                 {isEditing ? (
@@ -257,10 +257,10 @@ export function SocialConnect({
                       <div className={`w-7 h-7 rounded-lg ${platform.bg} flex items-center justify-center text-xs shadow-sm shrink-0`}>
                         <span role="img" aria-label={platform.name}>{platform.emoji}</span>
                       </div>
-                      <p className="text-sm font-semibold text-slate-700">{platform.name}</p>
+                      <p className="text-sm font-semibold" style={{ color: "#2D1810" }}>{platform.name}</p>
                       <button
                         onClick={closeInput}
-                        className="ml-auto text-slate-400 hover:text-slate-600 text-xs"
+                        className="ml-auto text-xs hover:opacity-60" style={{ color: "#A89080" }}
                       >
                         ✕
                       </button>
@@ -291,7 +291,7 @@ export function SocialConnect({
                         href={buildProfileUrl(platform.id, handle)}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-sm text-indigo-500 hover:text-indigo-700 hover:underline truncate transition-colors"
+                        className="text-sm hover:underline truncate transition-colors" style={{ color: "#F97066" }}
                       >
                         {handle}
                       </a>
@@ -303,7 +303,7 @@ export function SocialConnect({
                         size="sm"
                         variant="ghost"
                         onClick={() => openInput(platform.id)}
-                        className="h-7 text-xs text-slate-400 hover:text-indigo-600 px-2"
+                        className="h-7 text-xs px-2" style={{ color: "#A89080" }}
                       >
                         Edit
                       </Button>
@@ -312,7 +312,7 @@ export function SocialConnect({
                         variant="ghost"
                         disabled={isPending}
                         onClick={() => handleDisconnect(platform.id)}
-                        className="h-7 text-xs text-slate-400 hover:text-red-500 px-2"
+                        className="h-7 text-xs px-2 hover:text-red-500" style={{ color: "#A89080" }}
                       >
                         Disconnect
                       </Button>
@@ -331,7 +331,7 @@ export function SocialConnect({
           <button
             type="button"
             onClick={() => setShowAddPanel((v) => !v)}
-            className="flex items-center gap-1.5 text-sm font-medium text-indigo-600 hover:text-indigo-700 transition-colors"
+            className="flex items-center gap-1.5 text-sm font-medium transition-colors" style={{ color: "#F97066" }}
           >
             <span className="text-base leading-none">{showAddPanel ? "−" : "+"}</span>
             {showAddPanel ? "Hide platforms" : "Add social account"}
@@ -344,13 +344,13 @@ export function SocialConnect({
                 return (
                   <Card
                     key={platform.id}
-                    className="bg-white shadow-sm border-0 ring-1 ring-slate-100 hover:ring-indigo-200 hover:shadow-md transition-all duration-200 group"
+                    className="bg-white shadow-sm border-0 ring-1 ring-[#E5DDD5] hover:ring-[#F97066]/40 hover:shadow-md transition-all duration-200 group rounded-2xl"
                   >
                     <CardContent className="flex flex-col items-center gap-2.5 py-4 px-2">
                       <div className={`w-9 h-9 rounded-xl ${platform.bg} flex items-center justify-center text-sm shadow-sm shrink-0`}>
                         <span role="img" aria-label={platform.name}>{platform.emoji}</span>
                       </div>
-                      <p className="text-xs font-semibold text-slate-700 text-center leading-tight">{platform.name}</p>
+                      <p className="text-xs font-semibold text-center leading-tight" style={{ color: "#2D1810" }}>{platform.name}</p>
                       {isExpanded ? (
                         <PlatformInputForm
                           platform={platform}
@@ -367,7 +367,7 @@ export function SocialConnect({
                         <Button
                           size="sm"
                           variant="outline"
-                          className="w-full text-xs h-7 group-hover:border-indigo-300 group-hover:text-indigo-600 transition-colors"
+                          className="w-full text-xs h-7 group-hover:border-[#F97066]/50 group-hover:text-[#D4432A] transition-colors"
                           onClick={() => openInput(platform.id)}
                         >
                           Connect
@@ -419,7 +419,7 @@ function PlatformInputForm({
           if (e.key === "Enter" && !isPending) onSave()
           if (e.key === "Escape") onClose()
         }}
-        className="h-7 text-[11px] px-2 border-slate-200 focus-visible:ring-indigo-400"
+        className="h-7 text-[11px] px-2 border-[#E5DDD5] focus-visible:ring-[#F97066]/50"
       />
       {saveError && (
         <p className="text-[10px] text-red-500 leading-tight px-0.5">{saveError}</p>
@@ -429,7 +429,7 @@ function PlatformInputForm({
           size="sm"
           disabled={isPending || !inputValue.trim()}
           onClick={onSave}
-          className="flex-1 h-6 text-[11px] bg-indigo-600 hover:bg-indigo-700 px-1"
+          className="flex-1 h-6 text-[11px] px-1 hover:opacity-90" style={{ backgroundColor: "#F97066", color: "white" }}
         >
           {isPending ? (
             <span className="inline-block w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -441,7 +441,7 @@ function PlatformInputForm({
           size="sm"
           variant="ghost"
           onClick={onClose}
-          className="h-6 w-6 p-0 text-slate-400 hover:text-slate-600 text-xs"
+          className="h-6 w-6 p-0 text-xs" style={{ color: "#A89080" }}
         >
           ✕
         </Button>

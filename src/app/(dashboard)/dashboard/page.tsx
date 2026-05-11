@@ -1,6 +1,4 @@
 import { createClient } from "@/lib/supabase/server"
-import { Header } from "@/components/layout/header"
-import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import { getInitials } from "@/lib/utils"
@@ -42,10 +40,18 @@ export default async function DashboardPage() {
   }
 
   return (
-    <div className="flex flex-col min-h-full bg-slate-50">
-      <Header title="Dashboard" description={`Welcome back, ${firstName}! 👋`} />
+    <div className="flex flex-col min-h-full" style={{ backgroundColor: "#FAFAF5" }}>
+      {/* Warm custom page header — looser and more personal than the generic Header */}
+      <div className="px-8 pt-8 pb-6" style={{ borderBottom: "1px solid #E8E0D5" }}>
+        <h1 className="text-4xl font-semibold leading-tight" style={{ color: "#2D1810" }}>
+          Good to see you, {firstName} 👋
+        </h1>
+        <p className="mt-1.5 text-base" style={{ color: "#8A7060" }}>
+          Here&apos;s your creative brand hub
+        </p>
+      </div>
 
-      <div className="flex-1 w-full max-w-7xl mx-auto px-6 lg:px-10 py-8 space-y-12">
+      <div className="flex-1 w-full max-w-5xl px-8 py-10 space-y-12">
 
         {/* ─── Section 1: Brand Profile ───────────────────────────── */}
         <section>
@@ -55,7 +61,12 @@ export default async function DashboardPage() {
             action={
               primaryBrand ? (
                 <Link href={`/brands/${primaryBrand.id}/edit`}>
-                  <Button variant="outline" size="sm" className="text-slate-600 hover:text-slate-900">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="rounded-xl"
+                    style={{ borderColor: "#E8D8D0", color: "#7A5C50" }}
+                  >
                     Edit Brand
                   </Button>
                 </Link>
@@ -76,16 +87,26 @@ export default async function DashboardPage() {
             title="Social Profiles"
             subtitle="Your connected social accounts"
           />
-          <SocialConnect initialAccounts={socialAccounts} />
+          <div
+            className="p-6 rounded-3xl"
+            style={{ backgroundColor: "#FFFFFF", boxShadow: "0 4px 24px rgba(180, 100, 60, 0.09)" }}
+          >
+            <SocialConnect initialAccounts={socialAccounts} />
+          </div>
         </section>
 
         {/* ─── Section 3: Content Pillars ─────────────────────────── */}
         <section>
           <SectionHeader
             title="Content Pillars"
-            subtitle="Your saved topic pillars"
+            subtitle={primaryBrand ? `${pillars?.length ?? 0} of 6 pillars defined` : "Your saved topic pillars"}
           />
-          <ContentPillarsSummary pillars={pillars} hasBrand={!!primaryBrand} />
+          <div
+            className="p-6 rounded-3xl"
+            style={{ backgroundColor: "#FFFFFF", boxShadow: "0 4px 24px rgba(180, 100, 60, 0.09)" }}
+          >
+            <ContentPillarsSummary pillars={pillars} hasBrand={!!primaryBrand} />
+          </div>
         </section>
 
       </div>
@@ -107,8 +128,8 @@ function SectionHeader({
   return (
     <div className="flex items-end justify-between mb-5">
       <div>
-        <h2 className="text-base font-semibold text-slate-800">{title}</h2>
-        <p className="text-sm text-slate-400 mt-0.5">{subtitle}</p>
+        <h2 className="text-lg font-semibold" style={{ color: "#2D1810" }}>{title}</h2>
+        <p className="text-sm mt-0.5" style={{ color: "#8A7060" }}>{subtitle}</p>
       </div>
       {action}
     </div>
@@ -117,24 +138,31 @@ function SectionHeader({
 
 function EmptyBrandState() {
   return (
-    <Card className="border-2 border-dashed border-indigo-100 bg-white shadow-none">
-      <CardContent className="flex flex-col items-center justify-center py-16 text-center">
-        <div className="w-16 h-16 rounded-2xl bg-indigo-50 flex items-center justify-center mb-5 text-3xl">
-          ✨
-        </div>
-        <h3 className="text-base font-semibold text-slate-800 mb-1.5">
-          Set up your brand profile
-        </h3>
-        <p className="text-sm text-slate-400 max-w-sm mb-6">
-          Define your brand identity — niche, audience, tone, and colors — to unlock all content planning tools.
-        </p>
-        <Link href="/brands/new">
-          <Button className="bg-indigo-600 hover:bg-indigo-700 font-medium">
-            Create your brand →
-          </Button>
-        </Link>
-      </CardContent>
-    </Card>
+    <div
+      className="flex flex-col items-center justify-center py-16 rounded-3xl border-2 border-dashed text-center"
+      style={{ borderColor: "#E8D8D0", backgroundColor: "#FFF8F4" }}
+    >
+      <div
+        className="w-14 h-14 rounded-2xl flex items-center justify-center mb-5 text-2xl"
+        style={{ backgroundColor: "#FEE8E4" }}
+      >
+        ✨
+      </div>
+      <h3 className="text-base font-semibold mb-1.5" style={{ color: "#2D1810" }}>
+        Set up your brand profile
+      </h3>
+      <p className="text-sm max-w-sm mb-6" style={{ color: "#8A7060" }}>
+        Define your brand identity — niche, audience, tone, and colors — to unlock all content planning tools.
+      </p>
+      <Link href="/brands/new">
+        <Button
+          className="rounded-xl font-medium hover:opacity-90"
+          style={{ backgroundColor: "#F97066", color: "white" }}
+        >
+          Create your brand →
+        </Button>
+      </Link>
+    </div>
   )
 }
 
@@ -142,57 +170,90 @@ function BrandProfileCard({ brand }: { brand: Brand }) {
   const initials = getInitials(brand.name)
 
   return (
-    <Card className="bg-white border-0 ring-1 ring-slate-100 shadow-sm">
-      <CardContent className="p-6">
-        {/* Top row: avatar + name + niche pill + tone */}
-        <div className="flex items-start gap-4">
-          {/* Avatar */}
-          {brand.logo_url ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={brand.logo_url}
-              alt={brand.name}
-              className="w-14 h-14 rounded-2xl object-cover flex-shrink-0"
-            />
-          ) : (
-            <div
-              className="w-14 h-14 rounded-2xl flex items-center justify-center text-white text-lg font-bold flex-shrink-0 shadow-sm"
-              style={{ backgroundColor: brand.primary_color || "#6366f1" }}
-            >
-              {initials}
-            </div>
-          )}
+    <div
+      className="p-6 rounded-3xl"
+      style={{ backgroundColor: "#FFFFFF", boxShadow: "0 4px 24px rgba(180, 100, 60, 0.09)" }}
+    >
+      {/* Colour gradient bar */}
+      <div
+        className="h-1.5 rounded-full mb-5"
+        style={{
+          background: `linear-gradient(to right, ${brand.primary_color ?? "#F97066"}, ${brand.secondary_color ?? "#E8956D"})`,
+        }}
+      />
 
-          <div className="flex-1 min-w-0">
-            {/* Name + niche pill */}
-            <div className="flex items-center gap-2.5 flex-wrap">
-              <h3 className="text-2xl font-bold text-slate-900 leading-tight">{brand.name}</h3>
-              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-50 text-indigo-700 ring-1 ring-inset ring-indigo-200 shrink-0">
-                {brand.niche}
-              </span>
-            </div>
-
-            {/* Tone of voice */}
-            <p className="text-sm text-slate-500 mt-1.5">
-              <span className="font-medium text-slate-600">Tone:</span>{" "}
-              {brand.tone_of_voice ?? "Not specified"}
-            </p>
+      {/* Top row: avatar + name + niche pill + tone */}
+      <div className="flex items-start gap-4">
+        {/* Avatar */}
+        {brand.logo_url ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={brand.logo_url}
+            alt={brand.name}
+            className="w-14 h-14 rounded-2xl object-cover flex-shrink-0"
+          />
+        ) : (
+          <div
+            className="w-14 h-14 rounded-2xl flex items-center justify-center text-white text-lg font-bold flex-shrink-0 shadow-sm"
+            style={{ backgroundColor: brand.primary_color || "#F97066" }}
+          >
+            {initials}
           </div>
-        </div>
+        )}
 
-        {/* Target audience — full-width strip */}
-        <div className="mt-5 pt-4 border-t border-slate-100 flex items-start gap-4">
-          <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest shrink-0 mt-0.5 w-28">
-            Target Audience
-          </p>
-          <p className="text-sm text-slate-700 font-medium leading-snug">
-            {brand.target_audience ?? "Not specified"}
+        <div className="flex-1 min-w-0">
+          {/* Name + niche pill */}
+          <div className="flex items-center gap-2.5 flex-wrap">
+            <h3
+              className="text-3xl font-semibold leading-tight"
+              style={{ color: "#2D1810" }}
+            >
+              {brand.name}
+            </h3>
+            <span
+              className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium shrink-0"
+              style={{ backgroundColor: "#FEF3DC", color: "#8B5E10" }}
+            >
+              {brand.niche}
+            </span>
+          </div>
+
+          {/* Tone of voice */}
+          <p className="text-sm mt-1.5" style={{ color: "#8A7060" }}>
+            <span className="font-medium" style={{ color: "#6A5048" }}>Tone: </span>
+            {brand.tone_of_voice ?? "Not specified"}
           </p>
         </div>
-      </CardContent>
-    </Card>
+      </div>
+
+      {/* Target audience */}
+      <div
+        className="mt-5 pt-4 flex items-start gap-4"
+        style={{ borderTop: "1px solid #F0E8E0" }}
+      >
+        <p
+          className="text-[10px] font-semibold uppercase tracking-widest shrink-0 mt-0.5 w-28"
+          style={{ color: "#A89080" }}
+        >
+          Target Audience
+        </p>
+        <p className="text-sm font-medium leading-snug" style={{ color: "#4A3428" }}>
+          {brand.target_audience ?? "Not specified"}
+        </p>
+      </div>
+    </div>
   )
 }
+
+// Distinct warm pastel backgrounds cycling per pillar index
+const PILLAR_PALETTES = [
+  { bg: "#FEE8E4", text: "#B03020", dot: "#F97066" }, // coral
+  { bg: "#E4F0E8", text: "#2D6040", dot: "#4CAF70" }, // sage
+  { bg: "#FEF3DC", text: "#8B5E10", dot: "#F0A020" }, // amber
+  { bg: "#EEE8F8", text: "#5040A0", dot: "#9070E0" }, // lavender
+  { bg: "#FEF0E0", text: "#C05820", dot: "#E88040" }, // peach
+  { bg: "#FDEAEF", text: "#B03050", dot: "#E05070" }, // rose
+]
 
 function ContentPillarsSummary({
   pillars,
@@ -203,7 +264,7 @@ function ContentPillarsSummary({
 }) {
   if (!hasBrand) {
     return (
-      <p className="text-sm text-slate-400">
+      <p className="text-sm" style={{ color: "#8A7060" }}>
         Create your brand first to start building content pillars.
       </p>
     )
@@ -211,11 +272,12 @@ function ContentPillarsSummary({
 
   if (!pillars || pillars.length === 0) {
     return (
-      <p className="text-sm text-slate-400">
+      <p className="text-sm" style={{ color: "#8A7060" }}>
         No pillars saved yet —{" "}
         <Link
           href="/content-research"
-          className="text-indigo-500 hover:text-indigo-700 hover:underline transition-colors"
+          className="hover:underline transition-colors"
+          style={{ color: "#F97066" }}
         >
           go to Content Research to generate some
         </Link>
@@ -224,20 +286,37 @@ function ContentPillarsSummary({
   }
 
   return (
-    <div className="flex flex-wrap gap-2">
-      {pillars.map((pillar) => (
-        <span
-          key={pillar.id}
-          className="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium border"
-          style={{
-            backgroundColor: pillar.color + "18",
-            color: pillar.color,
-            borderColor: pillar.color + "50",
-          }}
-        >
-          {pillar.name}
-        </span>
-      ))}
+    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+      {pillars.map((pillar, i) => {
+        const palette = PILLAR_PALETTES[i % PILLAR_PALETTES.length]
+        return (
+          <div
+            key={pillar.id}
+            className="p-4 rounded-2xl"
+            style={{ backgroundColor: palette.bg }}
+          >
+            <div className="flex items-center gap-2 mb-1.5">
+              <div
+                className="h-3 w-3 rounded-full shrink-0"
+                style={{ backgroundColor: palette.dot }}
+              />
+              <p className="text-sm font-semibold" style={{ color: palette.text }}>
+                {pillar.name}
+              </p>
+            </div>
+          </div>
+        )
+      })}
+      {pillars.length < 6 && (
+        <Link href="/content-pillars" className="block">
+          <div
+            className="p-4 rounded-2xl border-2 border-dashed flex items-center justify-center gap-2 min-h-[56px] transition-all hover:border-[#F97066]"
+            style={{ borderColor: "#E8D8D0" }}
+          >
+            <span className="text-sm" style={{ color: "#A08070" }}>+ Add pillar</span>
+          </div>
+        </Link>
+      )}
     </div>
   )
 }
