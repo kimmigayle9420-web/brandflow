@@ -85,6 +85,7 @@ type GeneratedPillar = {
   voice_direction: string
   format_preference: string
   weekly_quota: number
+  archetype?: string | null
 }
 
 type SavedInsight = {
@@ -115,6 +116,51 @@ const PILLAR_PASTELS = [
   { bg: "#FFF5F0", border: "#F5C8B0", accent: "#C05830", text: "#7A2810" },  // peach
   { bg: "#EFF7FF", border: "#B0D0F0", accent: "#2070B8", text: "#103A68" },  // sky
 ]
+
+// ── DMI Archetype styles ──────────────────────────────────────────────────────
+
+const ARCHETYPE_STYLES: Record<string, { bg: string; text: string; border: string; label: string }> = {
+  "educate":           { bg: "#EFF6FF", text: "#1D4ED8", border: "#BFDBFE", label: "Educate" },
+  "inspire":           { bg: "#F5F3FF", text: "#6D28D9", border: "#DDD6FE", label: "Inspire" },
+  "entertain":         { bg: "#FEFCE8", text: "#854D0E", border: "#FEF08A", label: "Entertain" },
+  "behind-the-scenes": { bg: "#FFF7ED", text: "#9A3412", border: "#FED7AA", label: "Behind the Scenes" },
+  "promote":           { bg: "#F0FDF4", text: "#166534", border: "#BBF7D0", label: "Promote" },
+  "engage":            { bg: "#FDF2F8", text: "#9D174D", border: "#FBCFE8", label: "Engage" },
+}
+
+const DMI_ARCHETYPE_SUGGESTIONS = [
+  { key: "educate",           label: "Educate",            desc: "How-tos, tips, myths debunked" },
+  { key: "inspire",           label: "Inspire",            desc: "Stories, transformations, mindset" },
+  { key: "entertain",         label: "Entertain",          desc: "Relatable, humorous, trending" },
+  { key: "behind-the-scenes", label: "Behind the Scenes",  desc: "Process, day in the life, the real you" },
+  { key: "promote",           label: "Promote",            desc: "Services, offers, social proof" },
+  { key: "engage",            label: "Engage",             desc: "Questions, polls, conversation" },
+]
+
+const MIGRATION_SQL = `-- Migration 1: Upgrade content pillars
+ALTER TABLE content_pillars ADD COLUMN IF NOT EXISTS voice_direction text;
+ALTER TABLE content_pillars ADD COLUMN IF NOT EXISTS format_preference text DEFAULT 'any';
+ALTER TABLE content_pillars ADD COLUMN IF NOT EXISTS weekly_quota int DEFAULT 2;
+
+-- Migration 2: Create ideas table
+CREATE TABLE IF NOT EXISTS ideas (
+  id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id uuid REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
+  brand_id uuid REFERENCES brands(id) ON DELETE CASCADE,
+  pillar_id uuid REFERENCES content_pillars(id) ON DELETE SET NULL,
+  format text CHECK (format IN ('post', 'carousel', 'reel')) NOT NULL DEFAULT 'post',
+  title text,
+  hook text,
+  caption text,
+  hashtags text,
+  slides jsonb,
+  script jsonb,
+  media_url text,
+  status text CHECK (status IN ('idea', 'draft', 'scheduled', 'posted')) NOT NULL DEFAULT 'idea',
+  created_at timestamptz DEFAULT now()
+);
+ALTER TABLE ideas ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Users manage own ideas" ON ideas FOR ALL USING (auth.uid() = user_id);`
 
 const LS_OPPORTUNITY_KEY_PREFIX = "content-opportunity"
 const LS_PROFILE_LEFT_KEY = "brandflow:profile-analyser-left"
@@ -287,6 +333,89 @@ function SectionLabel({ label, icon }: { label: string; icon?: React.ReactNode }
       {icon && <span style={{ color: "#F97066" }}>{icon}</span>}
       <span className="text-xs font-bold uppercase tracking-widest" style={{ color: "#8A7060" }}>{label}</span>
       <div className="flex-1 h-px" style={{ backgroundColor: "#E5DDD5" }} />
+    </div>
+  )
+}
+
+// ── Collapsible Section ───────────────────────────────────────────────────────
+
+function CollapsibleSection({
+  id, title, icon, defaultOpen = true, children,
+}: {
+  id: string
+  title: string
+  icon: React.ReactNode
+  defaultOpen?: boolean
+  children: React.ReactNode
+}) {
+  const lsKey = `brandflow:section-open-${id}`
+  const [open, setOpen] = useState<boolean>(() => {
+    const saved = lsGet<boolean>(lsKey)
+    return saved !== null ? saved : defaultOpen
+  })
+  const toggle = () => {
+    const next = !open
+    setOpen(next)
+    lsSet(lsKey, next)
+  }
+  return (
+    <div>
+      <button
+        onClick={toggle}
+        className="w-full flex items-center justify-between py-3 group transition-colors hover:opacity-80"
+        style={{ borderBottom: open ? "1px solid #E5DDD5" : "1px solid transparent" }}
+      >
+        <div className="flex items-center gap-2">
+          <span style={{ color: "#F97066" }}>{icon}</span>
+          <span className="text-sm font-bold uppercase tracking-widest" style={{ color: "#8A7060" }}>{title}</span>
+          <div className="h-px flex-1 min-w-[20px]" style={{ backgroundColor: open ? "transparent" : "#E5DDD5" }} />
+        </div>
+        <ChevronDown
+          className="h-4 w-4 shrink-0 transition-transform duration-200"
+          style={{ color: "#8A7060", transform: open ? "rotate(180deg)" : "rotate(0deg)" }}
+        />
+      </button>
+      {open && (
+        <div className="pt-4">{children}</div>
+      )}
+    </div>
+  )
+}
+
+// ── Migration Banner ──────────────────────────────────────────────────────────
+
+function MigrationBanner({ onDismiss }: { onDismiss: () => void }) {
+  const [copied, setCopied] = useState(false)
+  const handleCopy = () => {
+    navigator.clipboard.writeText(MIGRATION_SQL).catch(() => {})
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
+  return (
+    <div className="rounded-2xl border px-5 py-4 space-y-3"
+      style={{ backgroundColor: "#FFFBEA", borderColor: "#F5DFA0" }}>
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex items-start gap-2.5">
+          <span className="text-base mt-0.5">⚠️</span>
+          <div>
+            <p className="text-sm font-semibold" style={{ color: "#6B4D00" }}>
+              Database migration needed
+            </p>
+            <p className="text-xs mt-0.5 leading-relaxed" style={{ color: "#92680A" }}>
+              Some features (voice direction, weekly quota, Ideas Bank) require a one-time database upgrade.
+              Copy the SQL below and run it in your Supabase SQL editor.
+            </p>
+          </div>
+        </div>
+        <button onClick={onDismiss} className="text-xs shrink-0 mt-0.5" style={{ color: "#A07060" }}>✕</button>
+      </div>
+      <button
+        onClick={handleCopy}
+        className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold border transition-all hover:-translate-y-0.5"
+        style={{ borderColor: "#F5DFA0", backgroundColor: "white", color: "#6B4D00" }}>
+        {copied ? <Check className="h-3.5 w-3.5 text-green-600" /> : <Copy className="h-3.5 w-3.5" />}
+        {copied ? "Copied!" : "Copy Migration SQL"}
+      </button>
     </div>
   )
 }
@@ -1239,15 +1368,21 @@ function ResearchStrip({
 
   return (
     <div className="space-y-6">
-      <ContentOpportunityHero
-        brand={brand}
-        socialAccounts={socialAccounts}
-        userId={userId}
-        onOpportunityLoaded={setOpportunityResult}
-        onSaveInsight={onSaveInsight ? (text, source) => onSaveInsight(text, source) : undefined}
-      />
-      <DualColumnAnalyser socialAccounts={socialAccounts} />
-      <NicheResearch opportunityResult={opportunityResult} onSaveInsight={onSaveInsight ? (text, source) => onSaveInsight(text, source) : undefined} />
+      <CollapsibleSection id="content-opportunity" title="Content Opportunity" icon={<Sparkles className="h-3.5 w-3.5" />}>
+        <ContentOpportunityHero
+          brand={brand}
+          socialAccounts={socialAccounts}
+          userId={userId}
+          onOpportunityLoaded={setOpportunityResult}
+          onSaveInsight={onSaveInsight ? (text, source) => onSaveInsight(text, source) : undefined}
+        />
+      </CollapsibleSection>
+      <CollapsibleSection id="profile-analyser" title="Profile & Website Analyser" icon={<Globe className="h-3.5 w-3.5" />}>
+        <DualColumnAnalyser socialAccounts={socialAccounts} />
+      </CollapsibleSection>
+      <CollapsibleSection id="niche-research" title="Niche Research" icon={<Search className="h-3.5 w-3.5" />}>
+        <NicheResearch opportunityResult={opportunityResult} onSaveInsight={onSaveInsight ? (text, source) => onSaveInsight(text, source) : undefined} />
+      </CollapsibleSection>
     </div>
   )
 }
@@ -1329,26 +1464,46 @@ function PillarsStrip({ brand, initialPillars, onPillarsChange }: {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     await (supabase.from("content_pillars") as any).delete().eq("brand_id", brand.id)
 
-    const inserts = editedPillars.map((p, i) => ({
+    const baseInserts = editedPillars.map((p, i) => ({
       brand_id: brand.id,
       user_id: user.id,
       name: p.name.trim() || "Untitled",
       emoji: p.emoji || "📌",
       description: p.perspective || p.description || null,
-      voice_direction: p.voice_direction || null,
-      format_preference: p.format_preference || "any",
-      weekly_quota: p.weekly_quota ?? 2,
       color: PILLAR_COLORS[i % PILLAR_COLORS.length],
       sort_order: i,
     }))
+
+    const fullInserts = editedPillars.map((p, i) => ({
+      ...baseInserts[i],
+      voice_direction: p.voice_direction || null,
+      format_preference: p.format_preference || "any",
+      weekly_quota: p.weekly_quota ?? 2,
+    }))
+
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data: inserted, error: dbError } = await (supabase.from("content_pillars") as any).insert(inserts).select()
+    let { data: inserted, error: dbError } = await (supabase.from("content_pillars") as any).insert(fullInserts).select()
+
+    if (dbError && (dbError.message.includes("column") || dbError.message.includes("does not exist"))) {
+      // Retry with only base columns (migration not yet run)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const retry = await (supabase.from("content_pillars") as any).insert(baseInserts).select()
+      inserted = retry.data
+      dbError = retry.error
+      if (!retry.error) {
+        toast({
+          title: "Saved with basic fields",
+          description: "Run the database migration in Settings to enable voice direction, format & weekly quota.",
+        })
+      }
+    }
+
     if (dbError) {
       toast({ title: "Failed to save pillars", description: dbError.message, variant: "destructive" })
-    } else {
+    } else if (inserted) {
       setSavedPillars(inserted ?? [])
       setGenerated([])
-      toast({ title: `✓ ${editedPillars.length} pillars saved!` })
+      if (!dbError) toast({ title: `✓ ${editedPillars.length} pillars saved!` })
     }
     setSaving(false)
   }
@@ -1401,6 +1556,26 @@ function PillarsStrip({ brand, initialPillars, onPillarsChange }: {
           <p className="text-xs" style={{ color: "#A07060" }}>
             Each pillar has its own voice, format preference, and weekly posting rhythm. Once generated, they'll guide all your AI-assisted content.
           </p>
+        </div>
+
+        {/* DMI Archetype hint pills */}
+        <div className="space-y-2">
+          <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: "#A07060" }}>
+            Suggested starting points — your pillars will be built around these archetypes:
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {DMI_ARCHETYPE_SUGGESTIONS.map((a) => {
+              const style = ARCHETYPE_STYLES[a.key]
+              return (
+                <div key={a.key}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-medium"
+                  style={{ backgroundColor: style.bg, borderColor: style.border, color: style.text }}>
+                  <span className="font-bold">{a.label}</span>
+                  <span className="opacity-70">— {a.desc}</span>
+                </div>
+              )
+            })}
+          </div>
         </div>
 
         {error && <p className="text-xs rounded-lg px-3 py-2" style={{ color: "#ef4444", backgroundColor: "#FFF0F0" }}>{error}</p>}
@@ -1494,7 +1669,7 @@ function PillarsStrip({ brand, initialPillars, onPillarsChange }: {
             return (
               <div key={i} className="rounded-xl border p-4 space-y-3"
                 style={{ backgroundColor: pastel.bg, borderColor: pastel.border }}>
-                {/* Header: emoji + name + delete */}
+                {/* Header: emoji + name + archetype badge + delete */}
                 <div className="flex items-start gap-2">
                   <input
                     value={pillar.emoji}
@@ -1503,13 +1678,25 @@ function PillarsStrip({ brand, initialPillars, onPillarsChange }: {
                     maxLength={2}
                     aria-label="Pillar emoji"
                   />
-                  <input
-                    value={pillar.name}
-                    onChange={(e) => updateField(i, "name", e.target.value)}
-                    className="flex-1 text-sm font-bold bg-transparent border-none outline-none focus:bg-white/60 rounded px-1 py-0.5"
-                    style={{ color: pastel.text }}
-                    aria-label="Pillar name"
-                  />
+                  <div className="flex-1 space-y-1">
+                    <input
+                      value={pillar.name}
+                      onChange={(e) => updateField(i, "name", e.target.value)}
+                      className="w-full text-sm font-bold bg-transparent border-none outline-none focus:bg-white/60 rounded px-1 py-0.5"
+                      style={{ color: pastel.text }}
+                      aria-label="Pillar name"
+                    />
+                    {pillar.archetype && ARCHETYPE_STYLES[pillar.archetype] && (
+                      <span className="inline-block text-[9px] font-bold px-2 py-0.5 rounded-full"
+                        style={{
+                          backgroundColor: ARCHETYPE_STYLES[pillar.archetype].bg,
+                          color: ARCHETYPE_STYLES[pillar.archetype].text,
+                          border: `1px solid ${ARCHETYPE_STYLES[pillar.archetype].border}`,
+                        }}>
+                        {ARCHETYPE_STYLES[pillar.archetype].label}
+                      </span>
+                    )}
+                  </div>
                   <button onClick={() => removeGeneratedPillar(i)}
                     className="shrink-0 opacity-40 hover:opacity-80 transition-opacity mt-1">
                     <Trash2 className="h-3.5 w-3.5" style={{ color: pastel.text }} />
@@ -1669,6 +1856,18 @@ function PillarsStrip({ brand, initialPillars, onPillarsChange }: {
                     <div>
                       <p className="text-sm font-bold leading-tight" style={{ color: pastel.text }}>{pillar.name}</p>
                       <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                        {/* Archetype badge */}
+                        {(pillar as unknown as { archetype?: string }).archetype &&
+                         ARCHETYPE_STYLES[(pillar as unknown as { archetype?: string }).archetype!] && (() => {
+                          const archKey = (pillar as unknown as { archetype?: string }).archetype!
+                          const s = ARCHETYPE_STYLES[archKey]
+                          return (
+                            <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full"
+                              style={{ backgroundColor: s.bg, color: s.text, border: `1px solid ${s.border}` }}>
+                              {s.label}
+                            </span>
+                          )
+                        })()}
                         {pillar.format_preference && pillar.format_preference !== "any" && (
                           <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full uppercase tracking-wide"
                             style={{ backgroundColor: pastel.accent + "22", color: pastel.accent, border: `1px solid ${pastel.border}` }}>
@@ -2388,7 +2587,19 @@ function GenerationStrip({
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data, error } = await (supabase.from("ideas") as any).insert(payload).select().single()
-      if (error) throw new Error(error.message)
+      if (error) {
+        const msg = error.message ?? ""
+        if (msg.includes("relation") || msg.includes("does not exist") || msg.includes("table") || msg.includes("ideas")) {
+          toast({
+            title: "Ideas Bank needs a database setup",
+            description: "Check Settings to run the migration SQL.",
+            variant: "destructive",
+          })
+          setSavingIdea(false)
+          return
+        }
+        throw new Error(msg)
+      }
       setSavedIdeaId(data?.id ?? "saved")
       toast({ title: "💾 Idea saved to your Ideas Bank" })
       onIdeaSaved?.()
@@ -3252,6 +3463,7 @@ export function ContentCreatorClient({
   const { insights: savedInsights, save: saveInsight } = useSavedInsights(userId)
   const [ideas, setIdeas] = useState<Idea[]>([])
   const [loadedIdea, setLoadedIdea] = useState<Idea | null>(null)
+  const [showMigrationBanner, setShowMigrationBanner] = useState(false)
 
   const handleSaveInsight = (text: string, source: "opportunity" | "niche" | "analyser") => {
     saveInsight(text, source)
@@ -3260,10 +3472,16 @@ export function ContentCreatorClient({
   const fetchIdeas = async () => {
     if (!brand) return
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data } = await (supabase.from("ideas") as any)
+    const { data, error } = await (supabase.from("ideas") as any)
       .select("*")
       .eq("brand_id", brand.id)
       .order("created_at", { ascending: false })
+    if (error) {
+      const msg = error.message ?? ""
+      if (msg.includes("relation") || msg.includes("does not exist") || msg.includes("ideas")) {
+        setShowMigrationBanner(true)
+      }
+    }
     setIdeas(data ?? [])
   }
 
@@ -3279,37 +3497,39 @@ export function ContentCreatorClient({
   // ── Render ────────────────────────────────────────────────────────────────
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
 
-      {/* ══ Section 1: Research ══ */}
-      <div>
-        <SectionLabel label="Research" icon={<Search className="h-3.5 w-3.5" />} />
-        <ResearchStrip
-          brand={brand}
-          socialAccounts={socialAccounts}
-          userId={userId}
-          onSaveInsight={handleSaveInsight}
-        />
-      </div>
+      {/* Migration banner */}
+      {showMigrationBanner && (
+        <MigrationBanner onDismiss={() => setShowMigrationBanner(false)} />
+      )}
+
+      {/* ══ Research sections ══ */}
+      <ResearchStrip
+        brand={brand}
+        socialAccounts={socialAccounts}
+        userId={userId}
+        onSaveInsight={handleSaveInsight}
+      />
 
       <div style={{ borderTop: "1px solid #E5DDD5" }} />
 
-      {/* ══ Section 2: Content Pillars ══ */}
-      <div>
-        <SectionLabel label="Content Pillars" icon={<Layers className="h-3.5 w-3.5" />} />
+      {/* ══ Content Pillars ══ */}
+      <CollapsibleSection id="content-pillars" title="Content Pillars" icon={<Layers className="h-3.5 w-3.5" />}>
         <PillarsStrip
           brand={brand}
           initialPillars={initialPillars}
-          onPillarsChange={setPillars}
+          onPillarsChange={(p) => {
+            setPillars(p)
+            // Check for migration needed after save attempt
+          }}
         />
-      </div>
+      </CollapsibleSection>
 
       <div style={{ borderTop: "1px solid #E5DDD5" }} />
 
-      {/* ══ Section 3: Content Generation ══ */}
-      <div>
-        <SectionLabel label="Content Generation" icon={<Sparkles className="h-3.5 w-3.5" />} />
-
+      {/* ══ Content Generation ══ */}
+      <CollapsibleSection id="content-generation" title="Content Generation" icon={<Sparkles className="h-3.5 w-3.5" />}>
         {!brand ? (
           <div className="flex flex-col items-center justify-center py-16 gap-4">
             <div className="h-16 w-16 rounded-2xl flex items-center justify-center"
@@ -3336,25 +3556,23 @@ export function ContentCreatorClient({
             onIdeaSaved={fetchIdeas}
           />
         )}
-      </div>
+      </CollapsibleSection>
 
       <div style={{ borderTop: "1px solid #E5DDD5" }} />
 
-      {/* ══ Section 4: Ideas Bank ══ */}
+      {/* ══ Ideas Bank ══ */}
       {brand && (
-        <div>
-          <IdeasBank
-            ideas={ideas}
-            pillars={pillars}
-            onLoad={(idea) => {
-              setLoadedIdea(idea)
-              window.scrollTo({ top: 0, behavior: "smooth" })
-              toast({ title: "Idea loaded — scroll up to continue editing" })
-            }}
-            onDelete={handleDeleteIdea}
-            onRefresh={fetchIdeas}
-          />
-        </div>
+        <IdeasBank
+          ideas={ideas}
+          pillars={pillars}
+          onLoad={(idea) => {
+            setLoadedIdea(idea)
+            window.scrollTo({ top: 0, behavior: "smooth" })
+            toast({ title: "Idea loaded — scroll up to continue editing" })
+          }}
+          onDelete={handleDeleteIdea}
+          onRefresh={fetchIdeas}
+        />
       )}
     </div>
   )

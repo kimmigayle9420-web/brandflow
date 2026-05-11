@@ -59,18 +59,27 @@ export async function POST(request: Request) {
             role: 'user',
             content: `You are generating content pillars for a personal brand creator in the "${niche.trim()}" niche.
 
-Each pillar is a creative lens — a specific perspective and voice through which the creator talks about their niche. Make each pillar DISTINCT in voice, angle, and format. No two pillars should sound the same.
+You MUST map each pillar to exactly one of these 6 Digital Marketing Institute (DMI) archetypes:
+- educate: teach your audience something valuable (how-tos, tips, myths debunked)
+- inspire: motivate, share stories, transformations, mindset shifts
+- entertain: relatable, humorous, trending, personality-led content
+- behind-the-scenes: process, day in the life, how you work, the real you
+- promote: services, offers, booking, social proof, results
+- engage: questions, polls, community, conversation starters
 
-Generate exactly 5 content pillars. Return a valid JSON array with exactly 5 objects. Each object MUST have these exact keys:
+Generate exactly 5 content pillars using 5 different archetypes. The pillar NAME must be niche-specific and have real personality — NOT generic. For example: if niche is "fitness" + educate → "The Training Truth"; if niche is "tattoo art" + behind-the-scenes → "The Studio Reality"; if niche is "cooking" + entertain → "Kitchen Confessions"; if niche is "fitness" + inspire → "Transformation Diaries"; if niche is "fashion" + promote → "Wear This Now".
 
-- "name": short, memorable pillar name (2–4 words, title case)
+Return a valid JSON array with exactly 5 objects. Each object MUST have these exact keys:
+
+- "name": short, memorable niche-specific name with personality (2–4 words, title case) — must NOT be generic
 - "emoji": a single relevant emoji character
+- "archetype": one of exactly "educate"|"inspire"|"entertain"|"behind-the-scenes"|"promote"|"engage"
 - "description": one clear sentence explaining what content belongs under this pillar
-- "perspective": the specific raw angle or lens for this pillar — what unique POV the creator brings (e.g. "The raw reality of creating custom art that clients never see", "The messy, unfiltered truth about running a solo business")
-- "voice_direction": the tone and style direction for this pillar (e.g. "Intimate, honest, slightly vulnerable — lead with emotion, close with insight")
-- "format_preference": single string — one of "post", "carousel", "reel", or "any" — which format works best for this pillar's content type
+- "perspective": the specific raw angle or lens for this pillar — what unique POV the creator brings (e.g. "The raw reality of creating custom art that clients never see")
+- "voice_direction": the tone and style direction for this pillar niche-specific (e.g. "Intimate, honest, slightly vulnerable — lead with emotion, close with insight")
+- "format_preference": single string — one of "post", "carousel", "reel", or "any"
 - "postIdeas": array of exactly 3 brief post idea examples (each 6–12 words)
-- "weekly_quota": integer between 1 and 3 — how many times per week to post under this pillar (vary across pillars to total ~7–9 per week)
+- "weekly_quota": integer between 1 and 3 — how many times per week (vary to total ~7–9/week)
 
 Return ONLY the raw JSON array. No markdown, no code fences, no explanation, no extra text.`,
           },
@@ -101,6 +110,7 @@ Return ONLY the raw JSON array. No markdown, no code fences, no explanation, no 
 
     // Normalise: ensure all fields exist
     const VALID_FORMATS = ["post", "carousel", "reel", "any"]
+    const VALID_ARCHETYPES = ["educate", "inspire", "entertain", "behind-the-scenes", "promote", "engage"]
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const normalised = pillars.map((p: any) => ({
       name: p.name ?? "Untitled",
@@ -115,6 +125,7 @@ Return ONLY the raw JSON array. No markdown, no code fences, no explanation, no 
       weekly_quota: typeof p.weekly_quota === "number"
         ? Math.min(5, Math.max(1, p.weekly_quota))
         : 2,
+      archetype: VALID_ARCHETYPES.includes(p.archetype ?? "") ? p.archetype : null,
     }))
 
     return NextResponse.json({ pillars: normalised })
