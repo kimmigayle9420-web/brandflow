@@ -9,7 +9,7 @@ type Pillar = {
   name: string
   description: string
   emoji: string
-  examples: string[]
+  postIdeas: string[]
 }
 
 export function PillarsGenerator({ defaultNiche }: { defaultNiche: string }) {
@@ -88,9 +88,9 @@ export function PillarsGenerator({ defaultNiche }: { defaultNiche: string }) {
                 <div className="text-2xl">{pillar.emoji}</div>
                 <h4 className="text-sm font-bold text-slate-800 leading-snug">{pillar.name}</h4>
                 <p className="text-xs text-slate-500 leading-relaxed">{pillar.description}</p>
-                {pillar.examples?.length > 0 && (
+                {pillar.postIdeas?.length > 0 && (
                   <ul className="space-y-1.5 pt-1 border-t border-slate-50">
-                    {pillar.examples.map((ex, j) => (
+                    {pillar.postIdeas.map((ex, j) => (
                       <li key={j} className="text-xs text-slate-400 flex items-start gap-1.5">
                         <span className="text-indigo-400 mt-0.5 shrink-0">→</span>
                         <span>{ex}</span>

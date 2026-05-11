@@ -3,6 +3,18 @@ import { NextResponse } from "next/server"
 import Anthropic from "@anthropic-ai/sdk"
 
 export async function POST(request: Request) {
+  // Guard: ensure API key is actually configured
+  const apiKey = process.env.ANTHROPIC_API_KEY
+  if (!apiKey || apiKey === "placeholder-key" || apiKey.trim() === "") {
+    return NextResponse.json(
+      {
+        error:
+          "Anthropic API key is not configured. Add your ANTHROPIC_API_KEY to .env.local and restart the dev server.",
+      },
+      { status: 503 }
+    )
+  }
+
   // Auth check
   const supabase = createClient()
   const {
@@ -28,7 +40,7 @@ export async function POST(request: Request) {
 
   // Generate pillars with Anthropic
   try {
-    const client = new Anthropic()
+    const client = new Anthropic({ apiKey })
 
     const message = await client.messages.create({
       model: "claude-haiku-4-5-20251001",
@@ -40,9 +52,9 @@ export async function POST(request: Request) {
 
 Return a valid JSON array with exactly 5 objects. Each object MUST have these exact keys:
 - "name": short, memorable pillar name (2–4 words, title case)
-- "description": one clear sentence explaining what content belongs under this pillar
 - "emoji": a single relevant emoji character
-- "examples": array of exactly 3 brief post idea examples (each 6–12 words)
+- "description": one clear sentence explaining what content belongs under this pillar
+- "postIdeas": array of exactly 3 brief post idea examples (each 6–12 words)
 
 Return ONLY the raw JSON array. No markdown, no code fences, no explanation, no extra text.`,
         },
@@ -66,9 +78,26 @@ Return ONLY the raw JSON array. No markdown, no code fences, no explanation, no 
       throw new Error("Invalid pillars format returned")
     }
 
-    return NextResponse.json({ pillars })
-  } catch (error) {
+    // Normalise: ensure postIdeas exists (handle if model returns 'examples' anyway)
+    const normalised = pillars.map((p: any) => ({
+      name: p.name ?? "Untitled",
+      emoji: p.emoji ?? "📌",
+      description: p.description ?? "",
+      postIdeas: p.postIdeas ?? p.examples ?? [],
+    }))
+
+    return NextResponse.json({ pillars: normalised })
+  } catch (error: any) {
     console.error("[generate-pillars] Error:", error)
+
+    // Surface auth errors clearly
+    if (error?.status === 401) {
+      return NextResponse.json(
+        { error: "Invalid Anthropic API key. Check your ANTHROPIC_API_KEY in .env.local." },
+        { status: 503 }
+      )
+    }
+
     return NextResponse.json(
       { error: "Failed to generate content pillars. Please try again." },
       { status: 500 }

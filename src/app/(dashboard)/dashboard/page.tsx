@@ -23,13 +23,14 @@ export default async function DashboardPage() {
       .order("created_at", { ascending: false }),
     supabase
       .from("profiles")
-      .select("full_name")
+      .select("full_name, social_accounts")
       .eq("id", user!.id)
       .single(),
   ])
 
   const firstName = profileResult.data?.full_name?.split(" ")[0] ?? "there"
   const primaryBrand = brands?.[0] ?? null
+  const socialAccounts = (profileResult.data?.social_accounts ?? {}) as Record<string, string>
 
   return (
     <div className="flex flex-col min-h-full bg-slate-50">
@@ -66,7 +67,7 @@ export default async function DashboardPage() {
             title="Connect Social Platforms"
             subtitle="Link your accounts to start scheduling content"
           />
-          <SocialConnect />
+          <SocialConnect initialAccounts={socialAccounts} />
         </section>
 
         {/* ─── Section 3: Content Pillars Generator ───────────────── */}
@@ -144,11 +145,6 @@ function BrandProfileCards({ brand, totalBrands }: { brand: Brand; totalBrands: 
     { label: "Brand Name", value: brand.name, emoji: "🏷️" },
     { label: "Niche", value: brand.niche, emoji: "🎯" },
     {
-      label: "Target Audience",
-      value: brand.target_audience ?? "Not specified",
-      emoji: "👥",
-    },
-    {
       label: "Tone of Voice",
       value: brand.tone_of_voice ?? "Not specified",
       emoji: "🎙️",
@@ -212,8 +208,8 @@ function BrandProfileCards({ brand, totalBrands }: { brand: Brand; totalBrands: 
         </CardContent>
       </Card>
 
-      {/* Info cards grid */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+      {/* Info cards grid — 3-up */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         {infoCards.map((card) => (
           <Card
             key={card.label}
@@ -231,6 +227,22 @@ function BrandProfileCards({ brand, totalBrands }: { brand: Brand; totalBrands: 
           </Card>
         ))}
       </div>
+
+      {/* Target Audience — full-width horizontal banner */}
+      <Card className="bg-white border-0 ring-1 ring-slate-100 shadow-sm hover:shadow-md transition-shadow">
+        <CardContent className="flex items-center gap-4 py-3.5 px-5">
+          <div className="flex items-center gap-1.5 shrink-0">
+            <span className="text-sm">👥</span>
+            <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest">
+              Target Audience
+            </p>
+          </div>
+          <div className="w-px h-4 bg-slate-200 shrink-0" />
+          <p className="text-sm font-semibold text-slate-700 leading-snug">
+            {brand.target_audience ?? "Not specified"}
+          </p>
+        </CardContent>
+      </Card>
     </div>
   )
 }
