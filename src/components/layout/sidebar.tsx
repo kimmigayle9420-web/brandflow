@@ -12,6 +12,7 @@ import {
   Zap,
   LogOut,
   FlaskConical,
+  PenLine,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { createClient } from "@/lib/supabase/client"
@@ -23,6 +24,7 @@ const navItems = [
   { href: "/content-pillars", label: "Content Pillars", icon: Layers },
   { href: "/content-planner", label: "Content Planner", icon: CalendarDays },
   { href: "/content-research", label: "Content Research", icon: FlaskConical },
+  { href: "/content-creator", label: "Content Creator", icon: PenLine },
   { href: "/niche-research", label: "Niche Research", icon: Search },
   { href: "/settings", label: "Settings", icon: Settings },
 ]
