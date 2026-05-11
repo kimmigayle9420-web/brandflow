@@ -4,6 +4,12 @@ import Link from "next/link"
 import { getInitials } from "@/lib/utils"
 import { SocialConnect } from "./_components/social-connect"
 import type { Brand, ContentPillar } from "@/types"
+import type { Metadata } from "next"
+
+export const metadata: Metadata = {
+  title: "Dashboard — BrandFlow",
+  description: "Your creative brand hub",
+}
 
 export default async function DashboardPage() {
   const supabase = createClient()
@@ -42,8 +48,8 @@ export default async function DashboardPage() {
   return (
     <div className="flex flex-col min-h-full" style={{ backgroundColor: "#FAFAF5" }}>
       {/* Warm custom page header — looser and more personal than the generic Header */}
-      <div className="px-8 pt-8 pb-6" style={{ borderBottom: "1px solid #E8E0D5" }}>
-        <h1 className="text-4xl font-semibold leading-tight" style={{ color: "#2D1810" }}>
+      <div className="px-4 pt-6 pb-5 md:px-8 md:pt-8 md:pb-6" style={{ borderBottom: "1px solid #E8E0D5" }}>
+        <h1 className="text-2xl md:text-4xl font-semibold leading-tight" style={{ color: "#2D1810" }}>
           Good to see you, {firstName} 👋
         </h1>
         <p className="mt-1.5 text-base" style={{ color: "#8A7060" }}>
@@ -51,7 +57,7 @@ export default async function DashboardPage() {
         </p>
       </div>
 
-      <div className="flex-1 w-full max-w-5xl px-8 py-10 space-y-12">
+      <div className="flex-1 w-full max-w-5xl px-4 py-6 md:px-8 md:py-10 space-y-10 md:space-y-12">
 
         {/* ─── Section 1: Brand Profile ───────────────────────────── */}
         <section>
@@ -60,7 +66,7 @@ export default async function DashboardPage() {
             subtitle="Your brand identity at a glance"
             action={
               primaryBrand ? (
-                <Link href={`/brands/${primaryBrand.id}/edit`}>
+                <Link href="/settings">
                   <Button
                     variant="outline"
                     size="sm"
@@ -154,12 +160,12 @@ function EmptyBrandState() {
       <p className="text-sm max-w-sm mb-6" style={{ color: "#8A7060" }}>
         Define your brand identity — niche, audience, tone, and colors — to unlock all content planning tools.
       </p>
-      <Link href="/brands/new">
+      <Link href="/settings">
         <Button
           className="rounded-xl font-medium hover:opacity-90"
           style={{ backgroundColor: "#F97066", color: "white" }}
         >
-          Create your brand →
+          Set up your brand →
         </Button>
       </Link>
     </div>
@@ -205,7 +211,7 @@ function BrandProfileCard({ brand }: { brand: Brand }) {
           {/* Name + niche pill */}
           <div className="flex items-center gap-2.5 flex-wrap">
             <h3
-              className="text-3xl font-semibold leading-tight"
+              className="text-xl md:text-3xl font-semibold leading-tight"
               style={{ color: "#2D1810" }}
             >
               {brand.name}
@@ -275,11 +281,11 @@ function ContentPillarsSummary({
       <p className="text-sm" style={{ color: "#8A7060" }}>
         No pillars saved yet —{" "}
         <Link
-          href="/content-research"
+          href="/content-creator"
           className="hover:underline transition-colors"
           style={{ color: "#F97066" }}
         >
-          go to Content Research to generate some
+          go to Content Creator to generate some
         </Link>
       </p>
     )

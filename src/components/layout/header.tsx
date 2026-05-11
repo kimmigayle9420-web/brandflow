@@ -23,11 +23,11 @@ export async function Header({ title, description }: HeaderProps) {
 
   return (
     <header
-      className="flex items-center justify-between px-8 py-5"
+      className="flex items-center justify-between px-4 py-4 md:px-8 md:py-5"
       style={{ borderBottom: "1px solid #E8E0D5", backgroundColor: "rgba(254,252,248,0.9)" }}
     >
       <div>
-        <h1 className="text-2xl font-semibold leading-tight" style={{ color: "#2D1810" }}>
+        <h1 className="text-xl md:text-2xl font-semibold leading-tight" style={{ color: "#2D1810" }}>
           {title}
         </h1>
         {description && (

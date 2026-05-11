@@ -510,7 +510,7 @@ export function ContentPlannerClient({
     } catch (err) {
       toast({
         title: "Generation failed",
-        description: err instanceof Error ? err.message : "Check your ANTHROPIC_API_KEY",
+        description: err instanceof Error ? err.message : "Check your Anthropic API key is configured correctly.",
         variant: "destructive",
       })
     }
@@ -617,10 +617,10 @@ export function ContentPlannerClient({
         <Layers className="h-10 w-10 mx-auto mb-3" style={{ color: "#C4B5A5" }} />
         <p className="text-base font-medium" style={{ color: "#5A3825" }}>No brand set up yet</p>
         <p className="text-sm mt-1 mb-4" style={{ color: "#7A5C50" }}>Create a brand first to start planning your content week.</p>
-        <a href="/brands/new"
+        <a href="/settings"
           className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold text-white"
           style={{ backgroundColor: "#F97066" }}>
-          Create Your Brand
+          Set up your brand →
         </a>
       </div>
     )
@@ -669,10 +669,18 @@ export function ContentPlannerClient({
       </div>
 
       {pillars.length === 0 && (
-        <div className="rounded-2xl border border-dashed p-6 text-center" style={{ borderColor: "#E5DDD5" }}>
-          <p className="text-sm" style={{ color: "#7A5C50" }}>
-            Set up your content pillars in the Content Creator first, then come back to plan your week.
+        <div className="rounded-2xl border border-dashed p-6 text-center space-y-3" style={{ borderColor: "#E5DDD5" }}>
+          <p className="text-sm font-medium" style={{ color: "#5A3825" }}>No content pillars set up yet</p>
+          <p className="text-xs" style={{ color: "#7A5C50" }}>
+            Generate your pillars in the Content Creator first, then come back here to plan your week.
           </p>
+          <a
+            href="/content-creator"
+            className="inline-flex items-center gap-1.5 text-sm font-semibold transition-colors hover:opacity-80"
+            style={{ color: "#F97066" }}
+          >
+            Go to Content Creator →
+          </a>
         </div>
       )}
 

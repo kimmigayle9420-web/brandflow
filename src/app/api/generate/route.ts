@@ -321,7 +321,7 @@ export async function POST(request: Request) {
 
   if (!process.env.ANTHROPIC_API_KEY) {
     return NextResponse.json(
-      { error: "ANTHROPIC_API_KEY is not configured. Add it to your .env.local file." },
+      { error: "Anthropic API key is not configured. Please check your environment variables." },
       { status: 500 }
     )
   }

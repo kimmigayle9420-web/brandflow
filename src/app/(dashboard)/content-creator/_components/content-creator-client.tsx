@@ -2329,7 +2329,7 @@ function GenerationStrip({
 
   const showError = (err: unknown) => toast({
     title: "Generation failed",
-    description: err instanceof Error ? err.message : "Check your ANTHROPIC_API_KEY in .env.local",
+    description: err instanceof Error ? err.message : "Check your Anthropic API key is configured correctly.",
     variant: "destructive",
   })
 
@@ -3543,7 +3543,7 @@ export function ContentCreatorClient({
               </p>
             </div>
             <Button asChild style={{ backgroundColor: "#F97066", color: "white" }}>
-              <a href="/brands/new">Create a Brand</a>
+              <a href="/settings">Set up your brand →</a>
             </Button>
           </div>
         ) : (

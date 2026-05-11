@@ -2,6 +2,12 @@ import { createClient } from "@/lib/supabase/server"
 import { Header } from "@/components/layout/header"
 import { ContentCreatorClient } from "./_components/content-creator-client"
 import type { Brand, ContentPillar } from "@/types"
+import type { Metadata } from "next"
+
+export const metadata: Metadata = {
+  title: "Content Creator — BrandFlow",
+  description: "Research your niche, manage pillars, and generate content",
+}
 
 export default async function ContentCreatorPage() {
   const supabase = createClient()

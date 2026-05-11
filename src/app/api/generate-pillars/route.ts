@@ -15,7 +15,7 @@ export async function POST(request: Request) {
     const isProduction = process.env.NODE_ENV === "production"
     const errorMsg = isProduction
       ? "Anthropic API key is not configured. Add ANTHROPIC_API_KEY in your Vercel project → Settings → Environment Variables, then redeploy."
-      : "Anthropic API key is not configured. Add ANTHROPIC_API_KEY=<your-key> to .env.local and restart the dev server."
+      : "Anthropic API key is not configured. Please check your environment variables."
     return NextResponse.json({ error: errorMsg }, { status: 503 })
   }
 

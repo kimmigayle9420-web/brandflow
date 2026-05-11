@@ -2,6 +2,12 @@ import { createClient } from "@/lib/supabase/server"
 import { Header } from "@/components/layout/header"
 import { ContentPlannerClient } from "./_components/content-planner-client"
 import type { Brand, ContentPillar, Idea } from "@/types"
+import type { Metadata } from "next"
+
+export const metadata: Metadata = {
+  title: "Content Planner — BrandFlow",
+  description: "Plan your week, rotate your pillars, and build content faster",
+}
 
 export default async function ContentPlannerPage() {
   const supabase = createClient()
