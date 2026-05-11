@@ -54,7 +54,7 @@ export default async function ContentPlannerPage() {
         title="Content Planner"
         description="Plan your week, rotate your pillars, and build content faster."
       />
-      <div className="flex-1 w-full px-6 lg:px-10 py-8">
+      <div className="flex-1 w-full px-4 py-6 md:px-6 lg:px-10 md:py-8">
         <ContentPlannerClient
           brand={primaryBrand}
           pillars={pillars}

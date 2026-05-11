@@ -3075,8 +3075,8 @@ function GenerationStrip({
                 )}
               </div>
 
-              {/* Live preview */}
-              <div className="xl:col-span-2">
+              {/* Live preview — hidden on mobile to avoid crowding */}
+              <div className="xl:col-span-2 hidden xl:block">
                 <div className="sticky top-6 space-y-3">
                   <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: "#8A7060" }}>Live Preview</p>
                   <InstagramPreview
@@ -3251,7 +3251,7 @@ function GenerationStrip({
                       </div>
                     ))}
                   </div>
-                  <div className="xl:col-span-2">
+                  <div className="xl:col-span-2 hidden xl:block">
                     <div className="sticky top-6">
                       <p className="text-xs font-semibold uppercase tracking-wide mb-3" style={{ color: "#8A7060" }}>Mobile Preview</p>
                       <CarouselMobilePreview

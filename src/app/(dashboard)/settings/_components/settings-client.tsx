@@ -333,8 +333,8 @@ export function SettingsPageClient() {
   return (
     <div className="flex flex-col min-h-full" style={{ backgroundColor: "#FAFAF5" }}>
       {/* Page header */}
-      <div className="px-8 pt-8 pb-6" style={{ borderBottom: "1px solid #E8E0D5" }}>
-        <h1 className="text-4xl font-semibold leading-tight" style={{ color: "#2D1810" }}>Settings</h1>
+      <div className="px-4 pt-6 pb-5 md:px-8 md:pt-8 md:pb-6" style={{ borderBottom: "1px solid #E8E0D5" }}>
+        <h1 className="text-2xl md:text-4xl font-semibold leading-tight" style={{ color: "#2D1810" }}>Settings</h1>
         <p className="mt-1.5 text-base" style={{ color: "#8A7060" }}>Manage your account, brand, and integrations</p>
       </div>
 
@@ -343,7 +343,7 @@ export function SettingsPageClient() {
           <div className="h-8 w-8 rounded-full border-2 border-[#F97066] border-t-transparent animate-spin" />
         </div>
       ) : (
-        <div className="flex-1 w-full max-w-2xl px-8 py-10 space-y-8">
+        <div className="flex-1 w-full max-w-2xl px-4 py-6 md:px-8 md:py-10 space-y-8">
 
           {/* ── 1. Profile ──────────────────────────────────────────────── */}
           <SettingsSection title="Profile" subtitle="Your display name and account info">

@@ -50,5 +50,21 @@
   }
   body {
     @apply bg-background text-foreground;
+    /* Prevent zoom on input focus on iOS */
+    font-size: 16px;
+  }
+  /* Prevent horizontal scroll globally */
+  html, body {
+    overflow-x: hidden;
+  }
+}
+
+@layer utilities {
+  /* iOS safe area helpers */
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  .pb-safe-offset-16 {
+    padding-bottom: calc(4rem + env(safe-area-inset-bottom));
   }
 }

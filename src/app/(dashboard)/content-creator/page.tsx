@@ -47,7 +47,7 @@ export default async function ContentCreatorPage() {
         title="Content Creator"
         description="Research your niche, manage pillars, and generate content — all in one place."
       />
-      <div className="flex-1 w-full px-6 lg:px-10 py-8">
+      <div className="flex-1 w-full px-4 py-6 md:px-6 lg:px-10 md:py-8">
         <ContentCreatorClient
           brand={primaryBrand}
           initialPillars={initialPillars}
