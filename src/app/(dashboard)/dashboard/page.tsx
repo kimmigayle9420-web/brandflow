@@ -7,6 +7,7 @@ import { getInitials, formatDate } from "@/lib/utils"
 import { SocialConnect } from "./_components/social-connect"
 import { PillarsGenerator } from "./_components/pillars-generator"
 import { NicheResearch } from "./_components/niche-research"
+import { ProfileResearch } from "./_components/profile-research"
 import type { Brand } from "@/types"
 
 export default async function DashboardPage() {
@@ -86,6 +87,15 @@ export default async function DashboardPage() {
             subtitle="Trending topics and content ideas for your niche"
           />
           <NicheResearch niche={primaryBrand?.niche ?? "content creation"} />
+        </section>
+
+        {/* ─── Section 5: Research a Profile or Website ───────────── */}
+        <section>
+          <SectionHeader
+            title="Research a Profile or Website"
+            subtitle="Paste any social profile or website URL to extract brand intelligence"
+          />
+          <ProfileResearch />
         </section>
 
       </div>
