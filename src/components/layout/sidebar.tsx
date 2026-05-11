@@ -4,14 +4,10 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import {
   LayoutDashboard,
-  Briefcase,
-  Layers,
   CalendarDays,
-  Search,
   Settings,
   Zap,
   LogOut,
-  FlaskConical,
   PenLine,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
@@ -20,12 +16,8 @@ import { useRouter } from "next/navigation"
 
 const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/brands", label: "Brand Profiles", icon: Briefcase },
-  { href: "/content-pillars", label: "Content Pillars", icon: Layers },
-  { href: "/content-planner", label: "Content Planner", icon: CalendarDays },
-  { href: "/content-research", label: "Content Research", icon: FlaskConical },
   { href: "/content-creator", label: "Content Creator", icon: PenLine },
-  { href: "/niche-research", label: "Niche Research", icon: Search },
+  { href: "/content-planner", label: "Content Planner", icon: CalendarDays },
   { href: "/settings", label: "Settings", icon: Settings },
 ]
 
