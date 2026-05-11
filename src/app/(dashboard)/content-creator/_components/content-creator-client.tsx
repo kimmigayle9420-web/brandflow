@@ -1464,19 +1464,25 @@ function PillarsStrip({ brand, initialPillars, onPillarsChange }: {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     await (supabase.from("content_pillars") as any).delete().eq("brand_id", brand.id)
 
-    // baseInserts uses only columns that existed before the 004 migration
-    // (voice_direction, format_preference, weekly_quota were added in an earlier migration)
-    const baseInserts = editedPillars.map((p, i) => ({
+    // Three tiers — each strips more columns in case the PostgREST schema cache is stale.
+    // Tier 1 (full): all columns including recent additions (emoji, user_id, sort_order)
+    // Tier 2 (base): columns added before migration 004 (voice_direction, format_preference, weekly_quota)
+    // Tier 3 (core): only original columns guaranteed to be in any schema cache version
+
+    const coreInserts = editedPillars.map((p, i) => ({
       brand_id: brand.id,
       name: p.name.trim() || "Untitled",
       description: p.perspective || p.description || null,
       color: PILLAR_COLORS[i % PILLAR_COLORS.length],
+    }))
+
+    const baseInserts = editedPillars.map((p, i) => ({
+      ...coreInserts[i],
       voice_direction: p.voice_direction || null,
       format_preference: p.format_preference || "any",
       weekly_quota: p.weekly_quota ?? 2,
     }))
 
-    // fullInserts adds columns from migration 004 (emoji, user_id, sort_order)
     const fullInserts = editedPillars.map((p, i) => ({
       ...baseInserts[i],
       emoji: p.emoji || "📌",
@@ -1484,19 +1490,26 @@ function PillarsStrip({ brand, initialPillars, onPillarsChange }: {
       sort_order: i,
     }))
 
+    const isSchemaCacheError = (msg: string) =>
+      msg.includes("column") || msg.includes("schema cache") || msg.includes("does not exist")
+
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let { data: inserted, error: dbError } = await (supabase.from("content_pillars") as any).insert(fullInserts).select()
 
-    if (dbError && (dbError.message.includes("column") || dbError.message.includes("schema cache") || dbError.message.includes("does not exist"))) {
-      // Retry with only pre-migration columns (schema cache not yet refreshed)
+    if (dbError && isSchemaCacheError(dbError.message)) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const retry = await (supabase.from("content_pillars") as any).insert(baseInserts).select()
-      inserted = retry.data
-      dbError = retry.error
-      if (!retry.error) {
+      const r2 = await (supabase.from("content_pillars") as any).insert(baseInserts).select()
+      inserted = r2.data; dbError = r2.error
+    }
+
+    if (dbError && isSchemaCacheError(dbError.message)) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const r3 = await (supabase.from("content_pillars") as any).insert(coreInserts).select()
+      inserted = r3.data; dbError = r3.error
+      if (!r3.error) {
         toast({
-          title: "Saved with basic fields",
-          description: "Emoji & sort order will appear after your next session.",
+          title: "Saved (core fields only)",
+          description: "Voice, format & emoji will save once the database schema cache refreshes.",
         })
       }
     }
