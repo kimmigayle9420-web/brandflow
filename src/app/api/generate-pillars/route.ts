@@ -6,13 +6,11 @@ export async function POST(request: Request) {
   // Guard: ensure API key is actually configured
   const apiKey = process.env.ANTHROPIC_API_KEY
   if (!apiKey || apiKey === "placeholder-key" || apiKey.trim() === "") {
-    return NextResponse.json(
-      {
-        error:
-          "Anthropic API key is not configured. Add your ANTHROPIC_API_KEY to .env.local and restart the dev server.",
-      },
-      { status: 503 }
-    )
+    const isProduction = process.env.NODE_ENV === "production"
+    const errorMsg = isProduction
+      ? "Anthropic API key is not configured. Add ANTHROPIC_API_KEY in your Vercel project → Settings → Environment Variables, then redeploy."
+      : "Anthropic API key is not configured. Add ANTHROPIC_API_KEY=<your-key> to .env.local and restart the dev server."
+    return NextResponse.json({ error: errorMsg }, { status: 503 })
   }
 
   // Auth check
@@ -92,10 +90,11 @@ Return ONLY the raw JSON array. No markdown, no code fences, no explanation, no 
 
     // Surface auth errors clearly
     if (error?.status === 401) {
-      return NextResponse.json(
-        { error: "Invalid Anthropic API key. Check your ANTHROPIC_API_KEY in .env.local." },
-        { status: 503 }
-      )
+      const isProduction = process.env.NODE_ENV === "production"
+      const authMsg = isProduction
+        ? "Invalid Anthropic API key. Update ANTHROPIC_API_KEY in Vercel → Settings → Environment Variables and redeploy."
+        : "Invalid Anthropic API key. Check your ANTHROPIC_API_KEY in .env.local."
+      return NextResponse.json({ error: authMsg }, { status: 503 })
     }
 
     return NextResponse.json(

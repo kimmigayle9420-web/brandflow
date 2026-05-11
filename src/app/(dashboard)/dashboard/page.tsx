@@ -76,7 +76,7 @@ export default async function DashboardPage() {
             title="Content Pillars Generator"
             subtitle="Enter your niche to generate AI-powered content pillars"
           />
-          <PillarsGenerator defaultNiche={primaryBrand?.niche ?? ""} />
+          <PillarsGenerator defaultNiche={primaryBrand?.niche ?? ""} brandId={primaryBrand?.id} />
         </section>
 
         {/* ─── Section 4: Niche Research ──────────────────────────── */}
