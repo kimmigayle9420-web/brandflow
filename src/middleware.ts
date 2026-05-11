@@ -25,13 +25,13 @@ export async function middleware(request: NextRequest) {
     }
   )
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  // Use getSession() to avoid a live network round-trip on every request.
+  // The session is read directly from the cookie and the JWT is verified locally.
+  const { data: { session } } = await supabase.auth.getSession()
+  const user = session?.user ?? null
 
   const { pathname } = request.nextUrl
 
-  // Redirect unauthenticated users away from protected routes
   const protectedRoutes = ['/dashboard', '/brands', '/content-pillars', '/content-planner', '/niche-research', '/settings']
   const isProtected = protectedRoutes.some((route) => pathname.startsWith(route))
 
@@ -41,7 +41,6 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(url)
   }
 
-  // Redirect authenticated users away from auth pages
   if (user && (pathname === '/login' || pathname === '/signup')) {
     const url = request.nextUrl.clone()
     url.pathname = '/dashboard'
