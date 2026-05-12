@@ -19,7 +19,7 @@ export async function GET(request: Request) {
     client_id: appId,
     redirect_uri: redirectUri,
     response_type: "code",
-    scope: "instagram_basic,instagram_manage_insights,pages_show_list,pages_read_engagement",
+    scope: "pages_show_list,pages_read_engagement,business_management",
   })
 
   const authUrl = `https://www.facebook.com/v19.0/dialog/oauth?${params.toString()}`
