@@ -18,6 +18,11 @@ export type Profile = {
   full_name: string | null
   avatar_url: string | null
   social_accounts: SocialAccountsMap | null
+  // Instagram Graph API connection — populated by /api/auth/instagram/callback.
+  instagram_access_token: string | null
+  instagram_token_expires_at: string | null
+  instagram_user_id: string | null
+  instagram_page_id: string | null
   created_at: string
   updated_at: string
 }

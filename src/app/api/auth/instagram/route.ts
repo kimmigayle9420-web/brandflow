@@ -1,19 +1,19 @@
 import { NextResponse } from "next/server"
 
-// JSON variant of /api/auth/instagram — used by the signup page so it can
-// gracefully toast "not configured" instead of redirecting to an error page.
+// Kicks off Meta's Facebook Login dialog. Meta returns to /api/auth/instagram/callback,
+// which exchanges the code for a long-lived token and discovers the user's IG Business Account.
 export async function GET(request: Request) {
   const appId = process.env.NEXT_PUBLIC_INSTAGRAM_APP_ID
-
-  if (!appId) {
-    return NextResponse.json({ setup: true })
-  }
 
   const baseUrl =
     process.env.NEXT_PUBLIC_SITE_URL ??
     (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : new URL(request.url).origin)
 
   const redirectUri = `${baseUrl}/api/auth/instagram/callback`
+
+  if (!appId) {
+    return NextResponse.redirect(`${baseUrl}/settings?error=instagram_not_configured`)
+  }
 
   const params = new URLSearchParams({
     client_id: appId,
@@ -22,7 +22,7 @@ export async function GET(request: Request) {
     scope: "instagram_basic,instagram_manage_insights,pages_show_list,pages_read_engagement",
   })
 
-  const authUrl = `https://www.facebook.com/v19.0/dialog/oauth?${params.toString()}`
-
-  return NextResponse.json({ url: authUrl })
+  return NextResponse.redirect(
+    `https://www.facebook.com/v19.0/dialog/oauth?${params.toString()}`,
+  )
 }

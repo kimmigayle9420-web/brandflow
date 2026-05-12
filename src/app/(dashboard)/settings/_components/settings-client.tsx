@@ -157,6 +157,14 @@ export function SettingsPageClient() {
     checked: boolean
   }>({ ideasTable: null, pillarsColumns: null, checked: false })
 
+  // ── Instagram Graph API state ──────────────────────────────────────────────
+  const [igConnection, setIgConnection] = useState<{
+    connected: boolean
+    expiresAt: string | null
+    username: string | null
+  }>({ connected: false, expiresAt: null, username: null })
+  const [disconnectingIg, setDisconnectingIg] = useState(false)
+
   // ── Danger zone state ──────────────────────────────────────────────────────
   const [deleteConfirm, setDeleteConfirm] = useState("")
   const [deletingContent, setDeletingContent] = useState(false)
@@ -169,7 +177,11 @@ export function SettingsPageClient() {
     if (!authUser) { setLoading(false); return }
 
     const [{ data: profile }, { data: brands }] = await Promise.all([
-      supabase.from("profiles").select("full_name, social_accounts").eq("id", authUser.id).single(),
+      supabase
+        .from("profiles")
+        .select("full_name, social_accounts, instagram_access_token, instagram_token_expires_at")
+        .eq("id", authUser.id)
+        .single(),
       supabase.from("brands").select("*").eq("user_id", authUser.id).order("created_at", { ascending: false }).limit(1),
     ])
 
@@ -178,6 +190,11 @@ export function SettingsPageClient() {
       (profile?.social_accounts ?? {}) as SocialAccountsMap | null,
     )
     setSocialAccounts(normalized)
+    setIgConnection({
+      connected: Boolean(profile?.instagram_access_token),
+      expiresAt: (profile?.instagram_token_expires_at as string | null) ?? null,
+      username: normalized.instagram?.handle ?? null,
+    })
     setStatsDraft(
       Object.fromEntries(
         Object.entries(normalized).map(([platform, acct]) => [
@@ -379,6 +396,30 @@ export function SettingsPageClient() {
     router.push("/login")
   }
 
+  const handleDisconnectInstagram = async () => {
+    if (!user?.id) return
+    const confirmed = window.confirm("Disconnect Instagram? Live stats will switch back to placeholder data.")
+    if (!confirmed) return
+    setDisconnectingIg(true)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { error } = await ((supabase as any)
+      .from("profiles")
+      .update({
+        instagram_access_token: null,
+        instagram_token_expires_at: null,
+        instagram_user_id: null,
+        instagram_page_id: null,
+      })
+      .eq("id", user.id))
+    if (error) {
+      toast({ title: "Failed to disconnect Instagram", description: error.message, variant: "destructive" })
+    } else {
+      setIgConnection({ connected: false, expiresAt: null, username: null })
+      toast({ title: "Instagram disconnected" })
+    }
+    setDisconnectingIg(false)
+  }
+
   // ── Render ─────────────────────────────────────────────────────────────────
 
   const initials = getInitials(fullName || user?.email || "")
@@ -526,6 +567,81 @@ export function SettingsPageClient() {
                 {(savingBrand || creatingBrand) ? "Saving…" : brand ? "Save Brand" : "Create Brand →"}
               </Button>
             </form>
+          </SettingsSection>
+
+          {/* ── 3a. Connected Accounts (Instagram Graph API) ────────────── */}
+          <SettingsSection
+            title="Connected Accounts"
+            subtitle="Connect your Instagram Business or Creator account to pull live follower count, reach, and recent post stats automatically."
+          >
+            <div
+              className="flex items-start gap-4 p-4 rounded-2xl"
+              style={{ backgroundColor: "#EDE6DC", border: "1px solid #C2B5A3" }}
+            >
+              <div
+                className="w-9 h-9 rounded-xl bg-gradient-to-br from-pink-500 to-orange-400 flex items-center justify-center text-base shrink-0"
+              >
+                <span role="img" aria-label="Instagram">📸</span>
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <p className="text-sm font-semibold" style={{ color: "#2D2D2D" }}>Instagram</p>
+                  {igConnection.connected ? (
+                    <span
+                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium"
+                      style={{ backgroundColor: "#F0FDF4", color: "#16A34A", border: "1px solid #BBF7D0" }}
+                    >
+                      ● Connected
+                    </span>
+                  ) : (
+                    <span
+                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium"
+                      style={{ backgroundColor: "#FFFFFF", color: "#8B7261", border: "1px solid #C2B5A3" }}
+                    >
+                      Not connected
+                    </span>
+                  )}
+                </div>
+                {igConnection.connected ? (
+                  <p className="text-xs mt-1 leading-relaxed" style={{ color: "#8B7261" }}>
+                    {igConnection.username ? `@${igConnection.username} · ` : ""}
+                    Token expires{" "}
+                    {igConnection.expiresAt
+                      ? new Date(igConnection.expiresAt).toLocaleDateString("en-GB", {
+                          day: "numeric",
+                          month: "short",
+                          year: "numeric",
+                        })
+                      : "—"}
+                    . Reconnect any time to refresh.
+                  </p>
+                ) : (
+                  <p className="text-xs mt-1 leading-relaxed" style={{ color: "#8B7261" }}>
+                    Requires an Instagram Business or Creator account linked to a Facebook Page.
+                  </p>
+                )}
+              </div>
+              {igConnection.connected ? (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  disabled={disconnectingIg}
+                  onClick={handleDisconnectInstagram}
+                  className="rounded-xl text-xs h-8 px-3 hover:bg-red-50 hover:text-red-600 shrink-0"
+                  style={{ color: "#C2B5A3" }}
+                >
+                  {disconnectingIg ? "…" : "Disconnect"}
+                </Button>
+              ) : (
+                <a
+                  href="/api/auth/instagram"
+                  className="inline-flex items-center gap-1 text-xs font-medium px-3 h-8 rounded-xl shrink-0 hover:opacity-90"
+                  style={{ backgroundColor: "#E06A33", color: "white" }}
+                >
+                  Connect <ExternalLink className="h-3 w-3" />
+                </a>
+              )}
+            </div>
           </SettingsSection>
 
           {/* ── 3. Social Accounts ──────────────────────────────────────── */}

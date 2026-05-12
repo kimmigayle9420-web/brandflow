@@ -2,9 +2,9 @@
 
 import { useEffect, useMemo, useState } from "react"
 import Link from "next/link"
-import { ArrowRight } from "lucide-react"
+import { ArrowRight, Plug } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
-import { PLATFORMS, PROFILE, type Pillar, type PlatformId } from "@/data/dashboard"
+import { PLATFORMS, PROFILE, type Pillar, type Platform, type PlatformId, type RecentPost, type Stat } from "@/data/dashboard"
 import { Sparkline } from "./_components/sparkline"
 import { BarRow } from "./_components/bar-row"
 import { PlatformIcon } from "./_components/platform-icon"
@@ -49,12 +49,136 @@ function greeting(): string {
   return "Good evening"
 }
 
+// Compact number formatting — 47200 → "47.2K", 1_240_000 → "1.2M"
+function formatCompact(n: number): string {
+  if (!Number.isFinite(n) || n <= 0) return "0"
+  if (n >= 1_000_000) {
+    const v = n / 1_000_000
+    return `${v >= 10 ? v.toFixed(0) : v.toFixed(1)}M`
+  }
+  if (n >= 1_000) {
+    const v = n / 1_000
+    return `${v >= 10 ? v.toFixed(0) : v.toFixed(1)}K`
+  }
+  return n.toLocaleString("en-US")
+}
+
+function formatPostDate(iso: string): string {
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return ""
+  const weekday = d.toLocaleDateString("en-GB", { weekday: "short" })
+  const day = d.toLocaleDateString("en-GB", { day: "2-digit" })
+  const month = d.toLocaleDateString("en-GB", { month: "short" })
+  return `${weekday} · ${day} ${month}`
+}
+
+function mediaTypeToFormat(t: string | null | undefined): { format: string; emoji: string } {
+  switch (t) {
+    case "VIDEO":
+      return { format: "Reel", emoji: "🎬" }
+    case "CAROUSEL_ALBUM":
+      return { format: "Carousel", emoji: "🖼️" }
+    case "IMAGE":
+    default:
+      return { format: "Post", emoji: "📷" }
+  }
+}
+
+function captionToTitle(caption: string | null | undefined): string {
+  if (!caption) return "(no caption)"
+  const oneLine = caption.replace(/\s+/g, " ").trim()
+  if (oneLine.length <= 56) return oneLine
+  return `${oneLine.slice(0, 53)}…`
+}
+
+// ─── Real-stats wire-up ───────────────────────────────────────────────────────
+type IgStatsPost = {
+  id: string
+  caption: string | null
+  media_type: string | null
+  timestamp: string | null
+  like_count: number
+  comments_count: number
+  reach: number
+  impressions: number
+}
+
+type IgStats =
+  | { connected: false }
+  | {
+      connected: true
+      username: string | null
+      followers: number
+      mediaCount: number
+      reach: number
+      impressions: number
+      profileViews: number
+      recentPosts: IgStatsPost[]
+    }
+
+function buildInstagramPlatform(base: Platform, stats: Extract<IgStats, { connected: true }>): Platform {
+  // Replace the four stat cards with real numbers. Engagement is computed
+  // from recent posts when we have any, otherwise we drop it.
+  const recentLikes = stats.recentPosts.reduce((s, p) => s + (p.like_count ?? 0), 0)
+  const recentComments = stats.recentPosts.reduce((s, p) => s + (p.comments_count ?? 0), 0)
+  const engagementPct =
+    stats.followers > 0 && stats.recentPosts.length > 0
+      ? ((recentLikes + recentComments) / stats.recentPosts.length / stats.followers) * 100
+      : null
+
+  const newStats: Stat[] = [
+    {
+      label: "Followers",
+      value: formatCompact(stats.followers),
+      delta: `${stats.mediaCount} posts`,
+    },
+    {
+      label: "Engagement",
+      value: engagementPct !== null ? `${engagementPct.toFixed(1)}%` : "—",
+      delta: "last 6 posts",
+    },
+    {
+      label: "Reach (30d)",
+      value: formatCompact(stats.reach),
+      deltaPct: stats.impressions > 0 ? `${formatCompact(stats.impressions)} imp.` : undefined,
+    },
+    {
+      label: "Profile visits",
+      value: formatCompact(stats.profileViews),
+      highlight: true,
+      delta: "last 30 days",
+    },
+  ]
+
+  const newPosts: RecentPost[] = stats.recentPosts.map((p) => {
+    const { format, emoji } = mediaTypeToFormat(p.media_type)
+    return {
+      format,
+      emoji,
+      title: captionToTitle(p.caption),
+      date: p.timestamp ? formatPostDate(p.timestamp) : "",
+      primary: formatCompact(p.reach || p.impressions || 0),
+      primaryLabel: "reach",
+      likes: formatCompact(p.like_count ?? 0),
+      comments: formatCompact(p.comments_count ?? 0),
+    }
+  })
+
+  return {
+    ...base,
+    stats: newStats,
+    posts: newPosts.length > 0 ? newPosts : base.posts,
+  }
+}
+
 // ─── Top-level page (client component) ────────────────────────────────────────
 export default function DashboardPage() {
   const [active, setActive] = useState<PlatformId>("instagram")
   const [firstName, setFirstName] = useState<string>(PROFILE.firstName)
   const [fullName, setFullName] = useState<string>(PROFILE.fullName)
   const [handle, setHandle] = useState<string>(PROFILE.handle)
+  const [igStats, setIgStats] = useState<IgStats | null>(null)
+  const [igLoading, setIgLoading] = useState(false)
 
   // Overlay handle/name from Supabase if available; otherwise keep design defaults
   useEffect(() => {
@@ -74,10 +198,11 @@ export default function DashboardPage() {
         setFullName(rawName)
         setFirstName(rawName.split(" ")[0])
       }
-      const social = (data as any).social_accounts as Record<string, string> | null
+      const social = (data as any).social_accounts as Record<string, any> | null
       const platformKey = active === "shorts" ? "youtube" : active
-      const h = social?.[platformKey]
-      if (h) setHandle(h.replace(/^@/, ""))
+      const entry = social?.[platformKey]
+      const h = typeof entry === "string" ? entry : entry?.handle
+      if (h) setHandle(String(h).replace(/^@/, ""))
     })()
     return () => {
       cancelled = true
@@ -86,7 +211,46 @@ export default function DashboardPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [active])
 
+  // When the user is on the Instagram tab, fetch real Graph API stats once.
+  useEffect(() => {
+    if (active !== "instagram") return
+    if (igStats !== null || igLoading) return
+    let cancelled = false
+    setIgLoading(true)
+    void (async () => {
+      try {
+        const res = await fetch("/api/instagram/stats")
+        const json = await res.json()
+        if (cancelled) return
+        if (json?.connected) {
+          setIgStats(json as IgStats)
+          if (json.username) setHandle(String(json.username).replace(/^@/, ""))
+        } else {
+          setIgStats({ connected: false })
+        }
+      } catch {
+        if (!cancelled) setIgStats({ connected: false })
+      } finally {
+        if (!cancelled) setIgLoading(false)
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [active, igStats, igLoading])
+
   const today = useMemo(() => formatToday(), [])
+
+  const effectivePlatform: Platform = useMemo(() => {
+    const base = PLATFORMS[active]
+    if (active === "instagram" && igStats?.connected) {
+      return buildInstagramPlatform(base, igStats)
+    }
+    return base
+  }, [active, igStats])
+
+  const showConnectInstagram =
+    active === "instagram" && igStats !== null && igStats.connected === false
 
   return (
     <div
@@ -115,8 +279,18 @@ export default function DashboardPage() {
             </h1>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3">
             <PlatformSwitcher active={active} onChange={setActive} />
+            {showConnectInstagram && (
+              <a
+                href="/api/auth/instagram"
+                className="inline-flex items-center gap-1.5 h-10 px-4 rounded-full text-sm font-medium transition-opacity hover:opacity-90"
+                style={{ backgroundColor: TOKENS.orange, color: "#FFFFFF" }}
+              >
+                <Plug className="h-3.5 w-3.5" />
+                Connect Instagram
+              </a>
+            )}
             <Link
               href="/content-creator"
               className="inline-flex items-center gap-1.5 h-10 px-4 rounded-full text-sm font-medium transition-opacity hover:opacity-90"
@@ -128,25 +302,25 @@ export default function DashboardPage() {
         </header>
 
         {/* ─── Profile band ───────────────────────────────────────── */}
-        <ProfileBand handle={handle} fullName={fullName} platformId={active} />
+        <ProfileBand handle={handle} fullName={fullName} platform={effectivePlatform} />
 
         {/* ─── Stats row ──────────────────────────────────────────── */}
-        <StatsRow platformId={active} />
+        <StatsRow platform={effectivePlatform} />
 
         {/* ─── Two-column body ────────────────────────────────────── */}
         <section
           className="grid gap-5"
           style={{ gridTemplateColumns: "minmax(0, 1.4fr) minmax(0, 1fr)" }}
         >
-          <RecentPostsCard platformId={active} />
+          <RecentPostsCard platform={effectivePlatform} />
           <div className="space-y-5">
-            <ThisWeekCard platformId={active} />
-            <AudienceCard platformId={active} />
+            <ThisWeekCard platform={effectivePlatform} />
+            <AudienceCard platform={effectivePlatform} />
           </div>
         </section>
 
         {/* ─── Algorithm Watch ────────────────────────────────────── */}
-        <AlgorithmWatchCard platformId={active} />
+        <AlgorithmWatchCard platform={effectivePlatform} />
 
       </div>
 
@@ -204,8 +378,8 @@ function PlatformSwitcher({
 }
 
 // ─── Profile band ─────────────────────────────────────────────────────────────
-function ProfileBand({ handle, fullName, platformId }: { handle: string; fullName: string; platformId: PlatformId }) {
-  const accent = PLATFORMS[platformId].accent
+function ProfileBand({ handle, fullName, platform }: { handle: string; fullName: string; platform: Platform }) {
+  const accent = platform.accent
   return (
     <section
       className="grid gap-6 rounded-[18px] p-6 md:p-7"
@@ -287,8 +461,7 @@ function ProfileBand({ handle, fullName, platformId }: { handle: string; fullNam
 }
 
 // ─── Stats row ────────────────────────────────────────────────────────────────
-function StatsRow({ platformId }: { platformId: PlatformId }) {
-  const platform = PLATFORMS[platformId]
+function StatsRow({ platform }: { platform: Platform }) {
   return (
     <section className="grid grid-cols-2 md:grid-cols-4 gap-4">
       {platform.stats.map((s) => {
@@ -396,8 +569,7 @@ function StatsRow({ platformId }: { platformId: PlatformId }) {
 }
 
 // ─── Recent posts ─────────────────────────────────────────────────────────────
-function RecentPostsCard({ platformId }: { platformId: PlatformId }) {
-  const platform = PLATFORMS[platformId]
+function RecentPostsCard({ platform }: { platform: Platform }) {
   return (
     <div
       className="rounded-[18px] p-5 md:p-6"
@@ -480,8 +652,7 @@ function MicroStat({ value, label }: { value: string; label: string }) {
 }
 
 // ─── This week ────────────────────────────────────────────────────────────────
-function ThisWeekCard({ platformId }: { platformId: PlatformId }) {
-  const platform = PLATFORMS[platformId]
+function ThisWeekCard({ platform }: { platform: Platform }) {
   const tw = platform.thisWeek
   return (
     <div
@@ -547,8 +718,7 @@ function ThisWeekCard({ platformId }: { platformId: PlatformId }) {
 }
 
 // ─── Audience ─────────────────────────────────────────────────────────────────
-function AudienceCard({ platformId }: { platformId: PlatformId }) {
-  const platform = PLATFORMS[platformId]
+function AudienceCard({ platform }: { platform: Platform }) {
   return (
     <div
       className="rounded-[18px] p-5 md:p-6"
@@ -580,8 +750,7 @@ function AudienceCard({ platformId }: { platformId: PlatformId }) {
 }
 
 // ─── Algorithm Watch ──────────────────────────────────────────────────────────
-function AlgorithmWatchCard({ platformId }: { platformId: PlatformId }) {
-  const platform = PLATFORMS[platformId]
+function AlgorithmWatchCard({ platform }: { platform: Platform }) {
   const aw = platform.algorithmWatch
   return (
     <section

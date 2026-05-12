@@ -3,97 +3,189 @@ import { createClient } from "@/lib/supabase/server"
 import { normalizeSocialAccounts } from "@/lib/social-accounts"
 import type { SocialAccount, SocialAccountsMap } from "@/types"
 
+const GRAPH = "https://graph.facebook.com/v19.0"
+
+type FbPage = {
+  id: string
+  name?: string
+  access_token: string
+}
+
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url)
   const code = searchParams.get("code")
-  const error = searchParams.get("error")
+  const oauthError = searchParams.get("error")
 
-  if (error || !code) {
-    return NextResponse.redirect(`${origin}/dashboard?error=instagram_auth_failed`)
+  if (oauthError || !code) {
+    return NextResponse.redirect(`${origin}/settings?error=instagram`)
   }
 
-  const clientId = process.env.INSTAGRAM_CLIENT_ID
-  const clientSecret = process.env.INSTAGRAM_CLIENT_SECRET
+  const appId = process.env.NEXT_PUBLIC_INSTAGRAM_APP_ID
+  const appSecret = process.env.INSTAGRAM_APP_SECRET
 
-  if (!clientId || !clientSecret) {
-    return NextResponse.redirect(`${origin}/dashboard?error=instagram_not_configured`)
+  if (!appId || !appSecret) {
+    return NextResponse.redirect(`${origin}/settings?error=instagram_not_configured`)
   }
 
-  const redirectUri = `${origin}/api/auth/instagram/callback`
+  // The redirect URI must match exactly what we sent to the OAuth dialog.
+  const baseUrl =
+    process.env.NEXT_PUBLIC_SITE_URL ??
+    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : origin)
+  const redirectUri = `${baseUrl}/api/auth/instagram/callback`
 
   try {
-    // Exchange code for short-lived access token
-    const tokenRes = await fetch("https://api.instagram.com/oauth/access_token", {
-      method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body: new URLSearchParams({
-        client_id: clientId,
-        client_secret: clientSecret,
-        grant_type: "authorization_code",
-        redirect_uri: redirectUri,
-        code,
-      }),
-    })
-
-    const tokenData = await tokenRes.json()
-
-    if (!tokenData.access_token) {
-      console.error("[instagram/callback] No access_token:", tokenData)
-      throw new Error("No access token returned")
+    // 1. Exchange auth code for a short-lived user access token
+    const shortRes = await fetch(
+      `${GRAPH}/oauth/access_token?` +
+        new URLSearchParams({
+          client_id: appId,
+          client_secret: appSecret,
+          redirect_uri: redirectUri,
+          code,
+        }).toString(),
+      { method: "GET" },
+    )
+    const shortData = await shortRes.json()
+    if (!shortData.access_token) {
+      console.error("[instagram/callback] no short token", shortData)
+      return NextResponse.redirect(`${origin}/settings?error=instagram`)
     }
 
-    // Fetch username from the Basic Display API
-    const userRes = await fetch(
-      `https://graph.instagram.com/me?fields=id,username&access_token=${tokenData.access_token}`
+    // 2. Exchange short-lived token for a long-lived user token (~60 days)
+    const longRes = await fetch(
+      `${GRAPH}/oauth/access_token?` +
+        new URLSearchParams({
+          grant_type: "fb_exchange_token",
+          client_id: appId,
+          client_secret: appSecret,
+          fb_exchange_token: shortData.access_token,
+        }).toString(),
+      { method: "GET" },
     )
-    const userData = await userRes.json()
-    const username: string = userData.username ?? `user_${tokenData.user_id ?? userData.id}`
+    const longData = await longRes.json()
+    if (!longData.access_token) {
+      console.error("[instagram/callback] no long token", longData)
+      return NextResponse.redirect(`${origin}/settings?error=instagram`)
+    }
+    const userAccessToken: string = longData.access_token
 
-    // Save to Supabase profiles.social_accounts
+    // 3. List the user's Facebook Pages — we need the page access token to
+    //    reach the connected IG Business Account.
+    const pagesRes = await fetch(
+      `${GRAPH}/me/accounts?` +
+        new URLSearchParams({ access_token: userAccessToken }).toString(),
+    )
+    const pagesData = await pagesRes.json()
+    const pages: FbPage[] = pagesData?.data ?? []
+
+    if (pages.length === 0) {
+      console.error("[instagram/callback] no FB pages on this account")
+      return NextResponse.redirect(`${origin}/settings?error=instagram_no_pages`)
+    }
+
+    // 4. Walk pages until we find one connected to an Instagram Business Account.
+    let chosenPageId: string | null = null
+    let chosenPageToken: string | null = null
+    let igUserId: string | null = null
+
+    for (const page of pages) {
+      const igRes = await fetch(
+        `${GRAPH}/${page.id}?` +
+          new URLSearchParams({
+            fields: "instagram_business_account",
+            access_token: page.access_token,
+          }).toString(),
+      )
+      const igData = await igRes.json()
+      const id: string | undefined = igData?.instagram_business_account?.id
+      if (id) {
+        chosenPageId = page.id
+        chosenPageToken = page.access_token
+        igUserId = id
+        break
+      }
+    }
+
+    if (!igUserId || !chosenPageId || !chosenPageToken) {
+      console.error("[instagram/callback] no IG business account on any page")
+      return NextResponse.redirect(`${origin}/settings?error=instagram_no_ig`)
+    }
+
+    // 5. Look up the IG handle so we can show it in the profile band.
+    let igUsername: string | null = null
+    try {
+      const profRes = await fetch(
+        `${GRAPH}/${igUserId}?` +
+          new URLSearchParams({
+            fields: "username",
+            access_token: chosenPageToken,
+          }).toString(),
+      )
+      const profData = await profRes.json()
+      if (typeof profData?.username === "string") igUsername = profData.username
+    } catch {
+      // Non-fatal — we just won't seed the handle.
+    }
+
+    // 6. Persist on the current user's profile.
     const supabase = createClient()
     const {
       data: { user },
     } = await supabase.auth.getUser()
-
     if (!user) {
       return NextResponse.redirect(`${origin}/login`)
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data: profileRow, error: fetchError } = (await supabase
-      .from("profiles")
-      .select("social_accounts")
-      .eq("id", user.id)
-      .single()) as any
+    const expiresAt = new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString()
 
-    if (fetchError) throw new Error(fetchError.message)
+    // We store the *page* access token — it's what the IG Graph endpoints need.
+    const updates: Record<string, unknown> = {
+      instagram_access_token: chosenPageToken,
+      instagram_token_expires_at: expiresAt,
+      instagram_user_id: igUserId,
+      instagram_page_id: chosenPageId,
+    }
 
-    const existing = normalizeSocialAccounts(
-      (profileRow?.social_accounts ?? {}) as SocialAccountsMap | null,
-    )
-    const prior = existing.instagram
-    const updated: Record<string, SocialAccount> = {
-      ...existing,
-      instagram: {
-        platform: "instagram",
-        handle: username,
-        followers: prior?.followers ?? 0,
-        engagement: prior?.engagement ?? 0,
-        url: prior?.url,
-      },
+    // Also overlay the IG handle onto social_accounts so the dashboard
+    // profile band shows it right away.
+    if (igUsername) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: profileRow } = (await supabase
+        .from("profiles")
+        .select("social_accounts")
+        .eq("id", user.id)
+        .single()) as any
+      const existing = normalizeSocialAccounts(
+        (profileRow?.social_accounts ?? {}) as SocialAccountsMap | null,
+      )
+      const prior = existing.instagram
+      const merged: Record<string, SocialAccount> = {
+        ...existing,
+        instagram: {
+          platform: "instagram",
+          handle: igUsername,
+          followers: prior?.followers ?? 0,
+          engagement: prior?.engagement ?? 0,
+          url: prior?.url,
+        },
+      }
+      updates.social_accounts = merged
     }
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { error: updateError } = (await (supabase as any)
+    const { error: updateErr } = await ((supabase as any)
       .from("profiles")
-      .update({ social_accounts: updated })
+      .update(updates)
       .eq("id", user.id))
 
-    if (updateError) throw new Error(updateError.message)
+    if (updateErr) {
+      console.error("[instagram/callback] profile update failed", updateErr)
+      return NextResponse.redirect(`${origin}/settings?error=instagram`)
+    }
 
     return NextResponse.redirect(`${origin}/dashboard?connected=instagram`)
   } catch (err) {
-    console.error("[instagram/callback] Error:", err)
-    return NextResponse.redirect(`${origin}/dashboard?error=instagram_auth_failed`)
+    console.error("[instagram/callback] unexpected error", err)
+    return NextResponse.redirect(`${origin}/settings?error=instagram`)
   }
 }
