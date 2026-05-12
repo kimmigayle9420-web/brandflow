@@ -292,7 +292,14 @@ function DashboardPageInner() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [active, igStats])
 
-  const today = useMemo(() => formatToday(), [])
+  // Use state + effect for time-dependent values so server and client render
+  // the same initial string (empty), avoiding React hydration mismatch #425.
+  const [today, setToday] = useState("")
+  const [currentGreeting, setCurrentGreeting] = useState("")
+  useEffect(() => {
+    setToday(formatToday())
+    setCurrentGreeting(greeting())
+  }, [])
 
   const effectivePlatform: Platform = useMemo(() => {
     const base = PLATFORMS[active]
@@ -331,13 +338,13 @@ function DashboardPageInner() {
               className="text-[11px] uppercase tracking-[0.18em]"
               style={{ color: TOKENS.brown, fontFamily: TOKENS.fontMono }}
             >
-              {`// ${today}`}
+              {today ? `// ${today}` : ""}
             </p>
             <h1
               className="text-[28px] md:text-[38px] font-medium leading-[1.1] mt-2"
               style={{ color: TOKENS.ink, letterSpacing: "-0.01em" }}
             >
-              {greeting()},{" "}
+              {currentGreeting},{" "}
               <em style={{ color: TOKENS.orange, fontStyle: "italic", fontWeight: 500 }}>
                 {firstName}.
               </em>
