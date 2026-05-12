@@ -20,9 +20,10 @@ export async function GET(request: Request) {
     client_id: appId,
     redirect_uri: redirectUri,
     response_type: "code",
-    // instagram_manage_insights is required for reach, profile_views, and
-    // views metrics on the account-level insights endpoint.
-    scope: "pages_show_list,pages_read_engagement,business_management,instagram_basic,instagram_manage_insights",
+    // instagram_manage_insights requires App Review before it can be requested
+    // in the OAuth scope. Remove it here until the app is approved — the stats
+    // route degrades gracefully (reach/profile_views return 0 without it).
+    scope: "pages_show_list,pages_read_engagement,business_management,instagram_basic",
   })
 
   return NextResponse.redirect(
