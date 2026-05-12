@@ -125,6 +125,8 @@ export default function ContentPillarsPage() {
   }
 
   const handleDelete = async (pillarId: string) => {
+    const pillar = pillars.find((p) => p.id === pillarId)
+    if (!window.confirm(`Delete "${pillar?.name ?? "this pillar"}"? This cannot be undone.`)) return
     const { error } = await supabase.from("content_pillars").delete().eq("id", pillarId)
     if (error) {
       toast({ title: "Failed to delete pillar", variant: "destructive" })
