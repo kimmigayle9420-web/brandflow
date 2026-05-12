@@ -12,7 +12,8 @@ export async function GET(request: Request) {
   const redirectUri = `${baseUrl}/api/auth/instagram/callback`
 
   if (!appId) {
-    return NextResponse.redirect(`${baseUrl}/settings?error=instagram_not_configured`)
+    console.error("[instagram/initiate] NEXT_PUBLIC_INSTAGRAM_APP_ID is not set")
+    return NextResponse.redirect(`${baseUrl}/dashboard?error=instagram_not_configured`)
   }
 
   const params = new URLSearchParams({

@@ -17,22 +17,34 @@ export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url)
   const code = searchParams.get("code")
   const oauthError = searchParams.get("error")
+  const oauthErrorDesc = searchParams.get("error_description")
+
+  // Canonical base URL — used for both the OAuth redirect_uri (must match what
+  // we sent to Meta) AND every user-facing redirect, so the user always lands
+  // back on the canonical domain instead of a preview URL.
+  const baseUrl =
+    process.env.NEXT_PUBLIC_SITE_URL ??
+    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : origin)
 
   if (oauthError || !code) {
-    return NextResponse.redirect(`${origin}/settings?error=instagram`)
+    console.error("[instagram/callback] oauth dialog returned error", {
+      error: oauthError,
+      description: oauthErrorDesc,
+    })
+    return NextResponse.redirect(`${baseUrl}/dashboard?error=instagram`)
   }
 
   const appId = process.env.NEXT_PUBLIC_INSTAGRAM_APP_ID
   const appSecret = process.env.INSTAGRAM_APP_SECRET
 
   if (!appId || !appSecret) {
-    return NextResponse.redirect(`${origin}/settings?error=instagram_not_configured`)
+    console.error("[instagram/callback] missing env vars", {
+      hasAppId: Boolean(appId),
+      hasAppSecret: Boolean(appSecret),
+    })
+    return NextResponse.redirect(`${baseUrl}/dashboard?error=instagram_not_configured`)
   }
 
-  // The redirect URI must match exactly what we sent to the OAuth dialog.
-  const baseUrl =
-    process.env.NEXT_PUBLIC_SITE_URL ??
-    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : origin)
   const redirectUri = `${baseUrl}/api/auth/instagram/callback`
 
   try {
@@ -50,7 +62,7 @@ export async function GET(request: Request) {
     const shortData = await shortRes.json()
     if (!shortData.access_token) {
       console.error("[instagram/callback] no short token", shortData)
-      return NextResponse.redirect(`${origin}/settings?error=instagram`)
+      return NextResponse.redirect(`${baseUrl}/dashboard?error=instagram`)
     }
 
     // 2. Exchange short-lived token for a long-lived user token (~60 days)
@@ -67,7 +79,7 @@ export async function GET(request: Request) {
     const longData = await longRes.json()
     if (!longData.access_token) {
       console.error("[instagram/callback] no long token", longData)
-      return NextResponse.redirect(`${origin}/settings?error=instagram`)
+      return NextResponse.redirect(`${baseUrl}/dashboard?error=instagram`)
     }
     const userAccessToken: string = longData.access_token
 
@@ -82,7 +94,7 @@ export async function GET(request: Request) {
 
     if (pages.length === 0) {
       console.error("[instagram/callback] no FB pages on this account")
-      return NextResponse.redirect(`${origin}/settings?error=instagram_no_pages`)
+      return NextResponse.redirect(`${baseUrl}/dashboard?error=instagram_no_pages`)
     }
 
     // 4. Walk pages until we find one connected to an Instagram Business Account.
@@ -110,7 +122,7 @@ export async function GET(request: Request) {
 
     if (!igUserId || !chosenPageId || !chosenPageToken) {
       console.error("[instagram/callback] no IG business account on any page")
-      return NextResponse.redirect(`${origin}/settings?error=instagram_no_ig`)
+      return NextResponse.redirect(`${baseUrl}/dashboard?error=instagram_no_ig`)
     }
 
     // 5. Look up the IG handle so we can show it in the profile band.
@@ -135,7 +147,7 @@ export async function GET(request: Request) {
       data: { user },
     } = await supabase.auth.getUser()
     if (!user) {
-      return NextResponse.redirect(`${origin}/login`)
+      return NextResponse.redirect(`${baseUrl}/login`)
     }
 
     const expiresAt = new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString()
@@ -180,12 +192,12 @@ export async function GET(request: Request) {
 
     if (updateErr) {
       console.error("[instagram/callback] profile update failed", updateErr)
-      return NextResponse.redirect(`${origin}/settings?error=instagram`)
+      return NextResponse.redirect(`${baseUrl}/dashboard?error=instagram`)
     }
 
-    return NextResponse.redirect(`${origin}/dashboard?connected=instagram`)
+    return NextResponse.redirect(`${baseUrl}/dashboard?connected=instagram`)
   } catch (err) {
     console.error("[instagram/callback] unexpected error", err)
-    return NextResponse.redirect(`${origin}/settings?error=instagram`)
+    return NextResponse.redirect(`${baseUrl}/dashboard?error=instagram`)
   }
 }

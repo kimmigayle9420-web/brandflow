@@ -1,8 +1,9 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { Suspense, useEffect, useMemo, useState } from "react"
 import Link from "next/link"
-import { ArrowRight, Plug } from "lucide-react"
+import { useSearchParams, useRouter, usePathname } from "next/navigation"
+import { ArrowRight, Plug, X } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
 import { PLATFORMS, PROFILE, type Pillar, type Platform, type PlatformId, type RecentPost, type Stat } from "@/data/dashboard"
 import { Sparkline } from "./_components/sparkline"
@@ -177,8 +178,53 @@ function buildInstagramPlatform(base: Platform, stats: Extract<IgStats, { connec
   }
 }
 
+// Human-readable copy for OAuth error codes surfaced via ?error= on the dashboard.
+const INSTAGRAM_ERROR_COPY: Record<string, { title: string; body: string }> = {
+  instagram_no_pages: {
+    title: "No Facebook Page linked to your Instagram",
+    body: "Make sure your Instagram is set to a Professional account and connected to a Facebook Page you manage, then try again.",
+  },
+  instagram_no_ig: {
+    title: "No Instagram Business account found",
+    body: "Your Facebook account doesn't have an Instagram Business account connected. Open Instagram → Edit Profile → Switch to Professional Account, then link it to your Facebook Page.",
+  },
+  instagram_not_configured: {
+    title: "Instagram connection isn't set up yet",
+    body: "BrandFlow is missing the Instagram app credentials. Contact support so we can finish wiring this up.",
+  },
+  instagram: {
+    title: "We couldn't connect Instagram",
+    body: "Something went wrong while connecting Instagram. Please try again — if it keeps failing, contact support.",
+  },
+}
+
 // ─── Top-level page (client component) ────────────────────────────────────────
+// useSearchParams forces a Suspense boundary at the page export to keep
+// Next.js's static prerender happy. The inner component holds all the
+// actual page logic.
 export default function DashboardPage() {
+  return (
+    <Suspense fallback={<div style={{ backgroundColor: TOKENS.bg, minHeight: "100%" }} />}>
+      <DashboardPageInner />
+    </Suspense>
+  )
+}
+
+function DashboardPageInner() {
+  const searchParams = useSearchParams()
+  const router = useRouter()
+  const pathname = usePathname()
+  const errorParam = searchParams.get("error")
+  const errorCopy = errorParam ? INSTAGRAM_ERROR_COPY[errorParam] : null
+
+  const dismissError = () => {
+    // Strip the ?error= param so the banner doesn't reappear on reload.
+    const params = new URLSearchParams(searchParams.toString())
+    params.delete("error")
+    const qs = params.toString()
+    router.replace(qs ? `${pathname}?${qs}` : pathname)
+  }
+
   const [active, setActive] = useState<PlatformId>("instagram")
   const [firstName, setFirstName] = useState<string>(PROFILE.firstName)
   const [fullName, setFullName] = useState<string>(PROFILE.fullName)
@@ -269,6 +315,14 @@ export default function DashboardPage() {
     >
       <div className="max-w-[1180px] mx-auto px-5 md:px-8 py-6 md:py-9 space-y-7">
 
+        {errorCopy && (
+          <InstagramErrorBanner
+            title={errorCopy.title}
+            body={errorCopy.body}
+            onDismiss={dismissError}
+          />
+        )}
+
         {/* ─── Top bar ────────────────────────────────────────────── */}
         <header className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-5">
           <div>
@@ -353,6 +407,76 @@ export default function DashboardPage() {
           50%      { transform: scale(1.6); opacity: 0.4; }
         }
       `}</style>
+    </div>
+  )
+}
+
+// ─── Instagram OAuth error banner ────────────────────────────────────────────
+// Surfaces the failure reason after the OAuth callback bounces back with
+// ?error=... so the user knows what happened and what to do next.
+function InstagramErrorBanner({
+  title,
+  body,
+  onDismiss,
+}: {
+  title: string
+  body: string
+  onDismiss: () => void
+}) {
+  return (
+    <div
+      role="alert"
+      className="relative flex items-start gap-3 rounded-2xl px-4 py-3 pr-10"
+      style={{
+        backgroundColor: "#FBE9DF",
+        border: `1px solid ${TOKENS.orange}`,
+        color: TOKENS.ink,
+      }}
+    >
+      <span
+        className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold tracking-wider shrink-0"
+        style={{
+          backgroundColor: TOKENS.orange,
+          color: "#FFFFFF",
+          fontFamily: TOKENS.fontMono,
+        }}
+      >
+        INSTAGRAM
+      </span>
+      <div className="min-w-0">
+        <p className="text-[13px] font-medium leading-snug">{title}</p>
+        <p
+          className="text-[13px] leading-relaxed mt-1"
+          style={{ color: TOKENS.inkSoft }}
+        >
+          {body}
+        </p>
+        <div className="mt-2.5 flex flex-wrap items-center gap-3">
+          <a
+            href="/api/auth/instagram"
+            className="inline-flex items-center gap-1.5 h-8 px-3 rounded-full text-[12px] font-medium transition-opacity hover:opacity-90"
+            style={{ backgroundColor: TOKENS.orange, color: "#FFFFFF" }}
+          >
+            Try again
+          </a>
+          <Link
+            href="/settings"
+            className="text-[12px] font-medium"
+            style={{ color: TOKENS.inkSoft }}
+          >
+            Open settings →
+          </Link>
+        </div>
+      </div>
+      <button
+        type="button"
+        onClick={onDismiss}
+        aria-label="Dismiss"
+        className="absolute top-3 right-3 inline-flex items-center justify-center w-6 h-6 rounded-full transition-opacity hover:opacity-70"
+        style={{ color: TOKENS.inkSoft }}
+      >
+        <X className="h-3.5 w-3.5" />
+      </button>
     </div>
   )
 }
