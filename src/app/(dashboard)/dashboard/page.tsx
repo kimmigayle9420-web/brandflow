@@ -53,6 +53,7 @@ function greeting(): string {
 export default function DashboardPage() {
   const [active, setActive] = useState<PlatformId>("instagram")
   const [firstName, setFirstName] = useState<string>(PROFILE.firstName)
+  const [fullName, setFullName] = useState<string>(PROFILE.fullName)
   const [handle, setHandle] = useState<string>(PROFILE.handle)
 
   // Overlay handle/name from Supabase if available; otherwise keep design defaults
@@ -68,8 +69,11 @@ export default function DashboardPage() {
         .eq("id", user.id)
         .single()
       if (cancelled || !data) return
-      const fn = (data as any).full_name?.split(" ")[0]
-      if (fn) setFirstName(fn)
+      const rawName = (data as any).full_name as string | null
+      if (rawName) {
+        setFullName(rawName)
+        setFirstName(rawName.split(" ")[0])
+      }
       const social = (data as any).social_accounts as Record<string, string> | null
       const platformKey = active === "shorts" ? "youtube" : active
       const h = social?.[platformKey]
@@ -124,7 +128,7 @@ export default function DashboardPage() {
         </header>
 
         {/* ─── Profile band ───────────────────────────────────────── */}
-        <ProfileBand handle={handle} platformId={active} />
+        <ProfileBand handle={handle} fullName={fullName} platformId={active} />
 
         {/* ─── Stats row ──────────────────────────────────────────── */}
         <StatsRow platformId={active} />
@@ -200,7 +204,7 @@ function PlatformSwitcher({
 }
 
 // ─── Profile band ─────────────────────────────────────────────────────────────
-function ProfileBand({ handle, platformId }: { handle: string; platformId: PlatformId }) {
+function ProfileBand({ handle, fullName, platformId }: { handle: string; fullName: string; platformId: PlatformId }) {
   const accent = PLATFORMS[platformId].accent
   return (
     <section
@@ -222,7 +226,7 @@ function ProfileBand({ handle, platformId }: { handle: string; platformId: Platf
           }}
           aria-hidden
         >
-          {PROFILE.firstName.charAt(0)}
+          {fullName.charAt(0)}
         </div>
         <div className="min-w-0">
           <p
@@ -232,7 +236,7 @@ function ProfileBand({ handle, platformId }: { handle: string; platformId: Platf
             // creator
           </p>
           <h2 className="text-xl md:text-2xl font-medium leading-tight" style={{ color: TOKENS.ink }}>
-            {PROFILE.fullName}
+            {fullName}
           </h2>
           <p className="text-sm mt-1" style={{ color: accent }}>
             @{handle}
