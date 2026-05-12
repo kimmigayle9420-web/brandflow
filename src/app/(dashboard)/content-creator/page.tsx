@@ -5,8 +5,8 @@ import type { Brand, ContentPillar } from "@/types"
 import type { Metadata } from "next"
 
 export const metadata: Metadata = {
-  title: "Content Creator — BrandFlow",
-  description: "Research your niche, manage pillars, and generate content",
+  title: "Content hub — BrandFlow",
+  description: "Plan, draft, and schedule posts across your content pillars.",
 }
 
 export default async function ContentCreatorPage() {
@@ -44,8 +44,8 @@ export default async function ContentCreatorPage() {
   return (
     <div className="flex flex-col min-h-full" style={{ backgroundColor: "#FAFAF5" }}>
       <Header
-        title="Content Creator"
-        description="Research your niche, manage pillars, and generate content — all in one place."
+        title="Content hub"
+        description="Filter post ideas by pillar, draft a new one, and schedule when it goes live."
       />
       <div className="flex-1 w-full px-4 py-6 md:px-6 lg:px-10 md:py-8">
         <ContentCreatorClient
