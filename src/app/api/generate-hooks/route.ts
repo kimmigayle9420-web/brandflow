@@ -35,6 +35,7 @@ export async function POST(request: Request) {
     tone?: string
     targetAudience?: string
     pillarName?: string
+    pillarDescription?: string
     pillarVoiceDirection?: string
     pillarFormatPreference?: string
   }
@@ -46,11 +47,12 @@ export async function POST(request: Request) {
 
   const {
     topic, keyMessage, brandName, niche, tone, targetAudience,
-    pillarName, pillarVoiceDirection, pillarFormatPreference,
+    pillarName, pillarDescription, pillarVoiceDirection, pillarFormatPreference,
   } = body
 
   const pillarContext = pillarName ? `
 Content Pillar: ${pillarName}
+${pillarDescription ? `Pillar description / POV: ${pillarDescription}` : ''}
 ${pillarVoiceDirection ? `Voice direction: ${pillarVoiceDirection}` : ''}
 ${pillarFormatPreference && pillarFormatPreference !== 'any' ? `Preferred format: ${pillarFormatPreference}` : ''}` : ''
 
@@ -69,7 +71,9 @@ ${NBP_EXAMPLES}
 
 Generate exactly 3 scroll-stopping hooks for the topic/angle above. Each hook must:
 - Stop the scroll in the first 3–5 words
-- Be specific to the brand's niche (not generic platitudes)
+- Be specific to the brand's niche AND the topic provided (no generic platitudes)
+- Tie directly to the topic — these hooks must clearly be about "${topic || 'the topic above'}"
+${pillarName ? `- Reflect the "${pillarName}" pillar's angle${pillarDescription ? ` (${pillarDescription})` : ''}` : ''}
 - Create curiosity, relatability, or a bold claim
 - Be 1–2 lines maximum
 - Vary in style: (1) curiosity-gap or "nobody talks about this", (2) POV / relatable situation, (3) bold or contrarian claim / before-after transformation
