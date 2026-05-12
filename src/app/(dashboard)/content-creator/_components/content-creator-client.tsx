@@ -1,242 +1,1325 @@
 "use client"
 
-import { useState, useEffect, useMemo, useRef } from "react"
+import { useState, useEffect, useMemo, useRef, useCallback } from "react"
 import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { useToast } from "@/components/ui/use-toast"
 import {
-  Sparkles, Loader2, Plus, X, Calendar, Clock, Upload, Film,
-  LayoutGrid, FileText, Zap, Mic2, GraduationCap, Image as ImageIcon,
-  Save, Trash2, Copy, Check, Wand2, Instagram, Music2, Youtube,
-  ImageOff, Link as LinkIcon,
+  Sparkles, Loader2, Plus, X, Upload, FileText, Film,
+  LayoutGrid, Image as ImageIcon, Save, Trash2, Wand2, Instagram,
+  Music2, Youtube, Heart, MessageCircle, Send, Bookmark, MoreHorizontal,
+  ChevronLeft, ChevronRight, Hash, Calendar, Play, Volume2,
+  Eye, ImageOff,
 } from "lucide-react"
 import type { Brand, ContentPillar, Idea } from "@/types"
 
-// ─── Format & platform meta ─────────────────────────────────────────────────
+// ─── Types & meta ───────────────────────────────────────────────────────────
 
-type UiFormat = "reel" | "post" | "carousel" | "story" | "voiceover" | "tutorial"
-type Platform = "instagram" | "tiktok" | "youtube"
+type PlatformKey = "ig_post" | "ig_reel" | "ig_story" | "tiktok" | "yt_short"
 type DbFormat = "post" | "carousel" | "reel"
+type MediaItem = { url: string; name: string; type: "image" | "video"; isBlob: boolean }
 
-const FORMATS: Array<{
-  key: UiFormat
-  label: string
-  icon: React.ReactNode
-  bg: string
-  text: string
-  border: string
-  dbFormat: DbFormat
-}> = [
-  { key: "reel",      label: "Reel",      icon: <Film className="h-3.5 w-3.5" />,         bg: "#FEF0EA", text: "#D4432A", border: "#F5C4BC", dbFormat: "reel" },
-  { key: "post",      label: "Post",      icon: <FileText className="h-3.5 w-3.5" />,     bg: "#F0FDF4", text: "#16A34A", border: "#BBF7D0", dbFormat: "post" },
-  { key: "carousel",  label: "Carousel",  icon: <LayoutGrid className="h-3.5 w-3.5" />,   bg: "#EEF2FF", text: "#5B6AC4", border: "#C7D2FE", dbFormat: "carousel" },
-  { key: "story",     label: "Story",     icon: <Zap className="h-3.5 w-3.5" />,          bg: "#F5F3FF", text: "#7C3AED", border: "#DDD6FE", dbFormat: "post" },
-  { key: "voiceover", label: "Voiceover", icon: <Mic2 className="h-3.5 w-3.5" />,         bg: "#FDF2F8", text: "#BE185D", border: "#FBCFE8", dbFormat: "reel" },
-  { key: "tutorial",  label: "Tutorial",  icon: <GraduationCap className="h-3.5 w-3.5" />, bg: "#FFFBEB", text: "#B45309", border: "#FCD34D", dbFormat: "carousel" },
-]
-
-const PLATFORMS: Array<{
-  key: Platform
+type PlatformMeta = {
+  key: PlatformKey
   label: string
   short: string
+  aspect: string
+  captionMax: number
+  hashtagMax: number
+  dbFormat: DbFormat
+  accent: string
+  gradient: string
   icon: React.ReactNode
-}> = [
-  { key: "instagram", label: "Instagram",      short: "IG", icon: <Instagram className="h-3.5 w-3.5" /> },
-  { key: "tiktok",    label: "TikTok",         short: "TT", icon: <Music2    className="h-3.5 w-3.5" /> },
-  { key: "youtube",   label: "YouTube Shorts", short: "YT", icon: <Youtube   className="h-3.5 w-3.5" /> },
+}
+
+const PLATFORMS: PlatformMeta[] = [
+  {
+    key: "ig_post",
+    label: "Instagram Post",
+    short: "IG Post",
+    aspect: "4 / 5",
+    captionMax: 2200,
+    hashtagMax: 30,
+    dbFormat: "post",
+    accent: "#E1306C",
+    gradient: "linear-gradient(135deg,#F58529 0%,#DD2A7B 50%,#8134AF 100%)",
+    icon: <Instagram className="h-4 w-4" />,
+  },
+  {
+    key: "ig_reel",
+    label: "Instagram Reel",
+    short: "IG Reel",
+    aspect: "9 / 16",
+    captionMax: 2200,
+    hashtagMax: 30,
+    dbFormat: "reel",
+    accent: "#E1306C",
+    gradient: "linear-gradient(135deg,#F58529 0%,#DD2A7B 50%,#8134AF 100%)",
+    icon: <Film className="h-4 w-4" />,
+  },
+  {
+    key: "ig_story",
+    label: "Instagram Story",
+    short: "IG Story",
+    aspect: "9 / 16",
+    captionMax: 0,
+    hashtagMax: 10,
+    dbFormat: "post",
+    accent: "#E1306C",
+    gradient: "linear-gradient(135deg,#F58529 0%,#DD2A7B 50%,#8134AF 100%)",
+    icon: <Sparkles className="h-4 w-4" />,
+  },
+  {
+    key: "tiktok",
+    label: "TikTok",
+    short: "TikTok",
+    aspect: "9 / 16",
+    captionMax: 2200,
+    hashtagMax: 30,
+    dbFormat: "reel",
+    accent: "#000000",
+    gradient: "linear-gradient(135deg,#25F4EE 0%,#000 50%,#FE2C55 100%)",
+    icon: <Music2 className="h-4 w-4" />,
+  },
+  {
+    key: "yt_short",
+    label: "YouTube Short",
+    short: "YT Short",
+    aspect: "9 / 16",
+    captionMax: 5000,
+    hashtagMax: 15,
+    dbFormat: "reel",
+    accent: "#FF0000",
+    gradient: "linear-gradient(135deg,#FF0000 0%,#CC0000 100%)",
+    icon: <Youtube className="h-4 w-4" />,
+  },
 ]
 
-const PLATFORM_CAPTION_RULES: Record<Platform, string> = {
-  instagram: "Instagram: 150–300 words, warm and authentic, end with a clear question CTA that invites comments.",
-  tiktok:    "TikTok: 1–3 sentences only, ultra casual, lowercase ok, no formality. Match the trend energy.",
-  youtube:   "YouTube Shorts: very short caption, prioritise searchable keywords and a one-line description of the value.",
+const platformMeta = (key: PlatformKey): PlatformMeta =>
+  PLATFORMS.find((p) => p.key === key) ?? PLATFORMS[0]
+
+const FORMAT_BADGE: Record<DbFormat, { label: string; bg: string; text: string; icon: React.ReactNode }> = {
+  post: { label: "Post", bg: "#F0FDF4", text: "#16A34A", icon: <FileText className="h-3 w-3" /> },
+  carousel: { label: "Carousel", bg: "#EEF2FF", text: "#5B6AC4", icon: <LayoutGrid className="h-3 w-3" /> },
+  reel: { label: "Reel", bg: "#FEF0EA", text: "#D4432A", icon: <Film className="h-3 w-3" /> },
 }
 
-// Best time heuristic per platform (rough industry averages, Sydney TZ-agnostic)
-const BEST_TIMES: Record<Platform, { time: string; label: string }> = {
-  instagram: { time: "19:00", label: "7:00 PM" },
-  tiktok:    { time: "21:00", label: "9:00 PM" },
-  youtube:   { time: "17:00", label: "5:00 PM" },
-}
-
-// ─── Helpers ─────────────────────────────────────────────────────────────────
+// ─── Helpers ────────────────────────────────────────────────────────────────
 
 function cn(...classes: (string | undefined | false | null)[]): string {
   return classes.filter(Boolean).join(" ")
 }
 
-function formatMeta(f: string) {
-  return FORMATS.find((x) => x.key === (f as UiFormat)) ?? FORMATS[1]
+function looksLikeVideoUrl(url: string): boolean {
+  return /\.(mp4|mov|webm|m4v|ogv)(\?|$)/i.test(url)
 }
 
-function getUiFormat(idea: Idea): UiFormat {
-  const stored = (idea.script as { ui_format?: string } | null)?.ui_format
-  if (stored && FORMATS.some((f) => f.key === stored)) return stored as UiFormat
-  return idea.format as UiFormat
+function pickMediaType(url: string, mime?: string): "image" | "video" {
+  if (mime) return mime.startsWith("video/") ? "video" : "image"
+  return looksLikeVideoUrl(url) ? "video" : "image"
 }
 
-function getStoredPlatforms(idea: Idea): Platform[] {
-  const stored = (idea.script as { platforms?: string[] } | null)?.platforms
-  if (Array.isArray(stored)) return stored.filter((p): p is Platform => PLATFORMS.some((x) => x.key === p))
-  return []
+function platformFromIdea(idea: Idea): PlatformKey {
+  const stored = (idea.script as { platform?: string } | null)?.platform
+  if (stored && PLATFORMS.some((p) => p.key === stored)) return stored as PlatformKey
+  // Fallback by format
+  if (idea.format === "reel") return "ig_reel"
+  if (idea.format === "carousel") return "ig_post"
+  return "ig_post"
 }
 
-function openCanvaTemplate(format: UiFormat, caption: string, hashtags: string[]) {
-  const tagStr = hashtags.map((t) => (t.startsWith("#") ? t : `#${t}`)).join(" ")
-  const text = [caption, tagStr].filter(Boolean).join("\n\n")
-  if (text) navigator.clipboard.writeText(text).catch(() => {})
-  const canvaUrl =
-    format === "reel" || format === "voiceover" ? "https://www.canva.com/create/instagram-reels/"
-    : format === "story" ? "https://www.canva.com/create/instagram-stories/"
-    : format === "carousel" || format === "tutorial" ? "https://www.canva.com/create/instagram-carousel-posts/"
-    : "https://www.canva.com/create/instagram-posts/"
-  window.open(canvaUrl, "_blank", "noopener,noreferrer")
+// ─── Editor state ───────────────────────────────────────────────────────────
+
+type EditorState = {
+  ideaId: string | null
+  platform: PlatformKey
+  pillarId: string | null
+  media: MediaItem[]
+  mediaIndex: number
+  hook: string
+  caption: string
+  hashtags: string[]
 }
 
-// ─── Small UI atoms ──────────────────────────────────────────────────────────
-
-function FormatBadge({ format }: { format: UiFormat }) {
-  const m = formatMeta(format)
-  return (
-    <span
-      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide border"
-      style={{ backgroundColor: m.bg, color: m.text, borderColor: m.border }}
-    >
-      {m.icon}
-      {m.label}
-    </span>
-  )
+const EMPTY_EDITOR: EditorState = {
+  ideaId: null,
+  platform: "ig_post",
+  pillarId: null,
+  media: [],
+  mediaIndex: 0,
+  hook: "",
+  caption: "",
+  hashtags: [],
 }
 
-function PlatformGlyphs({ platforms }: { platforms: Platform[] }) {
-  if (platforms.length === 0) return null
-  return (
-    <div className="flex items-center gap-1">
-      {platforms.map((p) => {
-        const meta = PLATFORMS.find((x) => x.key === p)
-        if (!meta) return null
-        return (
-          <span
-            key={p}
-            title={meta.label}
-            className="h-5 w-5 rounded-md flex items-center justify-center"
-            style={{ backgroundColor: "#FAFAF5", color: "#5A3825" }}
-          >
-            {meta.icon}
-          </span>
-        )
-      })}
-    </div>
-  )
-}
-
-// ─── Media Preview ──────────────────────────────────────────────────────────
-// Renders the post's image or video at the right aspect ratio for the chosen
-// format. Square for feed (post/carousel/tutorial), 9:16 for vertical surfaces
-// (reel/story/voiceover). Shows a skeleton while loading and a fallback when
-// the URL is broken — so a generated/external image URL never silently fails.
-
-function aspectForFormat(format: UiFormat): string {
-  switch (format) {
-    case "reel":
-    case "story":
-    case "voiceover":
-      return "9 / 16"
-    case "carousel":
-    case "tutorial":
-    case "post":
-    default:
-      return "1 / 1"
+function editorFromIdea(idea: Idea): EditorState {
+  const platform = platformFromIdea(idea)
+  const tags = idea.hashtags
+    ? idea.hashtags.split(/\s+/).filter(Boolean).map((t) => t.replace(/^#/, ""))
+    : []
+  const media: MediaItem[] = idea.media_url
+    ? [{
+        url: idea.media_url,
+        name: idea.media_url.split("/").pop()?.split("?")[0] ?? "media",
+        type: pickMediaType(idea.media_url),
+        isBlob: idea.media_url.startsWith("blob:"),
+      }]
+    : []
+  return {
+    ideaId: idea.id,
+    platform,
+    pillarId: idea.pillar_id,
+    media,
+    mediaIndex: 0,
+    hook: idea.hook ?? "",
+    caption: idea.caption ?? "",
+    hashtags: tags,
   }
 }
 
-function isVideoUrl(url: string): boolean {
-  return /\.(mp4|mov|webm|m4v)(\?|$)/i.test(url)
-}
+// ─── Media slot ─────────────────────────────────────────────────────────────
 
-function MediaPreview({
-  url,
-  name,
-  format,
-  onRemove,
-}: {
-  url: string
-  name: string | null
-  format: UiFormat
-  onRemove: () => void
-}) {
+function MediaSlot({ item, className }: { item: MediaItem | null; className?: string }) {
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading")
-  const aspect = aspectForFormat(format)
-  const video = isVideoUrl(url)
 
-  // Object URLs (blob:) load synchronously, so we don't need a loader for them.
   useEffect(() => {
-    if (url.startsWith("blob:") || url.startsWith("data:")) {
+    if (!item) return
+    if (item.url.startsWith("blob:") || item.url.startsWith("data:")) {
       setStatus("ready")
     } else {
       setStatus("loading")
     }
-  }, [url])
+  }, [item])
+
+  if (!item) {
+    return (
+      <div className={cn("flex items-center justify-center", className)} style={{ color: "rgba(255,255,255,0.45)" }}>
+        <ImageIcon className="h-8 w-8" />
+      </div>
+    )
+  }
+
+  if (status === "error") {
+    return (
+      <div className={cn("flex flex-col items-center justify-center gap-1", className)} style={{ color: "rgba(255,255,255,0.6)" }}>
+        <ImageOff className="h-7 w-7" />
+        <span className="text-[10px]">Couldn&apos;t load</span>
+      </div>
+    )
+  }
+
+  if (item.type === "video") {
+    return (
+      <video
+        src={item.url}
+        className={cn("w-full h-full object-cover", className)}
+        controls
+        playsInline
+        onLoadedData={() => setStatus("ready")}
+        onError={() => setStatus("error")}
+      />
+    )
+  }
 
   return (
-    <div className="relative rounded-xl overflow-hidden bg-[#F5F0EA]" style={{ aspectRatio: aspect }}>
-      {status === "loading" && (
-        <div className="absolute inset-0 flex items-center justify-center bg-[#F5F0EA] animate-pulse">
-          <ImageIcon className="h-8 w-8" style={{ color: "#C4B5A5" }} />
-        </div>
-      )}
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={item.url}
+      alt={item.name}
+      className={cn("w-full h-full object-cover", className)}
+      style={{ visibility: status === "loading" ? "hidden" : "visible" }}
+      onLoad={() => setStatus("ready")}
+      onError={() => setStatus("error")}
+    />
+  )
+}
 
-      {status === "error" ? (
-        <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-center px-4">
-          <ImageOff className="h-8 w-8" style={{ color: "#A89080" }} />
-          <p className="text-xs font-medium" style={{ color: "#7A5C50" }}>No preview available</p>
-          <p className="text-[10px]" style={{ color: "#A89080" }}>The image URL couldn't be loaded</p>
-        </div>
-      ) : video ? (
-        <video
-          src={url}
-          className="w-full h-full object-cover"
-          controls
-          onLoadedData={() => setStatus("ready")}
-          onError={() => setStatus("error")}
-        />
-      ) : (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={url}
-          alt={name ?? "Post media preview"}
-          className="w-full h-full object-cover"
-          style={{ visibility: status === "loading" ? "hidden" : "visible" }}
-          onLoad={() => setStatus("ready")}
-          onError={() => setStatus("error")}
-        />
-      )}
+// ─── Phone preview frame ────────────────────────────────────────────────────
 
-      <button
-        type="button"
-        onClick={onRemove}
-        className="absolute top-2 right-2 h-8 w-8 rounded-full flex items-center justify-center z-10"
-        style={{ backgroundColor: "rgba(45,24,16,0.7)", color: "white" }}
-        aria-label="Remove media"
+function PhoneFrame({ aspect, children }: { aspect: string; children: React.ReactNode }) {
+  return (
+    <div
+      className="relative mx-auto rounded-[36px] p-3 shadow-2xl"
+      style={{
+        background: "linear-gradient(180deg,#1f1614 0%,#0a0605 100%)",
+        width: "min(360px, 100%)",
+        boxShadow: "0 30px 60px -20px rgba(45,24,16,0.45), 0 0 0 1px rgba(255,255,255,0.04) inset",
+      }}
+    >
+      {/* speaker notch */}
+      <div
+        className="absolute top-3 left-1/2 -translate-x-1/2 h-5 w-24 rounded-full z-20"
+        style={{ background: "#0a0605" }}
+      />
+      <div
+        className="relative overflow-hidden rounded-[28px] bg-black"
+        style={{ aspectRatio: aspect }}
       >
-        <X className="h-4 w-4" />
-      </button>
-
-      {name && status !== "error" && (
-        <div
-          className="absolute bottom-0 left-0 right-0 px-3 py-1.5 text-[10px] font-medium truncate"
-          style={{ backgroundColor: "rgba(45,24,16,0.6)", color: "white" }}
-        >
-          {name}
-        </div>
-      )}
+        {children}
+      </div>
     </div>
   )
 }
 
-// ─── Idea Card ───────────────────────────────────────────────────────────────
+// ─── Platform-specific previews ─────────────────────────────────────────────
+
+function IGFeedPreview({
+  state,
+  handle,
+}: {
+  state: EditorState
+  handle: string
+}) {
+  const current = state.media[state.mediaIndex] ?? null
+  const tags = state.hashtags.map((t) => `#${t.replace(/^#/, "")}`).join(" ")
+  const captionText = [state.hook, state.caption].filter(Boolean).join(state.hook ? "\n\n" : "")
+
+  return (
+    <div className="w-full h-full flex flex-col bg-white">
+      {/* status bar */}
+      <div className="flex items-center justify-between px-4 pt-2 pb-1 text-[10px] font-semibold text-black">
+        <span>9:41</span>
+        <span>● ● ●</span>
+      </div>
+      {/* header */}
+      <div className="flex items-center justify-between px-3 py-2 border-b" style={{ borderColor: "#EFEFEF" }}>
+        <div className="flex items-center gap-2">
+          <div
+            className="h-7 w-7 rounded-full"
+            style={{ background: "linear-gradient(135deg,#F58529 0%,#DD2A7B 50%,#8134AF 100%)", padding: 2 }}
+          >
+            <div className="h-full w-full rounded-full bg-white flex items-center justify-center text-[10px] font-bold text-black">
+              {handle.slice(0, 2).toUpperCase()}
+            </div>
+          </div>
+          <div className="flex flex-col leading-none">
+            <span className="text-[12px] font-semibold text-black">{handle}</span>
+            <span className="text-[10px] text-gray-500">Sponsored</span>
+          </div>
+        </div>
+        <MoreHorizontal className="h-4 w-4 text-black" />
+      </div>
+      {/* media */}
+      <div className="relative bg-[#FAFAFA] w-full" style={{ aspectRatio: "4 / 5" }}>
+        <MediaSlot item={current} className="w-full h-full" />
+        {state.media.length > 1 && (
+          <>
+            <div className="absolute top-2 right-2 bg-black/60 text-white text-[10px] font-medium px-2 py-0.5 rounded-full">
+              {state.mediaIndex + 1}/{state.media.length}
+            </div>
+            <div className="absolute bottom-2 left-0 right-0 flex items-center justify-center gap-1">
+              {state.media.map((_, i) => (
+                <span
+                  key={i}
+                  className="h-1.5 w-1.5 rounded-full"
+                  style={{ background: i === state.mediaIndex ? "#0095F6" : "rgba(255,255,255,0.7)" }}
+                />
+              ))}
+            </div>
+          </>
+        )}
+      </div>
+      {/* action row */}
+      <div className="flex items-center justify-between px-3 py-2">
+        <div className="flex items-center gap-4 text-black">
+          <Heart className="h-5 w-5" />
+          <MessageCircle className="h-5 w-5" />
+          <Send className="h-5 w-5" />
+        </div>
+        <Bookmark className="h-5 w-5 text-black" />
+      </div>
+      {/* caption */}
+      <div className="px-3 pb-3 flex-1 overflow-hidden">
+        <p className="text-[11px] font-semibold text-black mb-0.5">1,284 likes</p>
+        {captionText ? (
+          <p className="text-[11px] text-black leading-snug line-clamp-3">
+            <span className="font-semibold mr-1">{handle}</span>
+            {captionText}
+          </p>
+        ) : (
+          <p className="text-[11px] text-gray-400 italic">Your caption will appear here…</p>
+        )}
+        {tags && (
+          <p className="text-[11px] text-blue-700 mt-1 line-clamp-2">{tags}</p>
+        )}
+        <p className="text-[10px] text-gray-400 mt-1">View all 38 comments</p>
+        <p className="text-[10px] text-gray-400 mt-0.5">2 minutes ago</p>
+      </div>
+    </div>
+  )
+}
+
+function VerticalPreview({
+  state,
+  handle,
+  variant,
+}: {
+  state: EditorState
+  handle: string
+  variant: "ig_reel" | "tiktok" | "yt_short"
+}) {
+  const current = state.media[state.mediaIndex] ?? null
+  const tags = state.hashtags.map((t) => `#${t.replace(/^#/, "")}`).join(" ")
+  const captionText = [state.hook, state.caption].filter(Boolean).join(state.hook ? "\n\n" : "")
+  const isYT = variant === "yt_short"
+
+  return (
+    <div className="relative w-full h-full bg-black overflow-hidden">
+      {/* media background */}
+      <div className="absolute inset-0">
+        {current ? (
+          <MediaSlot item={current} className="w-full h-full" />
+        ) : (
+          <div
+            className="w-full h-full flex flex-col items-center justify-center gap-2"
+            style={{ background: platformMeta(variant).gradient }}
+          >
+            <Play className="h-10 w-10 text-white/80" />
+            <span className="text-white/80 text-xs font-medium">Drop media to preview</span>
+          </div>
+        )}
+      </div>
+
+      {/* dark gradient overlays for legibility */}
+      <div
+        className="absolute inset-x-0 top-0 h-24 pointer-events-none"
+        style={{ background: "linear-gradient(180deg, rgba(0,0,0,0.45) 0%, rgba(0,0,0,0) 100%)" }}
+      />
+      <div
+        className="absolute inset-x-0 bottom-0 h-44 pointer-events-none"
+        style={{ background: "linear-gradient(0deg, rgba(0,0,0,0.65) 0%, rgba(0,0,0,0) 100%)" }}
+      />
+
+      {/* top bar */}
+      <div className="absolute top-2 left-0 right-0 px-3 flex items-center justify-between text-white z-10">
+        <span className="text-[10px] font-semibold">9:41</span>
+        <span className="text-[12px] font-bold">
+          {variant === "ig_reel" ? "Reels" : variant === "tiktok" ? "For You" : "Shorts"}
+        </span>
+        <span className="text-[10px]">● ● ●</span>
+      </div>
+
+      {/* right-side actions */}
+      <div className="absolute right-2 bottom-20 flex flex-col items-center gap-4 z-10 text-white">
+        <div className="flex flex-col items-center">
+          <div className="h-10 w-10 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
+            <Heart className="h-5 w-5" fill="white" />
+          </div>
+          <span className="text-[10px] font-semibold mt-0.5">12.4k</span>
+        </div>
+        <div className="flex flex-col items-center">
+          <div className="h-10 w-10 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
+            <MessageCircle className="h-5 w-5" />
+          </div>
+          <span className="text-[10px] font-semibold mt-0.5">238</span>
+        </div>
+        <div className="flex flex-col items-center">
+          <div className="h-10 w-10 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
+            <Send className="h-5 w-5" />
+          </div>
+          <span className="text-[10px] font-semibold mt-0.5">Share</span>
+        </div>
+        {!isYT && (
+          <div className="flex flex-col items-center">
+            <div className="h-10 w-10 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
+              <Bookmark className="h-5 w-5" />
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* bottom caption */}
+      <div className="absolute bottom-0 left-0 right-14 p-3 z-10 text-white">
+        <div className="flex items-center gap-2 mb-1.5">
+          <div
+            className="h-7 w-7 rounded-full"
+            style={{ background: "linear-gradient(135deg,#F58529 0%,#DD2A7B 50%,#8134AF 100%)", padding: 2 }}
+          >
+            <div className="h-full w-full rounded-full bg-black flex items-center justify-center text-[10px] font-bold text-white">
+              {handle.slice(0, 2).toUpperCase()}
+            </div>
+          </div>
+          <span className="text-[12px] font-semibold">@{handle.replace(/^@/, "")}</span>
+          <span className="px-2 py-0.5 rounded border border-white/70 text-[10px] font-semibold">Follow</span>
+        </div>
+        {captionText ? (
+          <p className="text-[11px] leading-snug line-clamp-3 whitespace-pre-line drop-shadow">
+            {captionText}
+          </p>
+        ) : (
+          <p className="text-[11px] italic opacity-70">Your caption appears here…</p>
+        )}
+        {tags && <p className="text-[11px] text-white/80 mt-1 line-clamp-1">{tags}</p>}
+        <div className="flex items-center gap-1.5 mt-2">
+          <Volume2 className="h-3 w-3" />
+          <span className="text-[10px] truncate">Original audio · @{handle.replace(/^@/, "")}</span>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function IGStoryPreview({
+  state,
+  handle,
+}: {
+  state: EditorState
+  handle: string
+}) {
+  const current = state.media[state.mediaIndex] ?? null
+  const captionText = [state.hook, state.caption].filter(Boolean).join(" ")
+
+  return (
+    <div className="relative w-full h-full overflow-hidden" style={{ background: "linear-gradient(135deg,#F58529 0%,#DD2A7B 50%,#8134AF 100%)" }}>
+      {current && <div className="absolute inset-0"><MediaSlot item={current} className="w-full h-full" /></div>}
+      <div
+        className="absolute inset-x-0 top-0 h-20 pointer-events-none"
+        style={{ background: "linear-gradient(180deg, rgba(0,0,0,0.5) 0%, rgba(0,0,0,0) 100%)" }}
+      />
+      {/* progress bars */}
+      <div className="absolute top-2 left-2 right-2 flex items-center gap-1 z-10">
+        {[0, 1, 2].map((i) => (
+          <div key={i} className="flex-1 h-0.5 rounded-full bg-white/40 overflow-hidden">
+            <div className="h-full bg-white" style={{ width: i === 0 ? "60%" : "0%" }} />
+          </div>
+        ))}
+      </div>
+      {/* header */}
+      <div className="absolute top-5 left-2 right-2 flex items-center gap-2 z-10 text-white">
+        <div className="h-7 w-7 rounded-full bg-white/30 flex items-center justify-center text-[10px] font-bold">
+          {handle.slice(0, 2).toUpperCase()}
+        </div>
+        <span className="text-[12px] font-semibold">@{handle.replace(/^@/, "")}</span>
+        <span className="text-[10px] opacity-70">2m</span>
+      </div>
+      {/* caption overlay */}
+      {captionText && (
+        <div className="absolute left-3 right-3 bottom-20 z-10">
+          <div className="bg-black/45 backdrop-blur-sm px-3 py-2 rounded-xl">
+            <p className="text-[12px] text-white leading-snug whitespace-pre-line line-clamp-4">
+              {captionText}
+            </p>
+          </div>
+        </div>
+      )}
+      {/* reply bar */}
+      <div className="absolute bottom-3 left-3 right-3 z-10">
+        <div className="rounded-full border border-white/60 px-3 py-2 text-[11px] text-white/80">
+          Send message
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function LivePreview({ state, handle }: { state: EditorState; handle: string }) {
+  const meta = platformMeta(state.platform)
+  const cleanHandle = handle.replace(/^@/, "") || "yourbrand"
+
+  return (
+    <PhoneFrame aspect={meta.aspect}>
+      {state.platform === "ig_post" && <IGFeedPreview state={state} handle={cleanHandle} />}
+      {state.platform === "ig_reel" && <VerticalPreview state={state} handle={cleanHandle} variant="ig_reel" />}
+      {state.platform === "ig_story" && <IGStoryPreview state={state} handle={cleanHandle} />}
+      {state.platform === "tiktok" && <VerticalPreview state={state} handle={cleanHandle} variant="tiktok" />}
+      {state.platform === "yt_short" && <VerticalPreview state={state} handle={cleanHandle} variant="yt_short" />}
+    </PhoneFrame>
+  )
+}
+
+// ─── Auto-resize textarea ───────────────────────────────────────────────────
+
+function AutoTextarea(props: React.TextareaHTMLAttributes<HTMLTextAreaElement>) {
+  const ref = useRef<HTMLTextAreaElement | null>(null)
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return
+    el.style.height = "auto"
+    el.style.height = `${Math.min(el.scrollHeight, 600)}px`
+  }, [props.value])
+  return <Textarea ref={ref} {...props} />
+}
+
+// ─── Hashtag chips ──────────────────────────────────────────────────────────
+
+function HashtagChips({
+  tags,
+  max,
+  onChange,
+}: {
+  tags: string[]
+  max: number
+  onChange: (next: string[]) => void
+}) {
+  const [draft, setDraft] = useState("")
+
+  const addTag = (raw: string) => {
+    const cleaned = raw.trim().replace(/^#/, "").replace(/\s+/g, "")
+    if (!cleaned) return
+    const lower = cleaned.toLowerCase()
+    if (tags.some((t) => t.toLowerCase() === lower)) return
+    if (tags.length >= max) return
+    onChange([...tags, cleaned])
+  }
+
+  const handleKey = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter" || e.key === ",") {
+      e.preventDefault()
+      addTag(draft)
+      setDraft("")
+    } else if (e.key === "Backspace" && draft === "" && tags.length > 0) {
+      onChange(tags.slice(0, -1))
+    }
+  }
+
+  return (
+    <div>
+      <div className="flex flex-wrap gap-1.5 mb-2">
+        {tags.map((t, i) => (
+          <span
+            key={i}
+            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium"
+            style={{ backgroundColor: "#EFF6FF", color: "#2563EB" }}
+          >
+            #{t}
+            <button
+              type="button"
+              onClick={() => onChange(tags.filter((_, idx) => idx !== i))}
+              className="opacity-50 hover:opacity-100"
+              aria-label={`Remove #${t}`}
+            >
+              <X className="h-3 w-3" />
+            </button>
+          </span>
+        ))}
+      </div>
+      <div className="flex items-center gap-2">
+        <div className="relative flex-1">
+          <Hash className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5" style={{ color: "#8A7060" }} />
+          <Input
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            onKeyDown={handleKey}
+            placeholder={tags.length >= max ? `Max ${max} hashtags` : "Type a hashtag, press Enter"}
+            disabled={tags.length >= max}
+            className="pl-9 text-sm min-h-[40px]"
+            style={{ borderColor: "#E5DDD5", backgroundColor: "white" }}
+          />
+        </div>
+        <span className="text-[10px] font-medium" style={{ color: "#8A7060" }}>
+          {tags.length}/{max}
+        </span>
+      </div>
+    </div>
+  )
+}
+
+// ─── Media uploader ─────────────────────────────────────────────────────────
+
+function MediaUploader({
+  media,
+  onAdd,
+  onRemove,
+  onSelect,
+  activeIndex,
+}: {
+  media: MediaItem[]
+  onAdd: (items: MediaItem[]) => void
+  onRemove: (index: number) => void
+  onSelect: (index: number) => void
+  activeIndex: number
+}) {
+  const inputRef = useRef<HTMLInputElement>(null)
+  const [dragOver, setDragOver] = useState(false)
+  const [urlInput, setUrlInput] = useState("")
+  const { toast } = useToast()
+
+  const handleFiles = (files: FileList | File[] | null) => {
+    if (!files) return
+    const arr = Array.from(files)
+    const next: MediaItem[] = []
+    for (const f of arr) {
+      if (f.size > 100 * 1024 * 1024) {
+        toast({ title: `${f.name} is too large`, description: "Max 100MB per file.", variant: "destructive" })
+        continue
+      }
+      const url = URL.createObjectURL(f)
+      next.push({
+        url,
+        name: f.name,
+        type: pickMediaType(f.name, f.type),
+        isBlob: true,
+      })
+    }
+    if (next.length) onAdd(next)
+  }
+
+  const handleUrlAdd = () => {
+    const v = urlInput.trim()
+    if (!v) return
+    onAdd([{
+      url: v,
+      name: v.split("/").pop()?.split("?")[0] ?? "media",
+      type: pickMediaType(v),
+      isBlob: false,
+    }])
+    setUrlInput("")
+  }
+
+  const onDrop = (e: React.DragEvent) => {
+    e.preventDefault()
+    setDragOver(false)
+    if (e.dataTransfer.files?.length) handleFiles(e.dataTransfer.files)
+  }
+
+  return (
+    <div className="space-y-3">
+      {media.length === 0 ? (
+        <div
+          onClick={() => inputRef.current?.click()}
+          onDragOver={(e) => { e.preventDefault(); setDragOver(true) }}
+          onDragLeave={() => setDragOver(false)}
+          onDrop={onDrop}
+          className="rounded-2xl border-2 border-dashed flex flex-col items-center justify-center text-center px-4 py-10 cursor-pointer transition-all"
+          style={{
+            borderColor: dragOver ? "#F97066" : "#E5DDD5",
+            backgroundColor: dragOver ? "#FEF0EA" : "#FAFAF5",
+          }}
+        >
+          <div
+            className="h-12 w-12 rounded-2xl flex items-center justify-center mb-3"
+            style={{ backgroundColor: "#FEF0EA", color: "#D4432A" }}
+          >
+            <Upload className="h-6 w-6" />
+          </div>
+          <p className="text-sm font-semibold" style={{ color: "#2D1810" }}>
+            Drop media or click to upload
+          </p>
+          <p className="text-xs mt-1" style={{ color: "#8A7060" }}>
+            Images or video · JPG, PNG, MP4, MOV · up to 100MB
+          </p>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          <div className="grid grid-cols-4 gap-2">
+            {media.map((m, i) => (
+              <div
+                key={i}
+                className="relative aspect-square rounded-lg overflow-hidden cursor-pointer group bg-[#1f1614]"
+                onClick={() => onSelect(i)}
+                style={{
+                  outline: i === activeIndex ? "2px solid #F97066" : "1px solid #E5DDD5",
+                  outlineOffset: i === activeIndex ? "2px" : "0px",
+                }}
+              >
+                {m.type === "video" ? (
+                  <>
+                    <video src={m.url} className="w-full h-full object-cover" muted />
+                    <Play className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-5 w-5 text-white drop-shadow" />
+                  </>
+                ) : (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={m.url} alt={m.name} className="w-full h-full object-cover" />
+                )}
+                <button
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); onRemove(i) }}
+                  className="absolute top-1 right-1 h-5 w-5 rounded-full bg-black/70 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                  aria-label="Remove"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+                {m.isBlob && (
+                  <span className="absolute bottom-1 left-1 text-[8px] font-bold px-1 py-0.5 rounded bg-yellow-300 text-yellow-900">
+                    LOCAL
+                  </span>
+                )}
+              </div>
+            ))}
+            <button
+              type="button"
+              onClick={() => inputRef.current?.click()}
+              className="aspect-square rounded-lg border-2 border-dashed flex flex-col items-center justify-center gap-1 transition-colors hover:bg-[#FAFAF5]"
+              style={{ borderColor: "#E5DDD5", color: "#7A5C50" }}
+              aria-label="Add more media"
+            >
+              <Plus className="h-4 w-4" />
+              <span className="text-[10px] font-medium">Add</span>
+            </button>
+          </div>
+          {media.length > 1 && (
+            <p className="text-[11px] font-medium" style={{ color: "#7A5C50" }}>
+              {media.length} items · click a thumb to preview
+            </p>
+          )}
+        </div>
+      )}
+
+      <input
+        ref={inputRef}
+        type="file"
+        accept="image/*,video/*"
+        multiple
+        onChange={(e) => { handleFiles(e.target.files); e.currentTarget.value = "" }}
+        className="hidden"
+      />
+
+      <div className="flex items-center gap-2">
+        <div className="flex-1 relative">
+          <Input
+            type="url"
+            placeholder="Or paste an image / video URL…"
+            value={urlInput}
+            onChange={(e) => setUrlInput(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handleUrlAdd() } }}
+            className="text-sm min-h-[40px]"
+            style={{ borderColor: "#E5DDD5", backgroundColor: "white" }}
+          />
+        </div>
+        <Button
+          type="button"
+          onClick={handleUrlAdd}
+          disabled={!urlInput.trim()}
+          variant="outline"
+          className="min-h-[40px]"
+          style={{ borderColor: "#E5DDD5", color: "#5A3825" }}
+        >
+          Add URL
+        </Button>
+      </div>
+    </div>
+  )
+}
+
+// ─── Editor workspace ───────────────────────────────────────────────────────
+
+function EditorWorkspace({
+  open,
+  state,
+  setState,
+  brand,
+  pillars,
+  userId,
+  onClose,
+  onSaved,
+  onDeleted,
+  handle,
+}: {
+  open: boolean
+  state: EditorState
+  setState: React.Dispatch<React.SetStateAction<EditorState>>
+  brand: Brand | null
+  pillars: ContentPillar[]
+  userId: string
+  onClose: () => void
+  onSaved: () => void
+  onDeleted: () => void
+  handle: string
+}) {
+  const supabase = createClient()
+  const { toast } = useToast()
+
+  const [busy, setBusy] = useState<null | "hook" | "caption" | "hashtags" | "all">(null)
+  const [saving, setSaving] = useState(false)
+  const [deleting, setDeleting] = useState(false)
+
+  const meta = platformMeta(state.platform)
+  const selectedPillar = pillars.find((p) => p.id === state.pillarId) ?? null
+  const captionLen = state.caption.length + (state.hook ? state.hook.length + 2 : 0)
+  const captionLimit = meta.captionMax
+
+  // ESC closes
+  useEffect(() => {
+    if (!open) return
+    const handler = (e: KeyboardEvent) => { if (e.key === "Escape") onClose() }
+    window.addEventListener("keydown", handler)
+    return () => window.removeEventListener("keydown", handler)
+  }, [open, onClose])
+
+  const callApi = useCallback(async <T,>(path: string, body: unknown): Promise<T> => {
+    const r = await fetch(path, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    })
+    const data = await r.json()
+    if (!r.ok) throw new Error(data.error ?? "Request failed")
+    return data as T
+  }, [])
+
+  const generateHook = async () => {
+    setBusy("hook")
+    try {
+      const data = await callApi<{ hooks: string[] }>("/api/generate-hooks", {
+        topic: state.caption.slice(0, 200) || state.hook || "scroll-stopping idea",
+        brandName: brand?.name,
+        niche: brand?.niche,
+        tone: brand?.tone_of_voice,
+        targetAudience: brand?.target_audience,
+        pillarName: selectedPillar?.name,
+        pillarDescription: selectedPillar?.description,
+        pillarVoiceDirection: selectedPillar?.voice_direction,
+        pillarFormatPreference: meta.dbFormat,
+      })
+      const first = data.hooks?.[0]
+      if (first) setState((s) => ({ ...s, hook: first }))
+      toast({ title: "Hook generated" })
+    } catch (err) {
+      toast({ title: "Couldn't generate hook", description: err instanceof Error ? err.message : "Try again.", variant: "destructive" })
+    } finally {
+      setBusy(null)
+    }
+  }
+
+  const generateCaption = async () => {
+    setBusy("caption")
+    try {
+      const data = await callApi<{ caption: string }>("/api/generate-caption", {
+        hook: state.hook || "scroll-stopping content",
+        notes: `Platform: ${meta.label}. Format: ${meta.dbFormat}.`,
+        brandName: brand?.name,
+        niche: brand?.niche,
+        tone: brand?.tone_of_voice,
+        targetAudience: brand?.target_audience,
+        pillarName: selectedPillar?.name,
+        pillarDescription: selectedPillar?.description,
+        pillarVoiceDirection: selectedPillar?.voice_direction,
+        pillarFormatPreference: meta.dbFormat,
+      })
+      if (data.caption) setState((s) => ({ ...s, caption: data.caption }))
+      toast({ title: "Caption written" })
+    } catch (err) {
+      toast({ title: "Couldn't write caption", description: err instanceof Error ? err.message : "Try again.", variant: "destructive" })
+    } finally {
+      setBusy(null)
+    }
+  }
+
+  const suggestHashtags = async () => {
+    setBusy("hashtags")
+    try {
+      const data = await callApi<{ niche?: string[]; broad?: string[]; engagement?: string[] }>(
+        "/api/generate-hashtags",
+        { niche: brand?.niche, caption: state.caption || state.hook, brandName: brand?.name },
+      )
+      const all = [...(data.niche ?? []), ...(data.broad ?? []), ...(data.engagement ?? [])]
+        .map((t) => t.replace(/^#/, ""))
+        .filter(Boolean)
+      const seen = new Set<string>(state.hashtags.map((t) => t.toLowerCase()))
+      const merged = [...state.hashtags]
+      for (const t of all) {
+        const k = t.toLowerCase()
+        if (!seen.has(k) && merged.length < meta.hashtagMax) {
+          seen.add(k)
+          merged.push(t)
+        }
+      }
+      setState((s) => ({ ...s, hashtags: merged }))
+      toast({ title: "Hashtags suggested" })
+    } catch (err) {
+      toast({ title: "Couldn't suggest hashtags", description: err instanceof Error ? err.message : "Try again.", variant: "destructive" })
+    } finally {
+      setBusy(null)
+    }
+  }
+
+  const save = async (status: "draft" | "scheduled") => {
+    if (!brand) {
+      toast({ title: "Set up a brand first", variant: "destructive" })
+      return null
+    }
+    if (!state.hook.trim() && !state.caption.trim()) {
+      toast({ title: "Add a hook or caption", description: "Empty drafts can't be saved.", variant: "destructive" })
+      return null
+    }
+
+    // ideas.format only supports post/carousel/reel — derive from platform + media count
+    const dbFormat: DbFormat =
+      state.platform === "ig_reel" || state.platform === "tiktok" || state.platform === "yt_short"
+        ? "reel"
+        : state.media.length > 1
+          ? "carousel"
+          : "post"
+
+    const firstPersistable = state.media.find((m) => !m.isBlob)
+    if (state.media.length > 0 && !firstPersistable) {
+      toast({
+        title: "Heads up — local media can't be saved",
+        description: "Files uploaded from your device only live in this tab. Saving without media URL.",
+      })
+    }
+
+    const titleSource = state.hook || state.caption.split(/[.\n]/)[0] || "Untitled post"
+    const title = titleSource.trim().slice(0, 120)
+
+    const shared = {
+      pillar_id: state.pillarId,
+      format: dbFormat,
+      title,
+      hook: state.hook || null,
+      caption: state.caption || null,
+      hashtags: state.hashtags.length
+        ? state.hashtags.map((t) => `#${t.replace(/^#/, "")}`).join(" ")
+        : null,
+      script: {
+        platform: state.platform,
+        media_count: state.media.length,
+      },
+      media_url: firstPersistable?.url ?? null,
+      status: status === "draft" ? ("draft" as const) : ("scheduled" as const),
+    }
+
+    setSaving(true)
+    try {
+      const table = supabase.from("ideas")
+      const { data, error } = state.ideaId
+        ? await table.update(shared).eq("id", state.ideaId).select().single()
+        : await table.insert({ user_id: userId, brand_id: brand.id, ...shared }).select().single()
+      if (error) throw error
+      toast({
+        title: status === "draft" ? "Saved as draft" : "Added to calendar",
+        description: "Open the calendar to schedule a date and time.",
+      })
+      return data
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Unknown error"
+      toast({ title: "Couldn't save", description: msg, variant: "destructive" })
+      return null
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleSaveDraft = async () => {
+    const saved = await save("draft")
+    if (saved) { onSaved(); onClose() }
+  }
+
+  const handleAddToCalendar = async () => {
+    const saved = await save("scheduled")
+    if (saved) { onSaved(); onClose() }
+  }
+
+  const handleDelete = async () => {
+    if (!state.ideaId) return
+    setDeleting(true)
+    const { error } = await supabase.from("ideas").delete().eq("id", state.ideaId)
+    setDeleting(false)
+    if (error) {
+      toast({ title: "Couldn't delete", description: error.message, variant: "destructive" })
+      return
+    }
+    toast({ title: "Deleted" })
+    onDeleted()
+    onClose()
+  }
+
+  if (!open) return null
+
+  return (
+    <div className="fixed inset-0 z-50 flex flex-col" style={{ backgroundColor: "#EDE6DC" }}>
+      {/* Top bar */}
+      <div
+        className="flex items-center justify-between px-4 md:px-6 py-3 border-b"
+        style={{ borderColor: "#D9CFC2", backgroundColor: "#FAFAF5" }}
+      >
+        <div className="flex items-center gap-3">
+          <button
+            onClick={onClose}
+            className="h-9 w-9 rounded-xl flex items-center justify-center hover:bg-[#EDE6DC]"
+            aria-label="Close editor"
+          >
+            <X className="h-5 w-5" style={{ color: "#5A3825" }} />
+          </button>
+          <div className="flex items-center gap-2">
+            <div
+              className="h-7 w-7 rounded-lg flex items-center justify-center"
+              style={{ backgroundColor: "#FEF0EA", color: "#D4432A" }}
+            >
+              <Sparkles className="h-4 w-4" />
+            </div>
+            <h2 className="text-sm md:text-base font-semibold" style={{ color: "#2D1810" }}>
+              {state.ideaId ? "Edit post" : "New post"}
+            </h2>
+            {selectedPillar && (
+              <span
+                className="hidden sm:inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full border text-[10px] font-medium"
+                style={{ borderColor: "#E5DDD5", backgroundColor: "white", color: "#5A3825" }}
+              >
+                <span className="h-2 w-2 rounded-full" style={{ backgroundColor: selectedPillar.color }} />
+                {selectedPillar.emoji} {selectedPillar.name}
+              </span>
+            )}
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          {state.ideaId && (
+            <button
+              type="button"
+              onClick={handleDelete}
+              disabled={deleting}
+              className="hidden sm:inline-flex h-10 w-10 rounded-xl border items-center justify-center transition-colors hover:bg-[#FEE2E2]"
+              style={{ borderColor: "#E5DDD5", color: "#DC2626" }}
+              aria-label="Delete"
+            >
+              {deleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+            </button>
+          )}
+          <Button
+            variant="outline"
+            onClick={handleSaveDraft}
+            disabled={saving}
+            className="gap-2 min-h-[40px]"
+            style={{ borderColor: "#E5DDD5", color: "#5A3825", backgroundColor: "white" }}
+          >
+            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+            <span className="hidden sm:inline">Save draft</span>
+          </Button>
+          <Button
+            onClick={handleAddToCalendar}
+            disabled={saving}
+            className="gap-2 min-h-[40px]"
+            style={{ backgroundColor: "#F97066", color: "white" }}
+          >
+            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Calendar className="h-4 w-4" />}
+            <span className="hidden sm:inline">Add to calendar</span>
+          </Button>
+        </div>
+      </div>
+
+      {/* Body */}
+      <div className="flex-1 overflow-hidden">
+        <div className="h-full grid grid-cols-1 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)]">
+          {/* LEFT: Editor */}
+          <div className="overflow-y-auto px-4 md:px-6 py-5 space-y-5">
+            {/* Platform pills */}
+            <div>
+              <label className="block text-[10px] font-bold uppercase tracking-widest mb-2" style={{ color: "#8A7060" }}>
+                Platform
+              </label>
+              <div className="flex flex-wrap gap-1.5">
+                {PLATFORMS.map((p) => {
+                  const active = state.platform === p.key
+                  return (
+                    <button
+                      key={p.key}
+                      type="button"
+                      onClick={() => setState((s) => ({ ...s, platform: p.key }))}
+                      className="inline-flex items-center gap-1.5 rounded-full px-3 py-2 text-xs font-semibold border min-h-[36px] transition-all"
+                      style={
+                        active
+                          ? { borderColor: p.accent, backgroundColor: p.accent, color: "white" }
+                          : { borderColor: "#E5DDD5", backgroundColor: "white", color: "#5A3825" }
+                      }
+                    >
+                      {p.icon}
+                      {p.short}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+
+            {/* Media */}
+            <div>
+              <label className="block text-[10px] font-bold uppercase tracking-widest mb-2" style={{ color: "#8A7060" }}>
+                Media
+              </label>
+              <MediaUploader
+                media={state.media}
+                onAdd={(items) => setState((s) => ({ ...s, media: [...s.media, ...items], mediaIndex: s.media.length }))}
+                onRemove={(i) => setState((s) => {
+                  const next = s.media.filter((_, idx) => idx !== i)
+                  return {
+                    ...s,
+                    media: next,
+                    mediaIndex: Math.min(s.mediaIndex, Math.max(0, next.length - 1)),
+                  }
+                })}
+                onSelect={(i) => setState((s) => ({ ...s, mediaIndex: i }))}
+                activeIndex={state.mediaIndex}
+              />
+            </div>
+
+            {/* Pillar */}
+            {pillars.length > 0 && (
+              <div>
+                <label className="block text-[10px] font-bold uppercase tracking-widest mb-2" style={{ color: "#8A7060" }}>
+                  Content pillar
+                </label>
+                <div className="flex flex-wrap gap-1.5">
+                  {pillars.map((p) => {
+                    const active = state.pillarId === p.id
+                    return (
+                      <button
+                        key={p.id}
+                        type="button"
+                        onClick={() => setState((s) => ({ ...s, pillarId: active ? null : p.id }))}
+                        className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium border min-h-[34px] transition-all"
+                        style={
+                          active
+                            ? { borderColor: p.color, backgroundColor: p.color + "1A", color: "#2D1810" }
+                            : { borderColor: "#E5DDD5", backgroundColor: "white", color: "#5A3825" }
+                        }
+                      >
+                        <span className="h-2 w-2 rounded-full" style={{ backgroundColor: p.color }} />
+                        {p.emoji && <span className="leading-none">{p.emoji}</span>}
+                        {p.name}
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Hook */}
+            <div>
+              <div className="flex items-end justify-between mb-2">
+                <label className="text-[10px] font-bold uppercase tracking-widest" style={{ color: "#8A7060" }}>
+                  Hook · first line
+                </label>
+                <button
+                  type="button"
+                  onClick={generateHook}
+                  disabled={busy !== null}
+                  className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-1 rounded-md border transition-colors hover:bg-[#FEF0EA] disabled:opacity-50"
+                  style={{ borderColor: "#F5C4BC", backgroundColor: "#FEF0EA", color: "#D4432A" }}
+                >
+                  {busy === "hook" ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}
+                  Generate hook
+                </button>
+              </div>
+              <Input
+                value={state.hook}
+                onChange={(e) => setState((s) => ({ ...s, hook: e.target.value }))}
+                placeholder="Stop the scroll in 5 words or less…"
+                className="text-sm min-h-[44px] font-medium"
+                style={{ borderColor: "#E5DDD5", backgroundColor: "white" }}
+              />
+            </div>
+
+            {/* Caption */}
+            {state.platform !== "ig_story" && (
+              <div>
+                <div className="flex items-end justify-between mb-2">
+                  <label className="text-[10px] font-bold uppercase tracking-widest" style={{ color: "#8A7060" }}>
+                    Caption
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] font-medium" style={{
+                      color: captionLen > captionLimit ? "#DC2626" : "#8A7060",
+                    }}>
+                      {captionLen}/{captionLimit}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={generateCaption}
+                      disabled={busy !== null}
+                      className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-1 rounded-md border transition-colors hover:bg-[#FEF0EA] disabled:opacity-50"
+                      style={{ borderColor: "#F5C4BC", backgroundColor: "#FEF0EA", color: "#D4432A" }}
+                    >
+                      {busy === "caption" ? <Loader2 className="h-3 w-3 animate-spin" /> : <Wand2 className="h-3 w-3" />}
+                      Write caption
+                    </button>
+                  </div>
+                </div>
+                <AutoTextarea
+                  value={state.caption}
+                  onChange={(e) => setState((s) => ({ ...s, caption: e.target.value }))}
+                  placeholder="Tell the story. Use line breaks to make it readable. End with a CTA."
+                  rows={6}
+                  className="text-sm leading-relaxed"
+                  style={{ borderColor: "#E5DDD5", backgroundColor: "white" }}
+                />
+              </div>
+            )}
+
+            {/* Hashtags */}
+            {state.platform !== "ig_story" && (
+              <div>
+                <div className="flex items-end justify-between mb-2">
+                  <label className="text-[10px] font-bold uppercase tracking-widest" style={{ color: "#8A7060" }}>
+                    Hashtags
+                  </label>
+                  <button
+                    type="button"
+                    onClick={suggestHashtags}
+                    disabled={busy !== null}
+                    className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-1 rounded-md border transition-colors hover:bg-[#FEF0EA] disabled:opacity-50"
+                    style={{ borderColor: "#F5C4BC", backgroundColor: "#FEF0EA", color: "#D4432A" }}
+                  >
+                    {busy === "hashtags" ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}
+                    Suggest hashtags
+                  </button>
+                </div>
+                <HashtagChips
+                  tags={state.hashtags}
+                  max={meta.hashtagMax}
+                  onChange={(next) => setState((s) => ({ ...s, hashtags: next }))}
+                />
+              </div>
+            )}
+
+            <div className="h-2" />
+          </div>
+
+          {/* RIGHT: Live preview */}
+          <div
+            className="overflow-y-auto px-4 md:px-6 py-6 border-t lg:border-t-0 lg:border-l"
+            style={{ borderColor: "#D9CFC2", backgroundColor: "#EDE6DC" }}
+          >
+            <div className="mb-4 flex items-center gap-2">
+              <Eye className="h-4 w-4" style={{ color: "#8A7060" }} />
+              <span className="text-[10px] font-bold uppercase tracking-widest" style={{ color: "#8A7060" }}>
+                Live preview · {meta.label}
+              </span>
+            </div>
+            {state.media.length > 1 && (
+              <div className="flex items-center justify-center gap-2 mb-3">
+                <button
+                  type="button"
+                  onClick={() => setState((s) => ({ ...s, mediaIndex: Math.max(0, s.mediaIndex - 1) }))}
+                  disabled={state.mediaIndex === 0}
+                  className="h-8 w-8 rounded-full bg-white border flex items-center justify-center disabled:opacity-40"
+                  style={{ borderColor: "#E5DDD5", color: "#5A3825" }}
+                  aria-label="Previous"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </button>
+                <span className="text-xs font-medium" style={{ color: "#5A3825" }}>
+                  {state.mediaIndex + 1} / {state.media.length}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setState((s) => ({ ...s, mediaIndex: Math.min(s.media.length - 1, s.mediaIndex + 1) }))}
+                  disabled={state.mediaIndex >= state.media.length - 1}
+                  className="h-8 w-8 rounded-full bg-white border flex items-center justify-center disabled:opacity-40"
+                  style={{ borderColor: "#E5DDD5", color: "#5A3825" }}
+                  aria-label="Next"
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </button>
+              </div>
+            )}
+            <LivePreview state={state} handle={handle} />
+
+            <div className="mt-5 max-w-[360px] mx-auto rounded-2xl border p-3 text-[11px] leading-relaxed" style={{ borderColor: "#D9CFC2", backgroundColor: "rgba(255,255,255,0.6)", color: "#5A3825" }}>
+              <p className="font-semibold mb-1" style={{ color: "#2D1810" }}>What you&apos;re seeing</p>
+              <p>
+                This is a rough preview of how the post will look on {meta.label}. Captions truncate at 3 lines on feed.
+                Locally uploaded files (badged <span className="font-bold text-yellow-800">LOCAL</span>) preview here but won&apos;t be saved — paste a hosted URL to persist media.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ─── Hub list ───────────────────────────────────────────────────────────────
 
 function IdeaCard({
   idea,
@@ -247,11 +1330,13 @@ function IdeaCard({
   pillar: ContentPillar | null
   onClick: () => void
 }) {
-  const fmt = getUiFormat(idea)
-  const platforms = getStoredPlatforms(idea)
+  const fmt = FORMAT_BADGE[idea.format] ?? FORMAT_BADGE.post
+  const platform = platformFromIdea(idea)
+  const platformInfo = platformMeta(platform)
   const desc = idea.hook || idea.caption?.split(/[.\n]/)[0]?.trim() || "No description yet"
   const mediaUrl = idea.media_url && !idea.media_url.startsWith("blob:") ? idea.media_url : null
   const [thumbError, setThumbError] = useState(false)
+  const isVideo = mediaUrl ? looksLikeVideoUrl(mediaUrl) : false
 
   return (
     <button
@@ -261,14 +1346,26 @@ function IdeaCard({
       style={{ borderColor: "#E5DDD5", boxShadow: "0 1px 4px rgba(45,24,16,0.06)" }}
     >
       <div className="flex items-start justify-between gap-2 mb-3">
-        <FormatBadge format={fmt} />
-        <PlatformGlyphs platforms={platforms} />
+        <span
+          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide"
+          style={{ backgroundColor: fmt.bg, color: fmt.text }}
+        >
+          {fmt.icon}
+          {fmt.label}
+        </span>
+        <span
+          className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-md"
+          style={{ backgroundColor: "#FAFAF5", color: "#5A3825" }}
+        >
+          {platformInfo.icon}
+          {platformInfo.short}
+        </span>
       </div>
 
-      {mediaUrl && !thumbError && !isVideoUrl(mediaUrl) && (
+      {mediaUrl && !thumbError && !isVideo && (
         <div
           className="relative rounded-xl overflow-hidden mb-3 bg-[#F5F0EA]"
-          style={{ aspectRatio: aspectForFormat(fmt) }}
+          style={{ aspectRatio: idea.format === "reel" ? "9 / 16" : "1 / 1" }}
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
@@ -301,8 +1398,6 @@ function IdeaCard({
   )
 }
 
-// ─── Pillar Tabs ─────────────────────────────────────────────────────────────
-
 function PillarTabs({
   pillars,
   active,
@@ -329,9 +1424,7 @@ function PillarTabs({
             <button
               key={t.id}
               onClick={() => onChange(t.id)}
-              className={cn(
-                "inline-flex items-center gap-2 rounded-2xl px-4 py-2.5 text-sm font-medium min-h-[44px] border transition-all whitespace-nowrap",
-              )}
+              className="inline-flex items-center gap-2 rounded-2xl px-4 py-2.5 text-sm font-medium min-h-[44px] border transition-all whitespace-nowrap"
               style={
                 isActive
                   ? { backgroundColor: t.color, color: "white", borderColor: t.color }
@@ -359,762 +1452,12 @@ function PillarTabs({
   )
 }
 
-// ─── Side Rail ───────────────────────────────────────────────────────────────
-
-type RailState = {
-  ideaId: string | null
-  pillarId: string | null
-  title: string
-  platforms: Platform[]
-  format: UiFormat
-  date: string
-  time: string
-  hook: string | null
-  hooks: string[]
-  caption: string
-  hashtags: string[]
-  mediaUrl: string | null
-  mediaName: string | null
-}
-
-const EMPTY_RAIL: RailState = {
-  ideaId: null,
-  pillarId: null,
-  title: "",
-  platforms: ["instagram"],
-  format: "post",
-  date: "",
-  time: "",
-  hook: null,
-  hooks: [],
-  caption: "",
-  hashtags: [],
-  mediaUrl: null,
-  mediaName: null,
-}
-
-function railFromIdea(idea: Idea): RailState {
-  const fmt = getUiFormat(idea)
-  const platforms = getStoredPlatforms(idea)
-  const tags = idea.hashtags ? idea.hashtags.split(/\s+/).filter(Boolean).slice(0, 8).map((t) => t.replace(/^#/, "")) : []
-  let date = ""
-  let time = ""
-  if (idea.scheduled_date) {
-    if (idea.scheduled_date.includes("T")) {
-      const d = new Date(idea.scheduled_date)
-      date = d.toISOString().slice(0, 10)
-      time = d.toTimeString().slice(0, 5)
-    } else {
-      date = idea.scheduled_date
-    }
-  }
-  return {
-    ideaId: idea.id,
-    pillarId: idea.pillar_id,
-    title: idea.title || "",
-    platforms: platforms.length ? platforms : ["instagram"],
-    format: fmt,
-    date,
-    time,
-    hook: idea.hook,
-    hooks: idea.hook ? [idea.hook] : [],
-    caption: idea.caption ?? "",
-    hashtags: tags,
-    mediaUrl: idea.media_url,
-    mediaName: null,
-  }
-}
-
-function SideRail({
-  open,
-  onClose,
-  state,
-  setState,
-  brand,
-  pillars,
-  userId,
-  onSaved,
-  onDeleted,
-}: {
-  open: boolean
-  onClose: () => void
-  state: RailState
-  setState: (s: RailState | ((prev: RailState) => RailState)) => void
-  brand: Brand | null
-  pillars: ContentPillar[]
-  userId: string
-  onSaved: () => void
-  onDeleted: () => void
-}) {
-  const supabase = createClient()
-  const { toast } = useToast()
-
-  const [generating, setGenerating] = useState(false)
-  const [saving, setSaving] = useState(false)
-  const [deleting, setDeleting] = useState(false)
-  const [copied, setCopied] = useState(false)
-  const fileInputRef = useRef<HTMLInputElement>(null)
-
-  const selectedPillar = pillars.find((p) => p.id === state.pillarId) ?? null
-
-  const togglePlatform = (p: Platform) => {
-    setState((prev) => {
-      const has = prev.platforms.includes(p)
-      const next = has ? prev.platforms.filter((x) => x !== p) : [...prev.platforms, p]
-      return { ...prev, platforms: next.length === 0 ? [p] : next }
-    })
-  }
-
-  const bestTime = useMemo(() => {
-    const primary = state.platforms[0] ?? "instagram"
-    return BEST_TIMES[primary]
-  }, [state.platforms])
-
-  const applyBestTime = () => {
-    setState((prev) => ({ ...prev, time: bestTime.time }))
-  }
-
-  const handleFile = (file: File | null) => {
-    if (!file) return
-    if (file.size > 100 * 1024 * 1024) {
-      toast({ title: "File too large", description: "Max 100MB", variant: "destructive" })
-      return
-    }
-    const url = URL.createObjectURL(file)
-    setState((prev) => ({ ...prev, mediaUrl: url, mediaName: file.name }))
-  }
-
-  const handleGenerate = async () => {
-    if (!state.title.trim()) {
-      toast({ title: "Add a title first", description: "Tell us what the post is about.", variant: "destructive" })
-      return
-    }
-    setGenerating(true)
-    try {
-      const fmtMeta = formatMeta(state.format)
-      const platformNotes = state.platforms.map((p) => PLATFORM_CAPTION_RULES[p]).join("\n")
-
-      // 1) hooks
-      const hookRes = await fetch("/api/generate-hooks", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          topic: state.title,
-          brandName: brand?.name,
-          niche: brand?.niche,
-          tone: brand?.tone_of_voice,
-          targetAudience: brand?.target_audience,
-          pillarName: selectedPillar?.name,
-          pillarVoiceDirection: selectedPillar?.voice_direction,
-          pillarFormatPreference: fmtMeta.dbFormat,
-        }),
-      })
-      const hookData = await hookRes.json()
-      if (!hookRes.ok) throw new Error(hookData.error ?? "Failed to generate hooks")
-      const newHooks: string[] = Array.isArray(hookData.hooks) ? hookData.hooks.slice(0, 3) : []
-      const firstHook = newHooks[0] ?? null
-
-      // 2) caption + hashtags in parallel using first hook
-      const [capRes, hashRes] = await Promise.all([
-        fetch("/api/generate-caption", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            hook: firstHook ?? state.title,
-            notes: `${platformNotes}\nTopic: ${state.title}\nFormat: ${state.format}`,
-            brandName: brand?.name,
-            niche: brand?.niche,
-            tone: brand?.tone_of_voice,
-            targetAudience: brand?.target_audience,
-            pillarName: selectedPillar?.name,
-            pillarVoiceDirection: selectedPillar?.voice_direction,
-            pillarFormatPreference: fmtMeta.dbFormat,
-          }),
-        }),
-        fetch("/api/generate-hashtags", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            niche: brand?.niche,
-            caption: firstHook ?? state.title,
-            brandName: brand?.name,
-          }),
-        }),
-      ])
-      const capData = await capRes.json()
-      const hashData = await hashRes.json()
-      if (!capRes.ok) throw new Error(capData.error ?? "Caption failed")
-
-      const allTags: string[] = [
-        ...(hashData?.niche ?? []),
-        ...(hashData?.broad ?? []),
-        ...(hashData?.engagement ?? []),
-      ]
-        .map((t: string) => t.replace(/^#/, ""))
-        .filter(Boolean)
-      const seen = new Set<string>()
-      const uniq: string[] = []
-      for (const t of allTags) {
-        const k = t.toLowerCase()
-        if (!seen.has(k)) {
-          seen.add(k)
-          uniq.push(t)
-        }
-        if (uniq.length === 5) break
-      }
-
-      setState((prev) => ({
-        ...prev,
-        hooks: newHooks,
-        hook: firstHook,
-        caption: capData.caption ?? "",
-        hashtags: uniq,
-      }))
-      toast({ title: "Content generated", description: "Edit anything inline before saving." })
-    } catch (err) {
-      toast({
-        title: "Couldn't generate content",
-        description: err instanceof Error ? err.message : "Try again in a moment.",
-        variant: "destructive",
-      })
-    } finally {
-      setGenerating(false)
-    }
-  }
-
-  const persist = async (status: "idea" | "scheduled") => {
-    if (!brand) {
-      toast({ title: "Set up a brand first", variant: "destructive" })
-      return null
-    }
-    if (!state.title.trim()) {
-      toast({ title: "Add a title", description: "Every idea needs a name.", variant: "destructive" })
-      return null
-    }
-
-    const fmtMeta = formatMeta(state.format)
-    const scheduledIso =
-      status === "scheduled" && state.date
-        ? state.time
-          ? `${state.date}T${state.time}:00`
-          : state.date
-        : null
-
-    const scriptPayload = {
-      ui_format: state.format,
-      platforms: state.platforms,
-    }
-
-    // Only persist non-blob URLs — blob: URLs are tab-local and won't survive
-    // a reload. Skip them so we don't store dead links.
-    const persistableMediaUrl =
-      state.mediaUrl && !state.mediaUrl.startsWith("blob:") ? state.mediaUrl : null
-
-    // Fields that are valid in both insert and update (user_id and brand_id
-    // are insert-only; the schema's Update type forbids changing them).
-    const shared = {
-      pillar_id: state.pillarId,
-      format: fmtMeta.dbFormat,
-      title: state.title.trim(),
-      hook: state.hook,
-      caption: state.caption || null,
-      hashtags: state.hashtags.length
-        ? state.hashtags.map((t) => (t.startsWith("#") ? t : `#${t}`)).join(" ")
-        : null,
-      script: scriptPayload,
-      media_url: persistableMediaUrl,
-      status,
-      ...(scheduledIso ? { scheduled_date: scheduledIso } : {}),
-    }
-
-    setSaving(true)
-    try {
-      const table = supabase.from("ideas")
-      const { data, error } = state.ideaId
-        ? await table.update(shared).eq("id", state.ideaId).select().single()
-        : await table.insert({ user_id: userId, brand_id: brand.id, ...shared }).select().single()
-
-      if (error) {
-        // fallback if scheduled_date column missing
-        if (/scheduled_date/i.test(error.message ?? "") && scheduledIso) {
-          const { scheduled_date: _drop, ...retryShared } = shared
-          const retry = state.ideaId
-            ? await table.update(retryShared).eq("id", state.ideaId).select().single()
-            : await table.insert({ user_id: userId, brand_id: brand.id, ...retryShared }).select().single()
-          if (retry.error) throw retry.error
-          toast({ title: "Saved (without date)", description: "Run migration 005 to enable scheduling." })
-          return retry.data
-        }
-        throw error
-      }
-      return data
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : "Unknown error"
-      toast({ title: "Couldn't save", description: msg, variant: "destructive" })
-      return null
-    } finally {
-      setSaving(false)
-    }
-  }
-
-  const handleSaveDraft = async () => {
-    const saved = await persist("idea")
-    if (saved) {
-      toast({ title: "Saved as draft" })
-      onSaved()
-      onClose()
-    }
-  }
-
-  const handleSchedule = async () => {
-    if (!state.date) {
-      toast({ title: "Pick a date first", variant: "destructive" })
-      return
-    }
-    const saved = await persist("scheduled")
-    if (saved) {
-      toast({ title: state.ideaId ? "Rescheduled" : "Scheduled" })
-      onSaved()
-      onClose()
-    }
-  }
-
-  const handleDelete = async () => {
-    if (!state.ideaId) return
-    setDeleting(true)
-    const { error } = await supabase.from("ideas").delete().eq("id", state.ideaId)
-    setDeleting(false)
-    if (error) {
-      toast({ title: "Couldn't delete", description: error.message, variant: "destructive" })
-      return
-    }
-    toast({ title: "Deleted" })
-    onDeleted()
-    onClose()
-  }
-
-  const copyAll = () => {
-    const tags = state.hashtags.map((t) => (t.startsWith("#") ? t : `#${t}`)).join(" ")
-    const text = [state.hook, state.caption, tags].filter(Boolean).join("\n\n")
-    navigator.clipboard.writeText(text).catch(() => {})
-    setCopied(true)
-    setTimeout(() => setCopied(false), 1500)
-  }
-
-  if (!open) return null
-
-  return (
-    <div className="fixed inset-0 z-40" aria-modal="true" role="dialog">
-      {/* Backdrop */}
-      <div
-        className="absolute inset-0 transition-opacity"
-        style={{ backgroundColor: "rgba(45,24,16,0.45)" }}
-        onClick={onClose}
-      />
-
-      {/* Panel */}
-      <aside
-        className="absolute right-0 top-0 h-full w-full sm:w-[460px] bg-[#FAFAF5] shadow-2xl overflow-y-auto flex flex-col"
-        style={{ animation: "slideInRight 0.25s ease-out" }}
-      >
-        <style jsx>{`
-          @keyframes slideInRight {
-            from { transform: translateX(100%); }
-            to   { transform: translateX(0); }
-          }
-        `}</style>
-
-        {/* Header */}
-        <div
-          className="sticky top-0 z-10 flex items-center justify-between px-5 py-4 border-b bg-[#FAFAF5]"
-          style={{ borderColor: "#E5DDD5" }}
-        >
-          <div className="flex items-center gap-2">
-            <div className="h-7 w-7 rounded-lg flex items-center justify-center" style={{ backgroundColor: "#FEF0EA" }}>
-              <Sparkles className="h-4 w-4" style={{ color: "#D4432A" }} />
-            </div>
-            <h2 className="text-sm font-semibold" style={{ color: "#2D1810" }}>
-              {state.ideaId ? "Edit post" : "New post"}
-            </h2>
-          </div>
-          <button
-            onClick={onClose}
-            className="h-9 w-9 rounded-xl flex items-center justify-center hover:bg-[#F5F0EA]"
-            aria-label="Close"
-          >
-            <X className="h-5 w-5" style={{ color: "#5A3825" }} />
-          </button>
-        </div>
-
-        <div className="flex-1 px-5 py-5 space-y-5">
-          {/* Title */}
-          <div>
-            <label className="block text-xs font-bold uppercase tracking-widest mb-2" style={{ color: "#8A7060" }}>
-              Title
-            </label>
-            <Input
-              value={state.title}
-              onChange={(e) => setState((prev) => ({ ...prev, title: e.target.value }))}
-              placeholder="What's this post about?"
-              className="text-sm min-h-[44px]"
-              style={{ borderColor: "#E5DDD5", backgroundColor: "white" }}
-            />
-          </div>
-
-          {/* Pillar */}
-          {pillars.length > 0 && (
-            <div>
-              <label className="block text-xs font-bold uppercase tracking-widest mb-2" style={{ color: "#8A7060" }}>
-                Pillar
-              </label>
-              <div className="flex flex-wrap gap-2">
-                {pillars.map((p) => {
-                  const active = state.pillarId === p.id
-                  return (
-                    <button
-                      key={p.id}
-                      type="button"
-                      onClick={() => setState((prev) => ({ ...prev, pillarId: active ? null : p.id }))}
-                      className="inline-flex items-center gap-1.5 rounded-2xl px-3 py-1.5 text-xs font-medium border min-h-[36px] transition-all"
-                      style={
-                        active
-                          ? { borderColor: p.color, backgroundColor: p.color + "1A", color: "#2D1810" }
-                          : { borderColor: "#E5DDD5", backgroundColor: "white", color: "#5A3825" }
-                      }
-                    >
-                      <span className="h-2 w-2 rounded-full" style={{ backgroundColor: p.color }} />
-                      {p.emoji && <span className="text-sm leading-none">{p.emoji}</span>}
-                      {p.name}
-                    </button>
-                  )
-                })}
-              </div>
-            </div>
-          )}
-
-          {/* Platforms */}
-          <div>
-            <label className="block text-xs font-bold uppercase tracking-widest mb-2" style={{ color: "#8A7060" }}>
-              Platforms
-            </label>
-            <div className="flex flex-wrap gap-2">
-              {PLATFORMS.map((p) => {
-                const active = state.platforms.includes(p.key)
-                return (
-                  <button
-                    key={p.key}
-                    type="button"
-                    onClick={() => togglePlatform(p.key)}
-                    className="inline-flex items-center gap-1.5 rounded-2xl px-3.5 py-2 text-sm font-medium border min-h-[40px] transition-all"
-                    style={
-                      active
-                        ? { borderColor: "#F97066", backgroundColor: "#FEF0EA", color: "#D4432A" }
-                        : { borderColor: "#E5DDD5", backgroundColor: "white", color: "#5A3825" }
-                    }
-                  >
-                    {p.icon}
-                    {p.label}
-                  </button>
-                )
-              })}
-            </div>
-          </div>
-
-          {/* Format */}
-          <div>
-            <label className="block text-xs font-bold uppercase tracking-widest mb-2" style={{ color: "#8A7060" }}>
-              Format
-            </label>
-            <div className="grid grid-cols-3 gap-2">
-              {FORMATS.map((f) => {
-                const active = state.format === f.key
-                return (
-                  <button
-                    key={f.key}
-                    type="button"
-                    onClick={() => setState((prev) => ({ ...prev, format: f.key }))}
-                    className="rounded-xl border px-2.5 py-2.5 flex flex-col items-center gap-1 transition-all min-h-[68px]"
-                    style={
-                      active
-                        ? { borderColor: f.text, backgroundColor: f.bg, color: f.text }
-                        : { borderColor: "#E5DDD5", backgroundColor: "white", color: "#5A3825" }
-                    }
-                  >
-                    {f.icon}
-                    <span className="text-xs font-medium">{f.label}</span>
-                  </button>
-                )
-              })}
-            </div>
-          </div>
-
-          {/* Date + time */}
-          <div>
-            <label className="block text-xs font-bold uppercase tracking-widest mb-2" style={{ color: "#8A7060" }}>
-              When
-            </label>
-            <div className="flex flex-col sm:flex-row gap-2">
-              <div className="relative sm:flex-1">
-                <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4" style={{ color: "#8A7060" }} />
-                <Input
-                  type="date"
-                  value={state.date}
-                  onChange={(e) => setState((prev) => ({ ...prev, date: e.target.value }))}
-                  className="pl-9 min-h-[44px] text-sm"
-                  style={{ borderColor: "#E5DDD5", backgroundColor: "white" }}
-                />
-              </div>
-              <div className="relative sm:w-[140px]">
-                <Clock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4" style={{ color: "#8A7060" }} />
-                <Input
-                  type="time"
-                  value={state.time}
-                  onChange={(e) => setState((prev) => ({ ...prev, time: e.target.value }))}
-                  className="pl-9 min-h-[44px] text-sm"
-                  style={{ borderColor: "#E5DDD5", backgroundColor: "white" }}
-                />
-              </div>
-            </div>
-            <button
-              type="button"
-              onClick={applyBestTime}
-              className="mt-2 inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full border transition-colors hover:bg-white"
-              style={{ borderColor: "#F5C4BC", backgroundColor: "#FEF0EA", color: "#D4432A" }}
-            >
-              <Sparkles className="h-3 w-3" />
-              Best time · {bestTime.label}
-            </button>
-          </div>
-
-          {/* Visuals */}
-          <div>
-            <label className="block text-xs font-bold uppercase tracking-widest mb-2" style={{ color: "#8A7060" }}>
-              Visuals
-            </label>
-            <div className="rounded-2xl border p-4 space-y-3" style={{ borderColor: "#E5DDD5", backgroundColor: "white" }}>
-              {state.mediaUrl ? (
-                <MediaPreview
-                  url={state.mediaUrl}
-                  name={state.mediaName}
-                  format={state.format}
-                  onRemove={() => setState((prev) => ({ ...prev, mediaUrl: null, mediaName: null }))}
-                />
-              ) : (
-                <div
-                  className="rounded-xl border-2 border-dashed flex flex-col items-center justify-center text-center px-4"
-                  style={{
-                    aspectRatio: aspectForFormat(state.format),
-                    borderColor: "#E5DDD5",
-                    backgroundColor: "#FAFAF5",
-                  }}
-                >
-                  <ImageIcon className="h-8 w-8 mb-2" style={{ color: "#C4B5A5" }} />
-                  <p className="text-xs font-medium" style={{ color: "#7A5C50" }}>
-                    No preview yet
-                  </p>
-                  <p className="text-[10px] mt-1" style={{ color: "#A89080" }}>
-                    Upload or paste a URL · {state.format === "reel" || state.format === "story" || state.format === "voiceover" ? "9:16" : "1:1"}
-                  </p>
-                </div>
-              )}
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/jpeg,image/png,video/mp4"
-                onChange={(e) => handleFile(e.target.files?.[0] ?? null)}
-                className="hidden"
-              />
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  type="button"
-                  onClick={() => fileInputRef.current?.click()}
-                  className="flex flex-col items-center justify-center gap-1.5 rounded-xl border-2 border-dashed p-3 transition-colors hover:bg-[#FAFAF5] min-h-[80px]"
-                  style={{ borderColor: "#E5DDD5", color: "#5A3825" }}
-                >
-                  <Upload className="h-5 w-5" style={{ color: "#8A7060" }} />
-                  <span className="text-xs font-medium">Upload your own</span>
-                  <span className="text-[10px]" style={{ color: "#8A7060" }}>JPG · PNG · MP4 · 100MB</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => openCanvaTemplate(state.format, state.caption, state.hashtags)}
-                  className="flex flex-col items-center justify-center gap-1.5 rounded-xl p-3 transition-all hover:-translate-y-0.5 min-h-[80px]"
-                  style={{ backgroundColor: "#EDE9FE", color: "#5B21B6", border: "1px solid #DDD6FE" }}
-                >
-                  <ImageIcon className="h-5 w-5" />
-                  <span className="text-xs font-semibold">Design in Canva</span>
-                  <span className="text-[10px]">Opens template</span>
-                </button>
-              </div>
-              <div className="relative">
-                <LinkIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4" style={{ color: "#8A7060" }} />
-                <Input
-                  type="url"
-                  placeholder="Or paste an image URL…"
-                  value={state.mediaUrl && !state.mediaUrl.startsWith("blob:") ? state.mediaUrl : ""}
-                  onChange={(e) => {
-                    const v = e.target.value.trim()
-                    setState((prev) => ({
-                      ...prev,
-                      mediaUrl: v || null,
-                      mediaName: v ? v.split("/").pop()?.split("?")[0] ?? null : null,
-                    }))
-                  }}
-                  className="pl-9 text-xs min-h-[40px]"
-                  style={{ borderColor: "#E5DDD5", backgroundColor: "#FAFAF5" }}
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Generate */}
-          <Button
-            onClick={handleGenerate}
-            disabled={generating || !state.title.trim()}
-            className="w-full gap-2 min-h-[48px] font-semibold"
-            style={{ backgroundColor: "#F97066", color: "white" }}
-          >
-            {generating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Wand2 className="h-4 w-4" />}
-            {state.caption ? "Regenerate content" : "Generate content"}
-          </Button>
-
-          {/* Hooks */}
-          {state.hooks.length > 0 && (
-            <div>
-              <label className="block text-xs font-bold uppercase tracking-widest mb-2" style={{ color: "#8A7060" }}>
-                Hooks
-              </label>
-              <div className="space-y-2">
-                {state.hooks.map((h, i) => {
-                  const active = state.hook === h
-                  return (
-                    <button
-                      key={i}
-                      type="button"
-                      onClick={() => setState((prev) => ({ ...prev, hook: h }))}
-                      className="w-full text-left rounded-xl border p-3 text-sm leading-snug transition-all"
-                      style={
-                        active
-                          ? { borderColor: "#F97066", backgroundColor: "#FEF0EA", color: "#2D1810", boxShadow: "0 0 0 2px rgba(249,112,102,0.25)" }
-                          : { borderColor: "#E5DDD5", backgroundColor: "white", color: "#2D1810" }
-                      }
-                    >
-                      <span
-                        className="inline-flex items-center justify-center h-5 w-5 rounded-full text-[10px] font-bold mr-2 align-text-bottom"
-                        style={{ backgroundColor: active ? "#F97066" : "#FEF0EA", color: active ? "white" : "#D4432A" }}
-                      >
-                        {i + 1}
-                      </span>
-                      {h}
-                    </button>
-                  )
-                })}
-              </div>
-            </div>
-          )}
-
-          {/* Caption */}
-          {(state.caption || state.hook) && (
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <label className="text-xs font-bold uppercase tracking-widest" style={{ color: "#8A7060" }}>
-                  Caption
-                </label>
-                <button
-                  type="button"
-                  onClick={copyAll}
-                  className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-lg border transition-colors hover:bg-[#FAFAF5]"
-                  style={{ borderColor: "#E5DDD5", color: "#7A5C50" }}
-                >
-                  {copied ? <Check className="h-3 w-3 text-green-600" /> : <Copy className="h-3 w-3" />}
-                  {copied ? "Copied" : "Copy all"}
-                </button>
-              </div>
-              <Textarea
-                value={state.caption}
-                onChange={(e) => setState((prev) => ({ ...prev, caption: e.target.value }))}
-                rows={6}
-                placeholder="Caption will appear here after you tap Generate."
-                className="text-sm leading-relaxed"
-                style={{ borderColor: "#E5DDD5", backgroundColor: "white" }}
-              />
-              {state.hashtags.length > 0 && (
-                <div className="flex flex-wrap gap-1.5 mt-2">
-                  {state.hashtags.map((tag, i) => (
-                    <span
-                      key={i}
-                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium"
-                      style={{ backgroundColor: "#EFF6FF", color: "#2563EB" }}
-                    >
-                      #{tag.replace(/^#/, "")}
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setState((prev) => ({
-                            ...prev,
-                            hashtags: prev.hashtags.filter((_, idx) => idx !== i),
-                          }))
-                        }
-                        className="opacity-50 hover:opacity-100"
-                        aria-label="Remove hashtag"
-                      >
-                        <X className="h-3 w-3" />
-                      </button>
-                    </span>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-
-        {/* Footer actions */}
-        <div
-          className="sticky bottom-0 px-5 py-4 border-t bg-[#FAFAF5] flex items-center gap-2"
-          style={{ borderColor: "#E5DDD5", paddingBottom: "max(16px, env(safe-area-inset-bottom))" }}
-        >
-          {state.ideaId && (
-            <button
-              type="button"
-              onClick={handleDelete}
-              disabled={deleting}
-              className="h-11 w-11 rounded-xl border flex items-center justify-center transition-colors hover:bg-[#FEE2E2]"
-              style={{ borderColor: "#E5DDD5", color: "#DC2626" }}
-              aria-label="Delete"
-            >
-              {deleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
-            </button>
-          )}
-          <Button
-            variant="outline"
-            onClick={handleSaveDraft}
-            disabled={saving}
-            className="flex-1 gap-2 min-h-[44px]"
-            style={{ borderColor: "#E5DDD5", color: "#5A3825", backgroundColor: "white" }}
-          >
-            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-            Save draft
-          </Button>
-          <Button
-            onClick={handleSchedule}
-            disabled={saving || !state.date}
-            className="flex-1 gap-2 min-h-[44px]"
-            style={{ backgroundColor: "#F97066", color: "white" }}
-          >
-            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Calendar className="h-4 w-4" />}
-            {state.ideaId && state.date ? "Reschedule" : "Schedule"}
-          </Button>
-        </div>
-      </aside>
-    </div>
-  )
-}
-
-// ─── Main Component ──────────────────────────────────────────────────────────
+// ─── Main entry ─────────────────────────────────────────────────────────────
 
 export function ContentCreatorClient({
   brand,
   initialPillars,
+  socialAccounts,
   userId,
 }: {
   brand: Brand | null
@@ -1129,11 +1472,21 @@ export function ContentCreatorClient({
   const [ideas, setIdeas] = useState<Idea[]>([])
   const [loading, setLoading] = useState(true)
   const [activePillarId, setActivePillarId] = useState<string>("all")
-  const [railOpen, setRailOpen] = useState(false)
-  const [railState, setRailState] = useState<RailState>(EMPTY_RAIL)
+  const [editorOpen, setEditorOpen] = useState(false)
+  const [editorState, setEditorState] = useState<EditorState>(EMPTY_EDITOR)
   const [migrationNeeded, setMigrationNeeded] = useState(false)
 
-  const fetchIdeas = async () => {
+  const handle = useMemo(() => {
+    return (
+      socialAccounts.instagram ||
+      socialAccounts.tiktok ||
+      socialAccounts.youtube ||
+      brand?.name?.toLowerCase().replace(/\s+/g, "_") ||
+      "yourbrand"
+    )
+  }, [socialAccounts, brand?.name])
+
+  const fetchIdeas = useCallback(async () => {
     if (!brand) {
       setIdeas([])
       setLoading(false)
@@ -1145,7 +1498,6 @@ export function ContentCreatorClient({
       .select("*")
       .eq("brand_id", brand.id)
       .order("created_at", { ascending: false })
-
     if (error) {
       const msg = error.message ?? ""
       if (msg.includes("relation") && msg.includes("does not exist")) {
@@ -1156,12 +1508,9 @@ export function ContentCreatorClient({
     }
     setIdeas(data ?? [])
     setLoading(false)
-  }
+  }, [brand, supabase, toast])
 
-  useEffect(() => {
-    fetchIdeas()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [brand?.id])
+  useEffect(() => { fetchIdeas() }, [fetchIdeas])
 
   const counts = useMemo(() => {
     const c: Record<string, number> = {}
@@ -1180,19 +1529,18 @@ export function ContentCreatorClient({
   }, [ideas, activePillarId])
 
   const openNew = () => {
-    setRailState({
-      ...EMPTY_RAIL,
+    setEditorState({
+      ...EMPTY_EDITOR,
       pillarId: activePillarId === "all" ? null : activePillarId,
     })
-    setRailOpen(true)
+    setEditorOpen(true)
   }
 
   const openExisting = (idea: Idea) => {
-    setRailState(railFromIdea(idea))
-    setRailOpen(true)
+    setEditorState(editorFromIdea(idea))
+    setEditorOpen(true)
   }
 
-  // Empty / error states
   if (!brand) {
     return (
       <div className="flex flex-col items-center justify-center py-20 gap-4">
@@ -1225,7 +1573,6 @@ export function ContentCreatorClient({
 
   return (
     <div className="space-y-5">
-      {/* Pillar tabs + new post */}
       <div className="flex items-center gap-3">
         <div className="flex-1 min-w-0">
           {pillars.length > 0 ? (
@@ -1250,7 +1597,6 @@ export function ContentCreatorClient({
         </Button>
       </div>
 
-      {/* Ideas grid */}
       {loading ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
           {[0, 1, 2, 3, 4, 5].map((i) => (
@@ -1293,17 +1639,17 @@ export function ContentCreatorClient({
         </div>
       )}
 
-      {/* Side rail */}
-      <SideRail
-        open={railOpen}
-        onClose={() => setRailOpen(false)}
-        state={railState}
-        setState={setRailState}
+      <EditorWorkspace
+        open={editorOpen}
+        state={editorState}
+        setState={setEditorState}
         brand={brand}
         pillars={pillars}
         userId={userId}
+        onClose={() => setEditorOpen(false)}
         onSaved={fetchIdeas}
         onDeleted={fetchIdeas}
+        handle={handle}
       />
     </div>
   )
