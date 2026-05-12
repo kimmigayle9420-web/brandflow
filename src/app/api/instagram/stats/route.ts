@@ -1,7 +1,10 @@
 import { NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
 
-const GRAPH = "https://graph.facebook.com/v19.0"
+// v21.0 introduced `views` as the replacement for the deprecated `impressions`
+// metric (account + media). Older versions return errors when `impressions` is
+// requested after April 2025.
+const GRAPH = "https://graph.facebook.com/v21.0"
 
 type RecentPost = {
   id: string
@@ -11,12 +14,16 @@ type RecentPost = {
   like_count: number
   comments_count: number
   reach: number
-  impressions: number
+  views: number
+}
+
+type InsightsResponse = {
+  data?: Array<{ name: string; values?: Array<{ value: number }> }>
+  error?: { message?: string; code?: number }
 }
 
 function sumInsight(data: unknown, metric: string): number {
-  // Instagram insights API returns: { data: [ { name, values: [ { value, end_time } ] } ] }
-  const arr = (data as { data?: Array<{ name: string; values?: Array<{ value: number }> }> })?.data
+  const arr = (data as InsightsResponse)?.data
   if (!Array.isArray(arr)) return 0
   const row = arr.find((r) => r?.name === metric)
   if (!row?.values) return 0
@@ -52,11 +59,12 @@ export async function GET() {
   }
 
   try {
-    // 1. Account-level facts (followers, media count, username)
+    // 1. Account-level facts. profile_picture_url is best-effort — not all
+    //    accounts expose it via Graph.
     const accountRes = await fetch(
       `${GRAPH}/${igId}?` +
         new URLSearchParams({
-          fields: "followers_count,media_count,username",
+          fields: "followers_count,media_count,username,profile_picture_url",
           access_token: token,
         }).toString(),
       { cache: "no-store" },
@@ -67,37 +75,51 @@ export async function GET() {
       return NextResponse.json({ connected: false, error: "graph_error" })
     }
 
-    // 2. 30-day insights — reach, impressions, profile_views
+    // 2. 30-day insights — reach, views, profile_views. Run in parallel with
+    //    the media call. Insights can fail independently (e.g. metric not
+    //    supported for this account tier) without breaking the rest.
     const until = Math.floor(Date.now() / 1000)
     const since = until - 30 * 24 * 60 * 60
-    const insightsRes = await fetch(
-      `${GRAPH}/${igId}/insights?` +
-        new URLSearchParams({
-          metric: "reach,impressions,profile_views",
-          period: "day",
-          since: String(since),
-          until: String(until),
-          access_token: token,
-        }).toString(),
-      { cache: "no-store" },
-    )
-    const insights = await insightsRes.json()
+
+    const [insightsRes, mediaRes] = await Promise.all([
+      fetch(
+        `${GRAPH}/${igId}/insights?` +
+          new URLSearchParams({
+            metric: "reach,views,profile_views",
+            period: "day",
+            since: String(since),
+            until: String(until),
+            access_token: token,
+          }).toString(),
+        { cache: "no-store" },
+      ),
+      fetch(
+        `${GRAPH}/${igId}/media?` +
+          new URLSearchParams({
+            // `insights.metric(reach)` is the only per-media metric that works
+            // across all media types post-April-2025. `views` is reels-only and
+            // returns errors on image posts when requested in a field expansion.
+            fields:
+              "id,caption,media_type,timestamp,like_count,comments_count,insights.metric(reach)",
+            limit: "10",
+            access_token: token,
+          }).toString(),
+        { cache: "no-store" },
+      ),
+    ])
+
+    const insights: InsightsResponse = await insightsRes.json()
+    if (insights?.error) {
+      console.warn("[instagram/stats] insights unavailable", insights.error)
+    }
     const reach = sumInsight(insights, "reach")
-    const impressions = sumInsight(insights, "impressions")
+    const views = sumInsight(insights, "views")
     const profileViews = sumInsight(insights, "profile_views")
 
-    // 3. Recent media (6 posts) with per-post insights
-    const mediaRes = await fetch(
-      `${GRAPH}/${igId}/media?` +
-        new URLSearchParams({
-          fields:
-            "id,caption,media_type,timestamp,like_count,comments_count,insights.metric(reach,impressions)",
-          limit: "6",
-          access_token: token,
-        }).toString(),
-      { cache: "no-store" },
-    )
     const media = await mediaRes.json()
+    if (media?.error) {
+      console.warn("[instagram/stats] media error", media.error)
+    }
     const recentPosts: RecentPost[] = Array.isArray(media?.data)
       ? media.data.map((m: Record<string, unknown>) => ({
           id: String(m.id ?? ""),
@@ -107,17 +129,18 @@ export async function GET() {
           like_count: Number(m.like_count ?? 0),
           comments_count: Number(m.comments_count ?? 0),
           reach: sumInsight(m.insights, "reach"),
-          impressions: sumInsight(m.insights, "impressions"),
+          views: sumInsight(m.insights, "views"),
         }))
       : []
 
     return NextResponse.json({
       connected: true,
       username: account.username ?? null,
+      profilePictureUrl: account.profile_picture_url ?? null,
       followers: Number(account.followers_count ?? 0),
       mediaCount: Number(account.media_count ?? 0),
       reach,
-      impressions,
+      views,
       profileViews,
       recentPosts,
     })

@@ -100,7 +100,7 @@ type IgStatsPost = {
   like_count: number
   comments_count: number
   reach: number
-  impressions: number
+  views: number
 }
 
 type IgStats =
@@ -108,10 +108,11 @@ type IgStats =
   | {
       connected: true
       username: string | null
+      profilePictureUrl: string | null
       followers: number
       mediaCount: number
       reach: number
-      impressions: number
+      views: number
       profileViews: number
       recentPosts: IgStatsPost[]
     }
@@ -140,7 +141,7 @@ function buildInstagramPlatform(base: Platform, stats: Extract<IgStats, { connec
     {
       label: "Reach (30d)",
       value: formatCompact(stats.reach),
-      deltaPct: stats.impressions > 0 ? `${formatCompact(stats.impressions)} imp.` : undefined,
+      deltaPct: stats.views > 0 ? `${formatCompact(stats.views)} views` : undefined,
     },
     {
       label: "Profile visits",
@@ -157,7 +158,7 @@ function buildInstagramPlatform(base: Platform, stats: Extract<IgStats, { connec
       emoji,
       title: captionToTitle(p.caption),
       date: p.timestamp ? formatPostDate(p.timestamp) : "",
-      primary: formatCompact(p.reach || p.impressions || 0),
+      primary: formatCompact(p.reach || p.views || 0),
       primaryLabel: "reach",
       likes: formatCompact(p.like_count ?? 0),
       comments: formatCompact(p.comments_count ?? 0),
