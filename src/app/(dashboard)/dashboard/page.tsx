@@ -1,628 +1,722 @@
-import { createClient } from "@/lib/supabase/server"
-import { Button } from "@/components/ui/button"
-import Link from "next/link"
-import { getInitials } from "@/lib/utils"
-import { SocialConnect } from "./_components/social-connect"
-import type { Brand, ContentPillar, SocialAccount, SocialAccountsMap } from "@/types"
-import { normalizeSocialAccounts } from "@/lib/social-accounts"
-import type { Metadata } from "next"
+"use client"
 
-export const metadata: Metadata = {
-  title: "Dashboard — BrandFlow",
-  description: "Your creative brand hub",
+import { useEffect, useMemo, useState } from "react"
+import Link from "next/link"
+import { ArrowRight } from "lucide-react"
+import { createClient } from "@/lib/supabase/client"
+import { PLATFORMS, PROFILE, type Pillar, type PlatformId } from "@/data/dashboard"
+import { Sparkline } from "./_components/sparkline"
+import { BarRow } from "./_components/bar-row"
+import { PlatformIcon } from "./_components/platform-icon"
+
+// ─── Design tokens ────────────────────────────────────────────────────────────
+const TOKENS = {
+  bg: "#EDE6DC",
+  card: "#F4EEE2",
+  cardSoft: "#EFE7D8",
+  ink: "#2D2D2D",
+  inkSoft: "#4A4944",
+  orange: "#E06A33",
+  brown: "#8B7261",
+  brownSoft: "#C2B5A3",
+  hairline: "rgba(45,45,45,0.08)",
+  hairlineStrong: "rgba(45,45,45,0.14)",
+  fontBody: '"DM Sans", "Inter", system-ui, -apple-system, sans-serif',
+  fontMono: '"JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace',
 }
 
-export default async function DashboardPage() {
-  const supabase = createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+const SWATCH: Record<Pillar["swatch"], string> = {
+  orange: TOKENS.orange,
+  brown: TOKENS.brown,
+  ink: TOKENS.ink,
+  brownSoft: TOKENS.brownSoft,
+}
 
-  const [{ data: brands }, profileResult] = await Promise.all([
-    supabase
-      .from("brands")
-      .select("*")
-      .eq("user_id", user!.id)
-      .order("created_at", { ascending: false }),
-    supabase
-      .from("profiles")
-      .select("full_name, social_accounts")
-      .eq("id", user!.id)
-      .single(),
-  ])
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+function formatToday(): string {
+  const d = new Date()
+  const weekday = d.toLocaleDateString("en-GB", { weekday: "long" })
+  const day = d.toLocaleDateString("en-GB", { day: "numeric" })
+  const month = d.toLocaleDateString("en-GB", { month: "long" })
+  const year = d.getFullYear()
+  return `${weekday} · ${day} ${month} ${year}`
+}
 
-  const firstName = profileResult.data?.full_name?.split(" ")[0] ?? "there"
-  const primaryBrand = brands?.[0] ?? null
-  const socialAccounts = normalizeSocialAccounts(
-    (profileResult.data?.social_accounts ?? {}) as SocialAccountsMap | null,
-  )
+function greeting(): string {
+  const h = new Date().getHours()
+  if (h < 12) return "Good morning"
+  if (h < 18) return "Good afternoon"
+  return "Good evening"
+}
 
-  // Fetch content pillars for the primary brand
-  let pillars: ContentPillar[] | null = null
-  if (primaryBrand) {
-    const { data } = await supabase
-      .from("content_pillars")
-      .select("id, name, color, sort_order")
-      .eq("brand_id", primaryBrand.id)
-      .order("sort_order")
-    pillars = data ?? []
-  }
+// ─── Top-level page (client component) ────────────────────────────────────────
+export default function DashboardPage() {
+  const [active, setActive] = useState<PlatformId>("instagram")
+  const [firstName, setFirstName] = useState<string>(PROFILE.firstName)
+  const [handle, setHandle] = useState<string>(PROFILE.handle)
 
-  // Fetch idea stats for the primary brand
-  let ideasSavedCount = 0
-  let postsScheduledCount = 0
-  if (primaryBrand) {
-    const [savedRes, scheduledRes] = await Promise.all([
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (supabase.from("ideas") as any)
-        .select("id", { count: "exact", head: true })
-        .eq("brand_id", primaryBrand.id)
-        .eq("status", "idea"),
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (supabase.from("ideas") as any)
-        .select("id", { count: "exact", head: true })
-        .eq("brand_id", primaryBrand.id)
-        .eq("status", "scheduled"),
-    ])
-    ideasSavedCount = savedRes.count ?? 0
-    postsScheduledCount = scheduledRes.count ?? 0
-  }
-  const pillarsActiveCount = pillars?.length ?? 0
-  const platformsConnectedCount = Object.keys(socialAccounts).length
+  // Overlay handle/name from Supabase if available; otherwise keep design defaults
+  useEffect(() => {
+    let cancelled = false
+    const supabase = createClient()
+    void (async () => {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user || cancelled) return
+      const { data } = await supabase
+        .from("profiles")
+        .select("full_name, social_accounts")
+        .eq("id", user.id)
+        .single()
+      if (cancelled || !data) return
+      const fn = (data as any).full_name?.split(" ")[0]
+      if (fn) setFirstName(fn)
+      const social = (data as any).social_accounts as Record<string, string> | null
+      const platformKey = active === "shorts" ? "youtube" : active
+      const h = social?.[platformKey]
+      if (h) setHandle(h.replace(/^@/, ""))
+    })()
+    return () => {
+      cancelled = true
+    }
+    // re-run when platform changes (handle may differ per platform)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [active])
+
+  const today = useMemo(() => formatToday(), [])
 
   return (
-    <div className="flex flex-col min-h-full" style={{ backgroundColor: "#EDE6DC" }}>
-      {/* Warm custom page header — looser and more personal than the generic Header */}
-      <div className="px-4 pt-6 pb-5 md:px-8 md:pt-8 md:pb-6" style={{ borderBottom: "1px solid #C2B5A3" }}>
-        <h1 className="text-2xl md:text-4xl font-semibold leading-tight" style={{ color: "#2D2D2D" }}>
-          Good to see you, {firstName} 👋
-        </h1>
-        <p className="mt-1.5 text-base" style={{ color: "#8B7261" }}>
-          Here&apos;s your creative brand hub
-        </p>
+    <div
+      className="min-h-full"
+      style={{ backgroundColor: TOKENS.bg, color: TOKENS.ink, fontFamily: TOKENS.fontBody }}
+    >
+      <div className="max-w-[1180px] mx-auto px-5 md:px-8 py-6 md:py-9 space-y-7">
+
+        {/* ─── Top bar ────────────────────────────────────────────── */}
+        <header className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-5">
+          <div>
+            <p
+              className="text-[11px] uppercase tracking-[0.18em]"
+              style={{ color: TOKENS.brown, fontFamily: TOKENS.fontMono }}
+            >
+              {`// ${today}`}
+            </p>
+            <h1
+              className="text-[28px] md:text-[38px] font-medium leading-[1.1] mt-2"
+              style={{ color: TOKENS.ink, letterSpacing: "-0.01em" }}
+            >
+              {greeting()},{" "}
+              <em style={{ color: TOKENS.orange, fontStyle: "italic", fontWeight: 500 }}>
+                {firstName}.
+              </em>
+            </h1>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <PlatformSwitcher active={active} onChange={setActive} />
+            <Link
+              href="/content-creator"
+              className="inline-flex items-center gap-1.5 h-10 px-4 rounded-full text-sm font-medium transition-opacity hover:opacity-90"
+              style={{ backgroundColor: TOKENS.ink, color: TOKENS.bg }}
+            >
+              New post <ArrowRight className="h-3.5 w-3.5" />
+            </Link>
+          </div>
+        </header>
+
+        {/* ─── Profile band ───────────────────────────────────────── */}
+        <ProfileBand handle={handle} platformId={active} />
+
+        {/* ─── Stats row ──────────────────────────────────────────── */}
+        <StatsRow platformId={active} />
+
+        {/* ─── Two-column body ────────────────────────────────────── */}
+        <section
+          className="grid gap-5"
+          style={{ gridTemplateColumns: "minmax(0, 1.4fr) minmax(0, 1fr)" }}
+        >
+          <RecentPostsCard platformId={active} />
+          <div className="space-y-5">
+            <ThisWeekCard platformId={active} />
+            <AudienceCard platformId={active} />
+          </div>
+        </section>
+
+        {/* ─── Algorithm Watch ────────────────────────────────────── */}
+        <AlgorithmWatchCard platformId={active} />
+
       </div>
 
-      <div className="flex-1 w-full max-w-5xl px-4 py-6 md:px-8 md:py-10 space-y-10 md:space-y-12">
-
-        {/* ─── Section 0: Platform Stats ────────────────────────────── */}
-        <section>
-          <SectionHeader
-            title="Platform Stats"
-            subtitle="A quick pulse on your content + connected platforms"
-          />
-          <PlatformStats
-            postsScheduled={postsScheduledCount}
-            ideasSaved={ideasSavedCount}
-            pillarsActive={pillarsActiveCount}
-            platformsConnected={platformsConnectedCount}
-            socialAccounts={socialAccounts}
-          />
-        </section>
-
-        {/* ─── Section 1: Brand Profile ───────────────────────────── */}
-        <section>
-          <SectionHeader
-            title="Brand Profile"
-            subtitle="Your brand identity at a glance"
-            action={
-              primaryBrand ? (
-                <Link href="/settings">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="rounded-xl"
-                    style={{ borderColor: "#E8D8D0", color: "#8B7261" }}
-                  >
-                    Edit Brand
-                  </Button>
-                </Link>
-              ) : null
-            }
-          />
-
-          {!primaryBrand ? (
-            <EmptyBrandState />
-          ) : (
-            <BrandProfileCard brand={primaryBrand} />
-          )}
-        </section>
-
-        {/* ─── Section 2: Social Profiles ─────────────────────────── */}
-        <section>
-          <SectionHeader
-            title="Social Profiles"
-            subtitle="Your connected social accounts"
-          />
-          <div
-            className="p-6 rounded-3xl"
-            style={{ backgroundColor: "#FFFFFF", boxShadow: "0 4px 24px rgba(180, 100, 60, 0.09)" }}
-          >
-            <SocialConnect initialAccounts={socialAccounts} />
-          </div>
-        </section>
-
-        {/* ─── Section 3: Platform Stats ──────────────────────────── */}
-        <section>
-          <SectionHeader
-            title="Platform Stats"
-            subtitle="Followers and average engagement across your platforms"
-            action={
-              Object.keys(socialAccounts).length > 0 ? (
-                <Link href="/settings">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="rounded-xl"
-                    style={{ borderColor: "#E8D8D0", color: "#7A5C50" }}
-                  >
-                    Edit stats
-                  </Button>
-                </Link>
-              ) : null
-            }
-          />
-          <div
-            className="p-6 rounded-3xl"
-            style={{ backgroundColor: "#FFFFFF", boxShadow: "0 4px 24px rgba(180, 100, 60, 0.09)" }}
-          >
-            <PlatformStats accounts={socialAccounts} />
-          </div>
-        </section>
-
-        {/* ─── Section 4: Content Pillars ─────────────────────────── */}
-        <section>
-          <SectionHeader
-            title="Content Pillars"
-            subtitle={primaryBrand ? `${pillars?.length ?? 0} of 6 pillars defined` : "Your saved topic pillars"}
-          />
-          <div
-            className="p-6 rounded-3xl"
-            style={{ backgroundColor: "#FFFFFF", boxShadow: "0 4px 24px rgba(180, 100, 60, 0.09)" }}
-          >
-            <ContentPillarsSummary pillars={pillars} hasBrand={!!primaryBrand} />
-          </div>
-        </section>
-
-      </div>
+      {/* Body-level keyframes for the live pulse */}
+      <style jsx global>{`
+        @keyframes pulseDot {
+          0%, 100% { transform: scale(1);   opacity: 1;   }
+          50%      { transform: scale(1.6); opacity: 0.4; }
+        }
+      `}</style>
     </div>
   )
 }
 
-// ─── Sub-components ───────────────────────────────────────────────────────────
-
-const PLATFORM_META: Record<string, { label: string; emoji: string; bg: string }> = {
-  instagram: { label: "Instagram", emoji: "📸", bg: "linear-gradient(135deg, #F97066 0%, #E0A050 100%)" },
-  tiktok:    { label: "TikTok",    emoji: "🎵", bg: "linear-gradient(135deg, #2D1810 0%, #4A3428 100%)" },
-  youtube:   { label: "YouTube",   emoji: "▶️", bg: "linear-gradient(135deg, #E05050 0%, #C03030 100%)" },
-  twitter:   { label: "X",         emoji: "𝕏",  bg: "linear-gradient(135deg, #4A3428 0%, #2D1810 100%)" },
-  pinterest: { label: "Pinterest", emoji: "📌", bg: "linear-gradient(135deg, #E05070 0%, #C03050 100%)" },
-  facebook:  { label: "Facebook",  emoji: "👥", bg: "linear-gradient(135deg, #5070D0 0%, #3050A0 100%)" },
-  linkedin:  { label: "LinkedIn",  emoji: "💼", bg: "linear-gradient(135deg, #3050A0 0%, #1D3D80 100%)" },
-}
-
-function StatCard({
-  label, value, hint,
+// ─── Platform switcher (pill) ─────────────────────────────────────────────────
+function PlatformSwitcher({
+  active,
+  onChange,
 }: {
-  label: string
-  value: number | string
-  hint?: string
+  active: PlatformId
+  onChange: (id: PlatformId) => void
 }) {
+  const ids: PlatformId[] = ["instagram", "tiktok", "shorts"]
   return (
     <div
-      className="rounded-2xl p-4 flex flex-col gap-1"
-      style={{ backgroundColor: "#FFFFFF", boxShadow: "0 2px 12px rgba(180, 100, 60, 0.07)", border: "1px solid #F0E8E0" }}
+      role="tablist"
+      aria-label="Platform"
+      className="inline-flex items-center p-1 rounded-full"
+      style={{ backgroundColor: TOKENS.card, border: `1px solid ${TOKENS.hairline}` }}
     >
-      <p className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: "#A89080" }}>
-        {label}
-      </p>
-      <p className="text-3xl font-bold leading-none" style={{ color: "#F97066" }}>
+      {ids.map((id) => {
+        const p = PLATFORMS[id]
+        const isActive = active === id
+        return (
+          <button
+            key={id}
+            type="button"
+            role="tab"
+            aria-selected={isActive}
+            onClick={() => onChange(id)}
+            title={p.name}
+            className="h-8 w-9 rounded-full inline-flex items-center justify-center transition-colors"
+            style={
+              isActive
+                ? { backgroundColor: p.accent, color: "#FFFFFF" }
+                : { color: TOKENS.brown }
+            }
+          >
+            <PlatformIcon id={id} size={15} />
+          </button>
+        )
+      })}
+    </div>
+  )
+}
+
+// ─── Profile band ─────────────────────────────────────────────────────────────
+function ProfileBand({ handle, platformId }: { handle: string; platformId: PlatformId }) {
+  const accent = PLATFORMS[platformId].accent
+  return (
+    <section
+      className="grid gap-6 rounded-[18px] p-6 md:p-7"
+      style={{
+        backgroundColor: TOKENS.card,
+        border: `1px solid ${TOKENS.hairline}`,
+        gridTemplateColumns: "minmax(0, 1.1fr) minmax(0, 0.9fr)",
+      }}
+    >
+      {/* Left — identity */}
+      <div className="flex items-start gap-5">
+        <div
+          className="w-16 h-16 rounded-full flex items-center justify-center shrink-0 text-2xl font-medium"
+          style={{
+            backgroundColor: TOKENS.bg,
+            color: TOKENS.ink,
+            border: `1px solid ${TOKENS.hairlineStrong}`,
+          }}
+          aria-hidden
+        >
+          {PROFILE.firstName.charAt(0)}
+        </div>
+        <div className="min-w-0">
+          <p
+            className="text-[10px] uppercase tracking-[0.18em] mb-1.5"
+            style={{ color: TOKENS.brown, fontFamily: TOKENS.fontMono }}
+          >
+            // creator
+          </p>
+          <h2 className="text-xl md:text-2xl font-medium leading-tight" style={{ color: TOKENS.ink }}>
+            {PROFILE.fullName}
+          </h2>
+          <p className="text-sm mt-1" style={{ color: accent }}>
+            @{handle}
+          </p>
+          <p className="text-[13px] mt-3 leading-relaxed max-w-[36ch]" style={{ color: TOKENS.inkSoft }}>
+            {PROFILE.bio}
+          </p>
+        </div>
+      </div>
+
+      {/* Right — pillars 2×2 */}
+      <div>
+        <p
+          className="text-[10px] uppercase tracking-[0.18em] mb-3"
+          style={{ color: TOKENS.brown, fontFamily: TOKENS.fontMono }}
+        >
+          // content mix
+        </p>
+        <div className="grid grid-cols-2 gap-2">
+          {PROFILE.pillars.map((p) => (
+            <div
+              key={p.name}
+              className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl"
+              style={{ backgroundColor: TOKENS.bg, border: `1px solid ${TOKENS.hairline}` }}
+            >
+              <span
+                className="block w-3 h-3 rounded-sm shrink-0"
+                style={{ backgroundColor: SWATCH[p.swatch] }}
+                aria-hidden
+              />
+              <div className="min-w-0 flex-1">
+                <p className="text-[12px] font-medium truncate" style={{ color: TOKENS.ink }}>
+                  {p.name}
+                </p>
+              </div>
+              <span
+                className="text-[12px] tabular-nums font-medium shrink-0"
+                style={{ color: TOKENS.ink, fontFamily: TOKENS.fontMono }}
+              >
+                {p.pct}%
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  )
+}
+
+// ─── Stats row ────────────────────────────────────────────────────────────────
+function StatsRow({ platformId }: { platformId: PlatformId }) {
+  const platform = PLATFORMS[platformId]
+  return (
+    <section className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      {platform.stats.map((s) => {
+        const isHighlight = s.highlight
+        return (
+          <div
+            key={s.label}
+            className="rounded-[18px] p-5"
+            style={{
+              backgroundColor: isHighlight ? platform.accent : TOKENS.card,
+              color: isHighlight ? "#FFFFFF" : TOKENS.ink,
+              border: isHighlight ? "none" : `1px solid ${TOKENS.hairline}`,
+            }}
+          >
+            <div className="flex items-baseline justify-between gap-2">
+              <span
+                className="text-[10px] uppercase tracking-[0.16em]"
+                style={{
+                  color: isHighlight ? "rgba(255,255,255,0.85)" : TOKENS.brown,
+                  fontFamily: TOKENS.fontMono,
+                }}
+              >
+                {s.label}
+              </span>
+              {s.deltaPct && (
+                <span
+                  className="text-[10px] tabular-nums font-medium"
+                  style={{
+                    color: isHighlight ? "rgba(255,255,255,0.95)" : TOKENS.orange,
+                    fontFamily: TOKENS.fontMono,
+                  }}
+                >
+                  {s.deltaPct}
+                </span>
+              )}
+            </div>
+
+            <div className="mt-3 flex items-end justify-between gap-3">
+              <p
+                className="text-[28px] md:text-[32px] font-medium leading-none tabular-nums"
+                style={{ letterSpacing: "-0.01em" }}
+              >
+                {s.value}
+              </p>
+              {s.sparkline && (
+                <Sparkline
+                  data={s.sparkline}
+                  color={isHighlight ? "rgba(255,255,255,0.9)" : platform.accent}
+                  height={28}
+                  width={84}
+                />
+              )}
+            </div>
+
+            <div className="mt-3 flex items-center justify-between gap-2">
+              {s.delta && (
+                <span
+                  className="text-[11px] tabular-nums"
+                  style={{
+                    color: isHighlight ? "rgba(255,255,255,0.85)" : TOKENS.inkSoft,
+                    fontFamily: TOKENS.fontMono,
+                  }}
+                >
+                  {s.delta}
+                </span>
+              )}
+              {!s.delta && !s.goal && <span />}
+
+              {s.goal && (
+                <div className="flex items-center gap-2 flex-1 min-w-0">
+                  <span
+                    className="block flex-1 h-1 rounded-full overflow-hidden"
+                    style={{
+                      backgroundColor: isHighlight
+                        ? "rgba(255,255,255,0.25)"
+                        : "rgba(45,45,45,0.10)",
+                    }}
+                    aria-hidden
+                  >
+                    <span
+                      className="block h-full rounded-full"
+                      style={{
+                        width: `${Math.min(100, (s.goal.current / s.goal.max) * 100)}%`,
+                        backgroundColor: isHighlight ? "#FFFFFF" : platform.accent,
+                      }}
+                    />
+                  </span>
+                  <span
+                    className="text-[10px] shrink-0"
+                    style={{
+                      color: isHighlight ? "rgba(255,255,255,0.85)" : TOKENS.brown,
+                      fontFamily: TOKENS.fontMono,
+                    }}
+                  >
+                    {s.goal.label}
+                  </span>
+                </div>
+              )}
+            </div>
+          </div>
+        )
+      })}
+    </section>
+  )
+}
+
+// ─── Recent posts ─────────────────────────────────────────────────────────────
+function RecentPostsCard({ platformId }: { platformId: PlatformId }) {
+  const platform = PLATFORMS[platformId]
+  return (
+    <div
+      className="rounded-[18px] p-5 md:p-6"
+      style={{ backgroundColor: TOKENS.card, border: `1px solid ${TOKENS.hairline}` }}
+    >
+      <CardHeader eyebrow="// recent posts" title={`On ${platform.name}`} />
+
+      <ul className="mt-4 divide-y" style={{ borderColor: TOKENS.hairline }}>
+        {platform.posts.map((post, i) => (
+          <li
+            key={i}
+            className="grid items-center gap-4 py-3.5"
+            style={{ gridTemplateColumns: "44px minmax(0, 1fr) auto" }}
+          >
+            {/* thumbnail with format badge */}
+            <div className="relative shrink-0">
+              <div
+                className="w-11 h-11 rounded-xl flex items-center justify-center text-lg"
+                style={{ backgroundColor: TOKENS.bg, border: `1px solid ${TOKENS.hairline}` }}
+                aria-hidden
+              >
+                {post.emoji}
+              </div>
+            </div>
+
+            {/* title + meta */}
+            <div className="min-w-0">
+              <p className="text-[14px] font-medium truncate" style={{ color: TOKENS.ink }}>
+                {post.title}
+              </p>
+              <div className="flex items-center gap-2 mt-1">
+                <span
+                  className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium uppercase tracking-wider"
+                  style={{
+                    backgroundColor: "rgba(224,106,51,0.10)",
+                    color: TOKENS.orange,
+                  }}
+                >
+                  {post.format}
+                </span>
+                <span
+                  className="text-[11px]"
+                  style={{ color: TOKENS.brown, fontFamily: TOKENS.fontMono }}
+                >
+                  {post.date}
+                </span>
+              </div>
+            </div>
+
+            {/* 3 stats */}
+            <div className="flex items-center gap-5 shrink-0">
+              <MicroStat value={post.primary}  label={post.primaryLabel} />
+              <MicroStat value={post.likes}    label="likes"            />
+              <MicroStat value={post.comments} label="comments"         />
+            </div>
+          </li>
+        ))}
+      </ul>
+    </div>
+  )
+}
+
+function MicroStat({ value, label }: { value: string; label: string }) {
+  return (
+    <div className="text-right">
+      <p
+        className="text-[13px] font-medium tabular-nums leading-none"
+        style={{ color: TOKENS.ink }}
+      >
         {value}
       </p>
-      {hint && (
-        <p className="text-[11px]" style={{ color: "#8A7060" }}>{hint}</p>
-      )}
-    </div>
-  )
-}
-
-function PlatformStats({
-  postsScheduled,
-  ideasSaved,
-  pillarsActive,
-  platformsConnected,
-  socialAccounts,
-}: {
-  postsScheduled: number
-  ideasSaved: number
-  pillarsActive: number
-  platformsConnected: number
-  socialAccounts: Record<string, string>
-}) {
-  const platformEntries = Object.entries(socialAccounts).filter(([, h]) => !!h)
-
-  return (
-    <div className="space-y-4">
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <StatCard
-          label="Posts Scheduled"
-          value={postsScheduled}
-          hint={postsScheduled === 0 ? "Plan your first post" : "In your planner"}
-        />
-        <StatCard
-          label="Ideas Saved"
-          value={ideasSaved}
-          hint={ideasSaved === 0 ? "Save ideas as you go" : "In your ideas bank"}
-        />
-        <StatCard
-          label="Pillars Active"
-          value={pillarsActive}
-          hint={pillarsActive === 0 ? "Define 3–6 themes" : `of 6 themes`}
-        />
-        <StatCard
-          label="Platforms"
-          value={platformsConnected}
-          hint={platformsConnected === 0 ? "Connect a profile" : "Connected"}
-        />
-      </div>
-
-      {platformEntries.length > 0 ? (
-        <div
-          className="rounded-3xl p-5"
-          style={{ backgroundColor: "#FFFFFF", boxShadow: "0 4px 24px rgba(180, 100, 60, 0.09)" }}
-        >
-          <p className="text-[10px] font-semibold uppercase tracking-widest mb-3" style={{ color: "#A89080" }}>
-            Connected Profiles
-          </p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-            {platformEntries.map(([id, handle]) => {
-              const meta = PLATFORM_META[id] ?? { label: id, emoji: "🔗", bg: "linear-gradient(135deg, #8A7060 0%, #5A3828 100%)" }
-              return (
-                <div
-                  key={id}
-                  className="flex items-center gap-3 p-3 rounded-2xl"
-                  style={{ backgroundColor: "#FAFAF5", border: "1px solid #F0E8E0" }}
-                >
-                  <div
-                    className="w-10 h-10 rounded-xl flex items-center justify-center text-base shrink-0"
-                    style={{ background: meta.bg, color: "white" }}
-                  >
-                    {meta.emoji}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-xs font-semibold" style={{ color: "#2D1810" }}>{meta.label}</p>
-                    <p className="text-xs truncate" style={{ color: "#8A7060" }}>{handle}</p>
-                  </div>
-                </div>
-              )
-            })}
-          </div>
-        </div>
-      ) : (
-        <div
-          className="rounded-3xl p-5"
-          style={{ backgroundColor: "#FFF8F4", border: "1px dashed #E8D8D0" }}
-        >
-          <p className="text-sm" style={{ color: "#8A7060" }}>
-            No platforms connected yet — connect Instagram, TikTok or YouTube below to see per-platform stats here.
-          </p>
-        </div>
-      )}
-    </div>
-  )
-}
-
-function SectionHeader({
-  title,
-  subtitle,
-  action,
-}: {
-  title: string
-  subtitle: string
-  action?: React.ReactNode
-}) {
-  return (
-    <div className="flex items-end justify-between mb-5">
-      <div>
-        <h2 className="text-lg font-semibold" style={{ color: "#2D2D2D" }}>{title}</h2>
-        <p className="text-sm mt-0.5" style={{ color: "#8B7261" }}>{subtitle}</p>
-      </div>
-      {action}
-    </div>
-  )
-}
-
-function EmptyBrandState() {
-  return (
-    <div
-      className="flex flex-col items-center justify-center py-16 rounded-3xl border-2 border-dashed text-center"
-      style={{ borderColor: "#E8D8D0", backgroundColor: "#FFFFFF" }}
-    >
-      <div
-        className="w-14 h-14 rounded-2xl flex items-center justify-center mb-5 text-2xl"
-        style={{ backgroundColor: "#EDE6DC" }}
+      <p
+        className="text-[10px] mt-1 uppercase tracking-wider"
+        style={{ color: TOKENS.brown, fontFamily: TOKENS.fontMono }}
       >
-        ✨
-      </div>
-      <h3 className="text-base font-semibold mb-1.5" style={{ color: "#2D2D2D" }}>
-        Set up your brand profile
-      </h3>
-      <p className="text-sm max-w-sm mb-6" style={{ color: "#8B7261" }}>
-        Define your brand identity — niche, audience, tone, and colors — to unlock all content planning tools.
+        {label}
       </p>
-      <Link href="/settings">
-        <Button
-          className="rounded-xl font-medium hover:opacity-90"
-          style={{ backgroundColor: "#E06A33", color: "white" }}
-        >
-          Set up your brand →
-        </Button>
-      </Link>
     </div>
   )
 }
 
-function BrandProfileCard({ brand }: { brand: Brand }) {
-  const initials = getInitials(brand.name)
-
+// ─── This week ────────────────────────────────────────────────────────────────
+function ThisWeekCard({ platformId }: { platformId: PlatformId }) {
+  const platform = PLATFORMS[platformId]
+  const tw = platform.thisWeek
   return (
     <div
-      className="p-6 rounded-3xl"
-      style={{ backgroundColor: "#FFFFFF", boxShadow: "0 4px 24px rgba(180, 100, 60, 0.09)" }}
+      className="rounded-[18px] p-5 md:p-6"
+      style={{ backgroundColor: TOKENS.card, border: `1px solid ${TOKENS.hairline}` }}
     >
-      {/* Colour gradient bar */}
-      <div
-        className="h-1.5 rounded-full mb-5"
-        style={{
-          background: `linear-gradient(to right, ${brand.primary_color ?? "#E06A33"}, ${brand.secondary_color ?? "#C45A26"})`,
-        }}
-      />
+      <CardHeader eyebrow="// this week" title={tw.range} />
 
-      {/* Top row: avatar + name + niche pill + tone */}
-      <div className="flex items-start gap-4">
-        {/* Avatar */}
-        {brand.logo_url ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={brand.logo_url}
-            alt={brand.name}
-            className="w-14 h-14 rounded-2xl object-cover flex-shrink-0"
-          />
-        ) : (
-          <div
-            className="w-14 h-14 rounded-2xl flex items-center justify-center text-white text-lg font-bold flex-shrink-0 shadow-sm"
-            style={{ backgroundColor: brand.primary_color || "#E06A33" }}
-          >
-            {initials}
-          </div>
-        )}
-
-        <div className="flex-1 min-w-0">
-          {/* Name + niche pill */}
-          <div className="flex items-center gap-2.5 flex-wrap">
-            <h3
-              className="text-xl md:text-3xl font-semibold leading-tight"
-              style={{ color: "#2D2D2D" }}
-            >
-              {brand.name}
-            </h3>
+      <ul className="mt-4 space-y-2.5">
+        {tw.rows.map((r) => (
+          <li key={r.label} className="flex items-baseline justify-between gap-3">
+            <span className="text-[12px]" style={{ color: TOKENS.inkSoft }}>
+              {r.label}
+            </span>
             <span
-              className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium shrink-0"
-              style={{ backgroundColor: "#FEF3DC", color: "#8B5E10" }}
+              className="text-[14px] font-medium tabular-nums"
+              style={{ color: TOKENS.ink, fontFamily: TOKENS.fontMono }}
             >
-              {brand.niche}
+              {r.value}
+            </span>
+          </li>
+        ))}
+      </ul>
+
+      {/* dot calendar */}
+      <div
+        className="mt-5 pt-5 grid grid-cols-7 gap-2"
+        style={{ borderTop: `1px solid ${TOKENS.hairline}` }}
+      >
+        {tw.days.map((d) => (
+          <div key={d.date} className="flex flex-col items-center gap-1.5">
+            <span
+              className="text-[10px] uppercase tracking-wider"
+              style={{ color: d.today ? TOKENS.orange : TOKENS.brown, fontFamily: TOKENS.fontMono }}
+            >
+              {d.d}
+            </span>
+            <span
+              className="block w-2.5 h-2.5 rounded-full"
+              style={{
+                backgroundColor: d.posted
+                  ? platform.accent
+                  : "transparent",
+                border: d.posted
+                  ? "none"
+                  : `1px solid ${TOKENS.hairlineStrong}`,
+                outline: d.today ? `2px solid ${TOKENS.orange}` : "none",
+                outlineOffset: d.today ? "2px" : undefined,
+              }}
+              aria-hidden
+            />
+            <span
+              className="text-[10px] tabular-nums"
+              style={{ color: TOKENS.inkSoft, fontFamily: TOKENS.fontMono }}
+            >
+              {d.date}
             </span>
           </div>
+        ))}
+      </div>
+    </div>
+  )
+}
 
-          {/* Tone of voice */}
-          <p className="text-sm mt-1.5" style={{ color: "#8B7261" }}>
-            <span className="font-medium" style={{ color: "#5A5A5A" }}>Tone: </span>
-            {brand.tone_of_voice ?? "Not specified"}
+// ─── Audience ─────────────────────────────────────────────────────────────────
+function AudienceCard({ platformId }: { platformId: PlatformId }) {
+  const platform = PLATFORMS[platformId]
+  return (
+    <div
+      className="rounded-[18px] p-5 md:p-6"
+      style={{ backgroundColor: TOKENS.card, border: `1px solid ${TOKENS.hairline}` }}
+    >
+      <CardHeader eyebrow="// audience" title={platform.audience.title} />
+
+      <div className="mt-5">
+        <p
+          className="text-[10px] uppercase tracking-[0.18em] mb-3"
+          style={{ color: TOKENS.brown, fontFamily: TOKENS.fontMono }}
+        >
+          Age & gender
+        </p>
+        <BarRow rows={platform.audience.demographics} accent={platform.accent} max={50} />
+      </div>
+
+      <div className="mt-5 pt-5" style={{ borderTop: `1px solid ${TOKENS.hairline}` }}>
+        <p
+          className="text-[10px] uppercase tracking-[0.18em] mb-3"
+          style={{ color: TOKENS.brown, fontFamily: TOKENS.fontMono }}
+        >
+          Top geo
+        </p>
+        <BarRow rows={platform.audience.countries} accent={TOKENS.brown} max={40} />
+      </div>
+    </div>
+  )
+}
+
+// ─── Algorithm Watch ──────────────────────────────────────────────────────────
+function AlgorithmWatchCard({ platformId }: { platformId: PlatformId }) {
+  const platform = PLATFORMS[platformId]
+  const aw = platform.algorithmWatch
+  return (
+    <section
+      className="rounded-[18px] p-5 md:p-7"
+      style={{ backgroundColor: TOKENS.card, border: `1px solid ${TOKENS.hairline}` }}
+    >
+      {/* Header */}
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <p
+            className="text-[10px] uppercase tracking-[0.18em] mb-1.5"
+            style={{ color: TOKENS.brown, fontFamily: TOKENS.fontMono }}
+          >
+            // algorithm watch
           </p>
+          <h3 className="text-[20px] md:text-[22px] font-medium leading-tight" style={{ color: TOKENS.ink }}>
+            What changed on{" "}
+            <em style={{ color: platform.accent, fontStyle: "italic", fontWeight: 500 }}>
+              {platform.name}
+            </em>
+          </h3>
+        </div>
+
+        <div
+          className="inline-flex items-center gap-2 h-7 px-2.5 rounded-full"
+          style={{ backgroundColor: TOKENS.bg, border: `1px solid ${TOKENS.hairline}` }}
+        >
+          <span className="relative inline-flex w-1.5 h-1.5">
+            <span
+              className="absolute inset-0 rounded-full"
+              style={{ backgroundColor: "#3D8F4B", animation: "pulseDot 1.8s ease-out infinite" }}
+            />
+            <span className="relative block w-1.5 h-1.5 rounded-full" style={{ backgroundColor: "#3D8F4B" }} />
+          </span>
+          <span
+            className="text-[10px] uppercase tracking-[0.16em]"
+            style={{ color: TOKENS.inkSoft, fontFamily: TOKENS.fontMono }}
+          >
+            live
+          </span>
         </div>
       </div>
 
-      {/* Target audience */}
+      {/* Scan row */}
       <div
-        className="mt-5 pt-4 flex items-start gap-4"
-        style={{ borderTop: "1px solid #EDE6DC" }}
+        className="mt-5 grid grid-cols-2 gap-4 rounded-xl px-4 py-3"
+        style={{ backgroundColor: TOKENS.bg, border: `1px solid ${TOKENS.hairline}` }}
       >
-        <p
-          className="text-[10px] font-semibold uppercase tracking-widest shrink-0 mt-0.5 w-28"
-          style={{ color: "#C2B5A3" }}
-        >
-          Target Audience
-        </p>
-        <p className="text-sm font-medium leading-snug whitespace-pre-line" style={{ color: "#2D2D2D" }}>
-          {(brand.target_audience ?? "Not specified").replace(/\* /g, "• ").replace(/\*/g, "")}
-        </p>
+        <ScanCell label="Last scan" value={aw.lastScan} />
+        <ScanCell label="Next scan" value={aw.nextScan} />
       </div>
-    </div>
-  )
-}
 
-// ─── Platform Stats ───────────────────────────────────────────────────────────
-
-const PLATFORM_META: Record<string, { name: string; emoji: string; bg: string }> = {
-  instagram: { name: "Instagram", emoji: "📸", bg: "bg-gradient-to-br from-pink-500 to-orange-400" },
-  tiktok:    { name: "TikTok",    emoji: "🎵", bg: "bg-gradient-to-br from-slate-800 to-slate-900" },
-  youtube:   { name: "YouTube",   emoji: "▶️", bg: "bg-gradient-to-br from-red-500 to-red-600" },
-  twitter:   { name: "X / Twitter", emoji: "𝕏", bg: "bg-gradient-to-br from-slate-700 to-slate-900" },
-  pinterest: { name: "Pinterest", emoji: "📌", bg: "bg-gradient-to-br from-rose-500 to-red-600" },
-  facebook:  { name: "Facebook",  emoji: "👥", bg: "bg-gradient-to-br from-blue-500 to-blue-700" },
-  linkedin:  { name: "LinkedIn",  emoji: "💼", bg: "bg-gradient-to-br from-blue-700 to-blue-800" },
-}
-
-function formatFollowers(n: number): string {
-  if (!Number.isFinite(n) || n <= 0) return "0"
-  return n.toLocaleString("en-US")
-}
-
-function formatEngagement(n: number): string {
-  if (!Number.isFinite(n) || n <= 0) return "0%"
-  return `${n.toFixed(1)}%`
-}
-
-function PlatformStats({ accounts }: { accounts: Record<string, SocialAccount> }) {
-  const entries = Object.entries(accounts)
-
-  if (entries.length === 0) {
-    return (
-      <div className="text-center py-6">
-        <p className="text-sm mb-3" style={{ color: "#8A7060" }}>
-          No platforms connected yet — connect your social accounts to see follower and engagement stats here.
-        </p>
-        <Link href="/settings">
-          <Button
-            variant="outline"
-            size="sm"
-            className="rounded-xl"
-            style={{ borderColor: "#E8D8D0", color: "#7A5C50" }}
+      {/* Changelog */}
+      <ul className="mt-5 space-y-4">
+        {aw.entries.map((entry, i) => (
+          <li
+            key={i}
+            className="grid gap-4"
+            style={{ gridTemplateColumns: "76px minmax(0, 1fr) auto" }}
           >
-            Go to Settings →
-          </Button>
-        </Link>
-      </div>
-    )
-  }
-
-  return (
-    <div className="space-y-2.5">
-      {entries.map(([platformId, account]) => {
-        const meta = PLATFORM_META[platformId] ?? { name: platformId, emoji: "🌐", bg: "bg-slate-500" }
-        const hasStats = (account.followers ?? 0) > 0 || (account.engagement ?? 0) > 0
-        return (
-          <div
-            key={platformId}
-            className="flex items-center gap-4 px-4 py-3.5 rounded-2xl"
-            style={{ backgroundColor: "#FAFAF5", border: "1px solid #F0E8E0" }}
-          >
-            {/* Platform identity (left) */}
-            <div className="flex items-center gap-3 flex-1 min-w-0">
-              <div className={`w-9 h-9 rounded-xl ${meta.bg} flex items-center justify-center text-sm shadow-sm shrink-0`}>
-                <span role="img" aria-label={meta.name}>{meta.emoji}</span>
-              </div>
-              <div className="min-w-0">
-                <p className="text-sm font-semibold truncate" style={{ color: "#2D1810" }}>
-                  {meta.name}
-                </p>
-                <p className="text-xs truncate" style={{ color: "#8A7060" }}>
-                  {account.handle.startsWith("@") || account.handle.startsWith("http")
-                    ? account.handle
-                    : `@${account.handle}`}
-                </p>
-              </div>
-            </div>
-
-            {hasStats ? (
-              <>
-                {/* Followers (middle) */}
-                <div className="text-right shrink-0">
-                  <p className="text-base md:text-lg font-bold leading-none" style={{ color: "#2D1810" }}>
-                    {formatFollowers(account.followers)}
-                  </p>
-                  <p className="text-[10px] mt-1 uppercase tracking-wide" style={{ color: "#A89080" }}>
-                    followers
-                  </p>
-                </div>
-
-                {/* Engagement (right) */}
-                <div className="text-right shrink-0 w-20">
-                  <p className="text-base md:text-lg font-bold leading-none" style={{ color: "#F97066" }}>
-                    {formatEngagement(account.engagement)}
-                  </p>
-                  <p className="text-[10px] mt-1 uppercase tracking-wide" style={{ color: "#A89080" }}>
-                    avg engagement
-                  </p>
-                </div>
-              </>
-            ) : (
-              <Link
-                href="/settings"
-                className="text-xs font-medium px-3 py-1.5 rounded-full hover:opacity-80 shrink-0 transition-opacity"
-                style={{ backgroundColor: "#FEF0EA", color: "#D4432A", border: "1px solid #F5C4BC" }}
+            <div>
+              <span
+                className="inline-block px-2 py-1 rounded text-[10px] uppercase tracking-wider"
+                style={{
+                  backgroundColor: TOKENS.bg,
+                  color: TOKENS.brown,
+                  fontFamily: TOKENS.fontMono,
+                  border: `1px solid ${TOKENS.hairline}`,
+                }}
               >
-                + Add stats
-              </Link>
-            )}
-          </div>
-        )
-      })}
-    </div>
-  )
-}
-
-// Distinct warm pastel backgrounds cycling per pillar index
-const PILLAR_PALETTES = [
-  { bg: "#EDE6DC", text: "#C45A26", dot: "#E06A33" }, // coral
-  { bg: "#E4F0E8", text: "#2D6040", dot: "#4CAF70" }, // sage
-  { bg: "#FEF3DC", text: "#8B5E10", dot: "#F0A020" }, // amber
-  { bg: "#EEE8F8", text: "#5040A0", dot: "#9070E0" }, // lavender
-  { bg: "#EDE6DC", text: "#C45A26", dot: "#E06A33" }, // peach
-  { bg: "#EDE6DC", text: "#B03050", dot: "#E05070" }, // rose
-]
-
-function ContentPillarsSummary({
-  pillars,
-  hasBrand,
-}: {
-  pillars: ContentPillar[] | null
-  hasBrand: boolean
-}) {
-  if (!hasBrand) {
-    return (
-      <p className="text-sm" style={{ color: "#8B7261" }}>
-        Create your brand first to start building content pillars.
-      </p>
-    )
-  }
-
-  if (!pillars || pillars.length === 0) {
-    return (
-      <p className="text-sm" style={{ color: "#8B7261" }}>
-        No pillars saved yet —{" "}
-        <Link
-          href="/content-creator"
-          className="hover:underline transition-colors"
-          style={{ color: "#E06A33" }}
-        >
-          go to Content Creator to generate some
-        </Link>
-      </p>
-    )
-  }
-
-  return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-      {pillars.map((pillar, i) => {
-        const palette = PILLAR_PALETTES[i % PILLAR_PALETTES.length]
-        return (
-          <div
-            key={pillar.id}
-            className="p-4 rounded-2xl"
-            style={{ backgroundColor: palette.bg }}
-          >
-            <div className="flex items-center gap-2 mb-1.5">
-              <div
-                className="h-3 w-3 rounded-full shrink-0"
-                style={{ backgroundColor: palette.dot }}
-              />
-              <p className="text-sm font-semibold" style={{ color: palette.text }}>
-                {pillar.name}
+                {entry.date}
+              </span>
+            </div>
+            <div className="min-w-0">
+              <p className="text-[14px] font-medium leading-snug" style={{ color: TOKENS.ink }}>
+                {entry.headline}
+              </p>
+              <p className="text-[12px] mt-1 leading-relaxed" style={{ color: TOKENS.inkSoft }}>
+                {entry.signal}
               </p>
             </div>
-          </div>
-        )
-      })}
-      {pillars.length < 6 && (
-        <Link href="/content-pillars" className="block">
-          <div
-            className="p-4 rounded-2xl border-2 border-dashed flex items-center justify-center gap-2 min-h-[56px] transition-all hover:border-[#E06A33]"
-            style={{ borderColor: "#E8D8D0" }}
-          >
-            <span className="text-sm" style={{ color: "#8B7261" }}>+ Add pillar</span>
-          </div>
-        </Link>
-      )}
+            <div className="shrink-0 self-center">
+              <span
+                className="inline-flex items-center gap-1 text-[11px] font-medium"
+                style={{ color: platform.accent, fontFamily: TOKENS.fontMono }}
+              >
+                BrandFlow adapts <ArrowRight className="h-3 w-3" />
+              </span>
+            </div>
+          </li>
+        ))}
+      </ul>
+
+      {/* Prediction */}
+      <p
+        className="mt-5 pt-5 text-[13px] italic leading-relaxed"
+        style={{
+          color: TOKENS.inkSoft,
+          borderTop: `1px solid ${TOKENS.hairline}`,
+        }}
+      >
+        {aw.prediction}
+      </p>
+    </section>
+  )
+}
+
+function ScanCell({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <p
+        className="text-[10px] uppercase tracking-[0.16em] mb-1"
+        style={{ color: TOKENS.brown, fontFamily: TOKENS.fontMono }}
+      >
+        {label}
+      </p>
+      <p
+        className="text-[13px] tabular-nums"
+        style={{ color: TOKENS.ink, fontFamily: TOKENS.fontMono }}
+      >
+        {value}
+      </p>
+    </div>
+  )
+}
+
+// ─── Shared card header ───────────────────────────────────────────────────────
+function CardHeader({ eyebrow, title }: { eyebrow: string; title: string }) {
+  return (
+    <div>
+      <p
+        className="text-[10px] uppercase tracking-[0.18em] mb-1"
+        style={{ color: TOKENS.brown, fontFamily: TOKENS.fontMono }}
+      >
+        {eyebrow}
+      </p>
+      <h3 className="text-[16px] font-medium" style={{ color: TOKENS.ink }}>
+        {title}
+      </h3>
     </div>
   )
 }
