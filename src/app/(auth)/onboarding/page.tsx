@@ -147,7 +147,7 @@ export default function OnboardingPage() {
     }
 
     router.refresh()
-    router.push("/dashboard")
+    router.push("/onboarding/connect")
   }
 
   const handleInstagramSubmit = async (e: React.FormEvent) => {
@@ -499,7 +499,7 @@ export default function OnboardingPage() {
       <div className="text-center mt-6">
         <button
           type="button"
-          onClick={() => router.push("/dashboard")}
+          onClick={() => router.push("/onboarding/connect")}
           className="text-sm font-medium hover:opacity-70"
           style={{ color: PALETTE.muted }}
         >

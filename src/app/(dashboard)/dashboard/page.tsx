@@ -252,6 +252,9 @@ export default function DashboardPage() {
   const showConnectInstagram =
     active === "instagram" && igStats !== null && igStats.connected === false
 
+  const nothingConnected =
+    active === "instagram" && igStats !== null && igStats.connected === false
+
   return (
     <div
       className="min-h-full"
@@ -301,26 +304,33 @@ export default function DashboardPage() {
           </div>
         </header>
 
-        {/* ─── Profile band ───────────────────────────────────────── */}
-        <ProfileBand handle={handle} fullName={fullName} platform={effectivePlatform} />
+        {/* ─── Nothing connected empty state ──────────────────────── */}
+        {nothingConnected ? (
+          <NothingConnectedState firstName={firstName} />
+        ) : (
+          <>
+            {/* ─── Profile band ─────────────────────────────────── */}
+            <ProfileBand handle={handle} fullName={fullName} platform={effectivePlatform} />
 
-        {/* ─── Stats row ──────────────────────────────────────────── */}
-        <StatsRow platform={effectivePlatform} />
+            {/* ─── Stats row ────────────────────────────────────── */}
+            <StatsRow platform={effectivePlatform} />
 
-        {/* ─── Two-column body ────────────────────────────────────── */}
-        <section
-          className="grid gap-5"
-          style={{ gridTemplateColumns: "minmax(0, 1.4fr) minmax(0, 1fr)" }}
-        >
-          <RecentPostsCard platform={effectivePlatform} />
-          <div className="space-y-5">
-            <ThisWeekCard platform={effectivePlatform} />
-            <AudienceCard platform={effectivePlatform} />
-          </div>
-        </section>
+            {/* ─── Two-column body ──────────────────────────────── */}
+            <section
+              className="grid gap-5"
+              style={{ gridTemplateColumns: "minmax(0, 1.4fr) minmax(0, 1fr)" }}
+            >
+              <RecentPostsCard platform={effectivePlatform} />
+              <div className="space-y-5">
+                <ThisWeekCard platform={effectivePlatform} />
+                <AudienceCard platform={effectivePlatform} />
+              </div>
+            </section>
 
-        {/* ─── Algorithm Watch ────────────────────────────────────── */}
-        <AlgorithmWatchCard platform={effectivePlatform} />
+            {/* ─── Algorithm Watch ──────────────────────────────── */}
+            <AlgorithmWatchCard platform={effectivePlatform} />
+          </>
+        )}
 
       </div>
 
@@ -331,6 +341,69 @@ export default function DashboardPage() {
           50%      { transform: scale(1.6); opacity: 0.4; }
         }
       `}</style>
+    </div>
+  )
+}
+
+// ─── Nothing connected empty state ───────────────────────────────────────────
+function NothingConnectedState({ firstName }: { firstName: string }) {
+  return (
+    <div
+      className="flex flex-col items-center justify-center text-center py-20 px-6 rounded-[24px]"
+      style={{ backgroundColor: TOKENS.card, border: `1px solid ${TOKENS.hairline}` }}
+    >
+      {/* Icon */}
+      <div
+        className="flex h-16 w-16 items-center justify-center rounded-full mb-6 text-3xl"
+        style={{ backgroundColor: TOKENS.bg, border: `1px solid ${TOKENS.hairlineStrong}` }}
+        aria-hidden
+      >
+        📡
+      </div>
+
+      <p
+        className="text-[11px] uppercase tracking-[0.18em] mb-3"
+        style={{ color: TOKENS.brown, fontFamily: TOKENS.fontMono }}
+      >
+        // no accounts connected
+      </p>
+
+      <h2
+        className="text-2xl md:text-3xl font-medium leading-tight mb-3"
+        style={{ color: TOKENS.ink, letterSpacing: "-0.01em" }}
+      >
+        Nothing to show yet,{" "}
+        <em style={{ color: TOKENS.orange, fontStyle: "italic" }}>{firstName}.</em>
+      </h2>
+
+      <p
+        className="text-[15px] leading-relaxed max-w-[44ch] mb-8"
+        style={{ color: TOKENS.inkSoft }}
+      >
+        Connect your Instagram account and BrandFlow will pull in your real stats, recent posts, and growth data.
+      </p>
+
+      <div className="flex flex-col sm:flex-row items-center gap-3">
+        <a
+          href="/api/auth/instagram"
+          className="inline-flex items-center gap-2 h-12 px-6 rounded-full text-[15px] font-medium transition-opacity hover:opacity-90"
+          style={{ backgroundColor: TOKENS.orange, color: "#FFFFFF" }}
+        >
+          <Plug className="h-4 w-4" />
+          Connect Instagram
+        </a>
+        <Link
+          href="/settings"
+          className="inline-flex items-center gap-1.5 h-12 px-6 rounded-full text-[15px] font-medium transition-opacity hover:opacity-80"
+          style={{
+            backgroundColor: "transparent",
+            color: TOKENS.inkSoft,
+            border: `1px solid ${TOKENS.hairlineStrong}`,
+          }}
+        >
+          Other platforms →
+        </Link>
+      </div>
     </div>
   )
 }
