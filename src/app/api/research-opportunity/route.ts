@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
-import { fetchPageText } from "../research-profile/route"
+import { fetchPageText } from "@/lib/page-fetcher"
 
 export async function POST(request: Request) {
   const apiKey = process.env.ANTHROPIC_API_KEY

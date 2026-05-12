@@ -226,7 +226,7 @@ export function SettingsPageClient() {
     if (dbStatus.checked) return
     try {
       // Check ideas table by querying it (if it errors, it doesn't exist)
-      const { error: ideasErr } = await (supabase.from("ideas") as any).select("id").limit(1)
+      const { error: ideasErr } = await supabase.from("ideas").select("id").limit(1)
       const ideasOk = !ideasErr || ideasErr.code !== "42P01"
 
       // Check content_pillars columns by selecting them
@@ -380,7 +380,7 @@ export function SettingsPageClient() {
     setDeletingContent(true)
     try {
       // Delete ideas for this brand
-      await (supabase.from("ideas") as any).delete().eq("brand_id", brand.id)
+      await supabase.from("ideas").delete().eq("brand_id", brand.id)
       // Delete content pillars for this brand
       await supabase.from("content_pillars").delete().eq("brand_id", brand.id)
       toast({ title: "Content cleared", description: "All ideas and content pillars have been deleted." })
@@ -401,8 +401,7 @@ export function SettingsPageClient() {
     const confirmed = window.confirm("Disconnect Instagram? Live stats will switch back to placeholder data.")
     if (!confirmed) return
     setDisconnectingIg(true)
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { error } = await ((supabase as any)
+    const { error } = await supabase
       .from("profiles")
       .update({
         instagram_access_token: null,
@@ -410,7 +409,7 @@ export function SettingsPageClient() {
         instagram_user_id: null,
         instagram_page_id: null,
       })
-      .eq("id", user.id))
+      .eq("id", user.id)
     if (error) {
       toast({ title: "Failed to disconnect Instagram", description: error.message, variant: "destructive" })
     } else {

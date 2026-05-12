@@ -46,6 +46,10 @@ export type Platform = {
   shortName: string
   accent: string
   handleHint: string
+  // `true` when the platform's API isn't wired up yet and the stats below are
+  // illustrative placeholders rather than live numbers. The dashboard surfaces
+  // a "Preview data" banner so users don't mistake it for real analytics.
+  isPreview?: boolean
   stats: Stat[]
   posts: RecentPost[]
   thisWeek: {
@@ -171,6 +175,7 @@ export const PLATFORMS: Record<PlatformId, Platform> = {
     shortName: "TikTok",
     accent: "#FF2B5E",
     handleHint: "@maya.makes",
+    isPreview: true,
     stats: [
       { label: "Followers",      value: "184K",    delta: "+12.8K", deltaPct: "+7.5%" },
       { label: "Views (28d)",    value: "12.6M",   deltaPct: "+34%" },
@@ -247,6 +252,7 @@ export const PLATFORMS: Record<PlatformId, Platform> = {
     shortName: "Shorts",
     accent: "#FF0033",
     handleHint: "@maya.makes",
+    isPreview: true,
     stats: [
       {
         label: "Subscribers",

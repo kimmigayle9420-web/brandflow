@@ -33,20 +33,19 @@ export async function GET() {
     return NextResponse.json({ connected: false, error: "not_authenticated" }, { status: 401 })
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: profile, error: profileErr } = (await supabase
+  const { data: profile, error: profileErr } = await supabase
     .from("profiles")
     .select("instagram_access_token, instagram_user_id, instagram_token_expires_at")
     .eq("id", user.id)
-    .single()) as any
+    .single()
 
   if (profileErr || !profile?.instagram_access_token || !profile?.instagram_user_id) {
     return NextResponse.json({ connected: false })
   }
 
-  const token: string = profile.instagram_access_token
-  const igId: string = profile.instagram_user_id
-  const expiresAt: string | null = profile.instagram_token_expires_at ?? null
+  const token = profile.instagram_access_token
+  const igId = profile.instagram_user_id
+  const expiresAt = profile.instagram_token_expires_at
 
   if (expiresAt && new Date(expiresAt).getTime() < Date.now()) {
     return NextResponse.json({ connected: false, expired: true })

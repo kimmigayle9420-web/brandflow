@@ -40,8 +40,7 @@ async function persist(
   userId: string,
   accounts: Record<string, SocialAccount>,
 ): Promise<void> {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { error } = await (supabase as any)
+  const { error } = await supabase
     .from("profiles")
     .update({ social_accounts: accounts })
     .eq("id", userId)

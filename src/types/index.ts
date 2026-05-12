@@ -109,29 +109,55 @@ export type Idea = {
   updated_at: string
 }
 
+// Splits a Row into required (non-nullable) keys and optional (nullable) keys,
+// matching Postgres semantics where nullable columns don't need to be supplied
+// at INSERT time. Mirrors the shape supabase-cli generates from `supabase gen types`.
+type NullableKeys<T> = {
+  [K in keyof T]: null extends T[K] ? K : never
+}[keyof T]
+type RequiredKeys<T> = Exclude<keyof T, NullableKeys<T>>
+
+type InsertOf<Row, OmitKeys extends keyof Row> =
+  & { [K in Exclude<RequiredKeys<Row>, OmitKeys>]: Row[K] }
+  & { [K in Exclude<NullableKeys<Row>, OmitKeys>]?: Row[K] }
+
 export type Database = {
   public: {
     Tables: {
       profiles: {
         Row: Profile
-        Insert: Omit<Profile, 'created_at' | 'updated_at'>
+        Insert: InsertOf<Profile, 'created_at' | 'updated_at'>
         Update: Partial<Omit<Profile, 'id' | 'created_at'>>
+        Relationships: []
       }
       brands: {
         Row: Brand
-        Insert: Omit<Brand, 'id' | 'created_at' | 'updated_at'>
+        Insert: InsertOf<Brand, 'id' | 'created_at' | 'updated_at'>
         Update: Partial<Omit<Brand, 'id' | 'user_id' | 'created_at'>>
+        Relationships: []
       }
       content_pillars: {
         Row: ContentPillar
-        Insert: Omit<ContentPillar, 'id' | 'created_at' | 'updated_at'>
+        Insert: InsertOf<ContentPillar, 'id' | 'created_at' | 'updated_at'>
         Update: Partial<Omit<ContentPillar, 'id' | 'user_id' | 'brand_id' | 'created_at'>>
+        Relationships: []
       }
       posts: {
         Row: Post
-        Insert: Omit<Post, 'id' | 'created_at' | 'updated_at'>
+        Insert: InsertOf<Post, 'id' | 'created_at' | 'updated_at'>
         Update: Partial<Omit<Post, 'id' | 'user_id' | 'brand_id' | 'created_at'>>
+        Relationships: []
+      }
+      ideas: {
+        Row: Idea
+        Insert: InsertOf<Idea, 'id' | 'created_at' | 'updated_at'>
+        Update: Partial<Omit<Idea, 'id' | 'user_id' | 'brand_id' | 'created_at'>>
+        Relationships: []
       }
     }
+    Views: Record<string, never>
+    Functions: Record<string, never>
+    Enums: Record<string, never>
+    CompositeTypes: Record<string, never>
   }
 }

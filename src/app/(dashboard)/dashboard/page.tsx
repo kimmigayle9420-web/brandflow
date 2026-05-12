@@ -193,12 +193,12 @@ export default function DashboardPage() {
         .eq("id", user.id)
         .single()
       if (cancelled || !data) return
-      const rawName = (data as any).full_name as string | null
+      const rawName = data.full_name
       if (rawName) {
         setFullName(rawName)
         setFirstName(rawName.split(" ")[0])
       }
-      const social = (data as any).social_accounts as Record<string, any> | null
+      const social = data.social_accounts
       const platformKey = active === "shorts" ? "youtube" : active
       const entry = social?.[platformKey]
       const h = typeof entry === "string" ? entry : entry?.handle
@@ -249,9 +249,6 @@ export default function DashboardPage() {
     return base
   }, [active, igStats])
 
-  const showConnectInstagram =
-    active === "instagram" && igStats !== null && igStats.connected === false
-
   const nothingConnected =
     active === "instagram" && igStats !== null && igStats.connected === false
 
@@ -284,7 +281,7 @@ export default function DashboardPage() {
 
           <div className="flex flex-wrap items-center gap-3">
             <PlatformSwitcher active={active} onChange={setActive} />
-            {showConnectInstagram && (
+            {nothingConnected && (
               <a
                 href="/api/auth/instagram"
                 className="inline-flex items-center gap-1.5 h-10 px-4 rounded-full text-sm font-medium transition-opacity hover:opacity-90"
@@ -309,6 +306,11 @@ export default function DashboardPage() {
           <NothingConnectedState firstName={firstName} />
         ) : (
           <>
+            {/* Preview banner for platforms whose API isn't wired up yet */}
+            {effectivePlatform.isPreview && (
+              <PreviewBanner platformName={effectivePlatform.name} />
+            )}
+
             {/* ─── Profile band ─────────────────────────────────── */}
             <ProfileBand handle={handle} fullName={fullName} platform={effectivePlatform} />
 
@@ -341,6 +343,37 @@ export default function DashboardPage() {
           50%      { transform: scale(1.6); opacity: 0.4; }
         }
       `}</style>
+    </div>
+  )
+}
+
+// ─── Preview-data banner ─────────────────────────────────────────────────────
+// Shown for platforms whose API isn't wired up yet — the numbers are sample
+// data so the dashboard has something to render. The banner makes it explicit
+// so users don't mistake them for real analytics.
+function PreviewBanner({ platformName }: { platformName: string }) {
+  return (
+    <div
+      className="flex items-start gap-3 rounded-2xl px-4 py-3"
+      style={{
+        backgroundColor: TOKENS.card,
+        border: `1px dashed ${TOKENS.hairlineStrong}`,
+      }}
+    >
+      <span
+        className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold tracking-wider shrink-0"
+        style={{
+          backgroundColor: TOKENS.orange,
+          color: "#FFFFFF",
+          fontFamily: TOKENS.fontMono,
+        }}
+      >
+        PREVIEW
+      </span>
+      <p className="text-[13px] leading-relaxed" style={{ color: TOKENS.inkSoft }}>
+        {platformName} stats below are sample data. Live {platformName} integration is coming soon —
+        connect Instagram for real numbers today.
+      </p>
     </div>
   )
 }

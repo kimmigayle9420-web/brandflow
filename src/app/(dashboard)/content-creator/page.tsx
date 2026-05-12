@@ -27,21 +27,19 @@ export default async function ContentCreatorPage() {
       .single(),
   ])
 
-  const primaryBrand: Brand | null = brands && brands.length > 0 ? (brands[0] as unknown as Brand) : null
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const primaryBrand: Brand | null = brands && brands.length > 0 ? brands[0] : null
   const socialAccounts = toHandleMap(
-    normalizeSocialAccounts(((profile as any)?.social_accounts ?? {}) as SocialAccountsMap | null),
+    normalizeSocialAccounts((profile?.social_accounts ?? {}) as SocialAccountsMap | null),
   )
 
   let initialPillars: ContentPillar[] = []
   if (primaryBrand) {
     const { data: pillars } = await supabase
       .from("content_pillars")
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       .select("*")
-      .eq("brand_id" as any, primaryBrand.id)
+      .eq("brand_id", primaryBrand.id)
       .order("sort_order")
-    initialPillars = (pillars as ContentPillar[] | null) ?? []
+    initialPillars = pillars ?? []
   }
 
   return (

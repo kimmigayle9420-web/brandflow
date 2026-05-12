@@ -26,12 +26,11 @@ export default async function CalendarPage() {
   ])
 
   const primaryBrand: Brand | null = brands && brands.length > 0
-    ? (brands[0] as unknown as Brand)
+    ? brands[0]
     : null
 
   const pillars: ContentPillar[] = primaryBrand
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    ? ((pillarsRaw ?? []) as any[]).filter((p: any) => p.brand_id === primaryBrand.id) as ContentPillar[]
+    ? (pillarsRaw ?? []).filter((p) => p.brand_id === primaryBrand.id)
     : []
 
   let scheduledIdeas: Idea[] = []
@@ -41,28 +40,28 @@ export default async function CalendarPage() {
     // Scheduled: any idea with scheduled_at OR scheduled_date set.
     // Try scheduled_at first; fall back to scheduled_date if that column
     // doesn't exist yet (pre-migration-006 databases).
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const scheduledQ = await (supabase.from("ideas") as any)
+    const scheduledQ = await supabase
+      .from("ideas")
       .select("*")
       .eq("brand_id", primaryBrand.id)
       .or("scheduled_at.not.is.null,scheduled_date.not.is.null")
       .order("scheduled_at", { ascending: true, nullsFirst: false })
 
     if (scheduledQ.error && /scheduled_at/i.test(scheduledQ.error.message ?? "")) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const fallback = await (supabase.from("ideas") as any)
+      const fallback = await supabase
+        .from("ideas")
         .select("*")
         .eq("brand_id", primaryBrand.id)
         .not("scheduled_date", "is", null)
         .order("scheduled_date", { ascending: true })
-      scheduledIdeas = (fallback.data ?? []) as Idea[]
+      scheduledIdeas = fallback.data ?? []
     } else {
-      scheduledIdeas = (scheduledQ.data ?? []) as Idea[]
+      scheduledIdeas = scheduledQ.data ?? []
     }
 
     // Unscheduled: ideas with neither scheduled_at nor scheduled_date.
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const unschedQ = await (supabase.from("ideas") as any)
+    const unschedQ = await supabase
+      .from("ideas")
       .select("*")
       .eq("brand_id", primaryBrand.id)
       .is("scheduled_at", null)
@@ -72,17 +71,17 @@ export default async function CalendarPage() {
       .limit(20)
 
     if (unschedQ.error && /scheduled_at/i.test(unschedQ.error.message ?? "")) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const fallback = await (supabase.from("ideas") as any)
+      const fallback = await supabase
+        .from("ideas")
         .select("*")
         .eq("brand_id", primaryBrand.id)
         .is("scheduled_date", null)
         .in("status", ["idea", "draft"])
         .order("created_at", { ascending: false })
         .limit(20)
-      unscheduledIdeas = (fallback.data ?? []) as Idea[]
+      unscheduledIdeas = fallback.data ?? []
     } else {
-      unscheduledIdeas = (unschedQ.data ?? []) as Idea[]
+      unscheduledIdeas = unschedQ.data ?? []
     }
   }
 

@@ -220,8 +220,7 @@ function PillarsSection({
 
     const { data: inserted, error: dbError } = await supabase
       .from("content_pillars")
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      .insert(inserts as any)
+      .insert(inserts)
       .select()
 
     if (dbError) {
@@ -499,15 +498,14 @@ function ProfileAnalyserSection({ brand }: { brand: Brand | null }) {
       return
     }
 
-    const updates: Partial<Brand> = {}
+    const updates: Partial<Omit<Brand, "id" | "user_id" | "created_at">> = {}
     if (result.niche && !brand.niche) updates.niche = result.niche
     if (result.targetAudience && !brand.target_audience)
       updates.target_audience = result.targetAudience
     if (result.brandVoice && !brand.tone_of_voice)
       updates.tone_of_voice = result.brandVoice
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { error: dbError } = await (supabase as any)
+    const { error: dbError } = await supabase
       .from("brands")
       .update(updates)
       .eq("id", brand.id)

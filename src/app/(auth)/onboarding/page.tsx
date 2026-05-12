@@ -125,8 +125,7 @@ export default function OnboardingPage() {
       return
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { error } = await (supabase as any).from("brands").insert({
+    const { error } = await supabase.from("brands").insert({
       user_id: user.id,
       name: brandData.name,
       niche: brandData.niche,
@@ -161,15 +160,13 @@ export default function OnboardingPage() {
     } = await supabase.auth.getUser()
 
     if (user) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data: profileRow } = (await supabase
+      const { data: profileRow } = await supabase
         .from("profiles")
         .select("social_accounts")
         .eq("id", user.id)
-        .single()) as any
-      const existing: Record<string, string> = profileRow?.social_accounts ?? {}
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      await (supabase as any)
+        .single()
+      const existing = profileRow?.social_accounts ?? {}
+      await supabase
         .from("profiles")
         .update({ social_accounts: { ...existing, instagram: cleaned } })
         .eq("id", user.id)

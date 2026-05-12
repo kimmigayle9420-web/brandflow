@@ -26,26 +26,23 @@ export default async function ContentPlannerPage() {
   ])
 
   const primaryBrand: Brand | null = brands && brands.length > 0
-    ? (brands[0] as unknown as Brand)
+    ? brands[0]
     : null
 
-  // Filter pillars to the primary brand
   const pillars: ContentPillar[] = primaryBrand
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    ? ((pillarsRaw ?? []) as any[]).filter((p: any) => p.brand_id === primaryBrand.id) as ContentPillar[]
+    ? (pillarsRaw ?? []).filter((p) => p.brand_id === primaryBrand.id)
     : []
 
-  // Fetch saved ideas for the ideas bank sidebar
   let savedIdeas: Idea[] = []
   if (primaryBrand) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data: ideasData } = await (supabase.from("ideas") as any)
+    const { data: ideasData } = await supabase
+      .from("ideas")
       .select("*")
       .eq("brand_id", primaryBrand.id)
       .in("status", ["idea", "draft"])
       .order("created_at", { ascending: false })
       .limit(50)
-    savedIdeas = (ideasData ?? []) as Idea[]
+    savedIdeas = ideasData ?? []
   }
 
   return (

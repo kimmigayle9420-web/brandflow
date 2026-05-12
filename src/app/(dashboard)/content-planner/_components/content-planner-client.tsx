@@ -435,14 +435,14 @@ export function ContentPlannerClient({
     if (!brand) return
     setIdeasLoading(true)
     try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data } = await (supabase.from("ideas") as any)
+      const { data } = await supabase
+        .from("ideas")
         .select("*")
         .eq("brand_id", brand.id)
         .in("status", ["idea", "draft"])
         .order("created_at", { ascending: false })
         .limit(50)
-      setIdeas((data ?? []) as Idea[])
+      setIdeas(data ?? [])
     } catch { /* silent */ }
     setIdeasLoading(false)
   }, [brand, supabase])

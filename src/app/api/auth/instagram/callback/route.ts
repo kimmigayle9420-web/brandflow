@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
 import { normalizeSocialAccounts } from "@/lib/social-accounts"
-import type { SocialAccount, SocialAccountsMap } from "@/types"
+import type { Profile, SocialAccount, SocialAccountsMap } from "@/types"
+
+type ProfileUpdate = Partial<Omit<Profile, "id" | "created_at">>
 
 const GRAPH = "https://graph.facebook.com/v19.0"
 
@@ -139,7 +141,7 @@ export async function GET(request: Request) {
     const expiresAt = new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString()
 
     // We store the *page* access token — it's what the IG Graph endpoints need.
-    const updates: Record<string, unknown> = {
+    const updates: ProfileUpdate = {
       instagram_access_token: chosenPageToken,
       instagram_token_expires_at: expiresAt,
       instagram_user_id: igUserId,
@@ -149,12 +151,11 @@ export async function GET(request: Request) {
     // Also overlay the IG handle onto social_accounts so the dashboard
     // profile band shows it right away.
     if (igUsername) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data: profileRow } = (await supabase
+      const { data: profileRow } = await supabase
         .from("profiles")
         .select("social_accounts")
         .eq("id", user.id)
-        .single()) as any
+        .single()
       const existing = normalizeSocialAccounts(
         (profileRow?.social_accounts ?? {}) as SocialAccountsMap | null,
       )
@@ -172,11 +173,10 @@ export async function GET(request: Request) {
       updates.social_accounts = merged
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { error: updateErr } = await ((supabase as any)
+    const { error: updateErr } = await supabase
       .from("profiles")
       .update(updates)
-      .eq("id", user.id))
+      .eq("id", user.id)
 
     if (updateErr) {
       console.error("[instagram/callback] profile update failed", updateErr)

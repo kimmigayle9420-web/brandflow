@@ -483,9 +483,9 @@ function SideRail({
       platforms: state.platforms,
     }
 
-    const base: Record<string, unknown> = {
-      user_id: userId,
-      brand_id: brand.id,
+    // Fields that are valid in both insert and update (user_id and brand_id
+    // are insert-only; the schema's Update type forbids changing them).
+    const shared = {
       pillar_id: state.pillarId,
       format: fmtMeta.dbFormat,
       title: state.title.trim(),
@@ -496,31 +496,30 @@ function SideRail({
         : null,
       script: scriptPayload,
       status,
+      ...(scheduledIso ? { scheduled_date: scheduledIso } : {}),
     }
-    if (scheduledIso) base.scheduled_date = scheduledIso
 
     setSaving(true)
     try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const table = supabase.from("ideas") as any
+      const table = supabase.from("ideas")
       const { data, error } = state.ideaId
-        ? await table.update(base).eq("id", state.ideaId).select().single()
-        : await table.insert(base).select().single()
+        ? await table.update(shared).eq("id", state.ideaId).select().single()
+        : await table.insert({ user_id: userId, brand_id: brand.id, ...shared }).select().single()
 
       if (error) {
         // fallback if scheduled_date column missing
-        if (/scheduled_date/i.test(error.message ?? "") && base.scheduled_date) {
-          delete base.scheduled_date
+        if (/scheduled_date/i.test(error.message ?? "") && scheduledIso) {
+          const { scheduled_date: _drop, ...retryShared } = shared
           const retry = state.ideaId
-            ? await table.update(base).eq("id", state.ideaId).select().single()
-            : await table.insert(base).select().single()
+            ? await table.update(retryShared).eq("id", state.ideaId).select().single()
+            : await table.insert({ user_id: userId, brand_id: brand.id, ...retryShared }).select().single()
           if (retry.error) throw retry.error
           toast({ title: "Saved (without date)", description: "Run migration 005 to enable scheduling." })
-          return retry.data as Idea
+          return retry.data
         }
         throw error
       }
-      return data as Idea
+      return data
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Unknown error"
       toast({ title: "Couldn't save", description: msg, variant: "destructive" })
@@ -555,8 +554,7 @@ function SideRail({
   const handleDelete = async () => {
     if (!state.ideaId) return
     setDeleting(true)
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { error } = await (supabase.from("ideas") as any).delete().eq("id", state.ideaId)
+    const { error } = await supabase.from("ideas").delete().eq("id", state.ideaId)
     setDeleting(false)
     if (error) {
       toast({ title: "Couldn't delete", description: error.message, variant: "destructive" })
@@ -990,8 +988,8 @@ export function ContentCreatorClient({
       return
     }
     setLoading(true)
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data, error } = await (supabase.from("ideas") as any)
+    const { data, error } = await supabase
+      .from("ideas")
       .select("*")
       .eq("brand_id", brand.id)
       .order("created_at", { ascending: false })
@@ -1004,7 +1002,7 @@ export function ContentCreatorClient({
         toast({ title: "Couldn't load ideas", description: msg, variant: "destructive" })
       }
     }
-    setIdeas((data ?? []) as Idea[])
+    setIdeas(data ?? [])
     setLoading(false)
   }
 

@@ -98,10 +98,8 @@ export default function ConnectAccountsPage() {
           .select("social_accounts")
           .eq("id", user.id)
           .single()
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const existing = (profileRow as any)?.social_accounts ?? {}
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        await (supabase as any)
+        const existing = profileRow?.social_accounts ?? {}
+        await supabase
           .from("profiles")
           .update({ social_accounts: { ...existing, [platformId]: trimmed } })
           .eq("id", user.id)
