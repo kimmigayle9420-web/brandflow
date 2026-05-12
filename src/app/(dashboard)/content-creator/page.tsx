@@ -1,7 +1,8 @@
 import { createClient } from "@/lib/supabase/server"
 import { Header } from "@/components/layout/header"
 import { ContentCreatorClient } from "./_components/content-creator-client"
-import type { Brand, ContentPillar } from "@/types"
+import type { Brand, ContentPillar, SocialAccountsMap } from "@/types"
+import { normalizeSocialAccounts, toHandleMap } from "@/lib/social-accounts"
 import type { Metadata } from "next"
 
 export const metadata: Metadata = {
@@ -28,7 +29,9 @@ export default async function ContentCreatorPage() {
 
   const primaryBrand: Brand | null = brands && brands.length > 0 ? (brands[0] as unknown as Brand) : null
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const socialAccounts = ((profile as any)?.social_accounts ?? {}) as Record<string, string>
+  const socialAccounts = toHandleMap(
+    normalizeSocialAccounts(((profile as any)?.social_accounts ?? {}) as SocialAccountsMap | null),
+  )
 
   let initialPillars: ContentPillar[] = []
   if (primaryBrand) {

@@ -5,6 +5,8 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { saveSocialHandle, removeSocialHandle } from "../_actions/social-accounts"
+import type { SocialAccount } from "@/types"
+import { toHandleMap } from "@/lib/social-accounts"
 
 type OAuthMessage =
   | { type: "setup"; url: string; envVar: string }
@@ -108,9 +110,11 @@ function buildProfileUrl(platformId: string, handle: string): string {
 export function SocialConnect({
   initialAccounts = {},
 }: {
-  initialAccounts?: Record<string, string>
+  initialAccounts?: Record<string, SocialAccount>
 }) {
-  const [accounts, setAccounts] = useState<Record<string, string>>(initialAccounts)
+  const [accounts, setAccounts] = useState<Record<string, string>>(
+    toHandleMap(initialAccounts),
+  )
   const [expandedPlatform, setExpandedPlatform] = useState<string | null>(null)
   const [showAddPanel, setShowAddPanel] = useState(false)
   const [inputValue, setInputValue] = useState("")
@@ -144,7 +148,7 @@ export function SocialConnect({
     startTransition(async () => {
       try {
         const result = await saveSocialHandle(platformId, trimmed)
-        setAccounts(result.accounts)
+        setAccounts(toHandleMap(result.accounts))
         closeInput()
         setShowAddPanel(false)
       } catch (err: any) {
@@ -160,7 +164,7 @@ export function SocialConnect({
     startTransition(async () => {
       try {
         const result = await removeSocialHandle(platformId)
-        setAccounts(result.accounts)
+        setAccounts(toHandleMap(result.accounts))
         if (expandedPlatform === platformId) closeInput()
       } catch {
         // silent
