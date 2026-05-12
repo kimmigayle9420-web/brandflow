@@ -26,12 +26,22 @@ export async function GET(request: Request) {
     process.env.NEXT_PUBLIC_SITE_URL ??
     (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : origin)
 
+  console.log("[instagram/callback] entered", {
+    hasCode: Boolean(code),
+    oauthError,
+    origin,
+    baseUrl,
+    hasSiteEnv: Boolean(process.env.NEXT_PUBLIC_SITE_URL),
+    hasVercelEnv: Boolean(process.env.VERCEL_URL),
+  })
+
   if (oauthError || !code) {
     console.error("[instagram/callback] oauth dialog returned error", {
       error: oauthError,
       description: oauthErrorDesc,
+      fullQuery: Object.fromEntries(searchParams.entries()),
     })
-    return NextResponse.redirect(`${baseUrl}/dashboard?error=instagram`)
+    return NextResponse.redirect(`${baseUrl}/dashboard?error=instagram&reason=oauth_dialog`)
   }
 
   const appId = process.env.NEXT_PUBLIC_INSTAGRAM_APP_ID
@@ -41,6 +51,7 @@ export async function GET(request: Request) {
     console.error("[instagram/callback] missing env vars", {
       hasAppId: Boolean(appId),
       hasAppSecret: Boolean(appSecret),
+      envKeys: Object.keys(process.env).filter((k) => k.includes("INSTAGRAM")),
     })
     return NextResponse.redirect(`${baseUrl}/dashboard?error=instagram_not_configured`)
   }
@@ -61,8 +72,12 @@ export async function GET(request: Request) {
     )
     const shortData = await shortRes.json()
     if (!shortData.access_token) {
-      console.error("[instagram/callback] no short token", shortData)
-      return NextResponse.redirect(`${baseUrl}/dashboard?error=instagram`)
+      console.error("[instagram/callback] no short token", {
+        status: shortRes.status,
+        body: shortData,
+        redirectUriSent: redirectUri,
+      })
+      return NextResponse.redirect(`${baseUrl}/dashboard?error=instagram&reason=short_token`)
     }
 
     // 2. Exchange short-lived token for a long-lived user token (~60 days)
@@ -78,8 +93,11 @@ export async function GET(request: Request) {
     )
     const longData = await longRes.json()
     if (!longData.access_token) {
-      console.error("[instagram/callback] no long token", longData)
-      return NextResponse.redirect(`${baseUrl}/dashboard?error=instagram`)
+      console.error("[instagram/callback] no long token", {
+        status: longRes.status,
+        body: longData,
+      })
+      return NextResponse.redirect(`${baseUrl}/dashboard?error=instagram&reason=long_token`)
     }
     const userAccessToken: string = longData.access_token
 
@@ -90,10 +108,19 @@ export async function GET(request: Request) {
         new URLSearchParams({ access_token: userAccessToken }).toString(),
     )
     const pagesData = await pagesRes.json()
+    if (pagesData?.error) {
+      console.error("[instagram/callback] /me/accounts error", {
+        status: pagesRes.status,
+        body: pagesData,
+      })
+    }
     const pages: FbPage[] = pagesData?.data ?? []
 
     if (pages.length === 0) {
-      console.error("[instagram/callback] no FB pages on this account")
+      console.error("[instagram/callback] no FB pages on this account", {
+        status: pagesRes.status,
+        body: pagesData,
+      })
       return NextResponse.redirect(`${baseUrl}/dashboard?error=instagram_no_pages`)
     }
 
@@ -111,6 +138,12 @@ export async function GET(request: Request) {
           }).toString(),
       )
       const igData = await igRes.json()
+      if (igData?.error) {
+        console.error("[instagram/callback] page lookup error", {
+          pageId: page.id,
+          body: igData,
+        })
+      }
       const id: string | undefined = igData?.instagram_business_account?.id
       if (id) {
         chosenPageId = page.id
@@ -121,7 +154,9 @@ export async function GET(request: Request) {
     }
 
     if (!igUserId || !chosenPageId || !chosenPageToken) {
-      console.error("[instagram/callback] no IG business account on any page")
+      console.error("[instagram/callback] no IG business account on any page", {
+        pageIds: pages.map((p) => p.id),
+      })
       return NextResponse.redirect(`${baseUrl}/dashboard?error=instagram_no_ig`)
     }
 
@@ -147,7 +182,8 @@ export async function GET(request: Request) {
       data: { user },
     } = await supabase.auth.getUser()
     if (!user) {
-      return NextResponse.redirect(`${baseUrl}/login`)
+      console.error("[instagram/callback] no authenticated user — redirecting to /login")
+      return NextResponse.redirect(`${baseUrl}/login?error=instagram_no_session`)
     }
 
     const expiresAt = new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString()
@@ -192,12 +228,18 @@ export async function GET(request: Request) {
 
     if (updateErr) {
       console.error("[instagram/callback] profile update failed", updateErr)
-      return NextResponse.redirect(`${baseUrl}/dashboard?error=instagram`)
+      return NextResponse.redirect(`${baseUrl}/dashboard?error=instagram&reason=profile_update`)
     }
 
-    return NextResponse.redirect(`${baseUrl}/dashboard?connected=instagram`)
+    const successUrl = `${baseUrl}/dashboard?connected=instagram`
+    console.log("[instagram/callback] success — redirecting", {
+      successUrl,
+      igUserId,
+      hasUsername: Boolean(igUsername),
+    })
+    return NextResponse.redirect(successUrl)
   } catch (err) {
     console.error("[instagram/callback] unexpected error", err)
-    return NextResponse.redirect(`${baseUrl}/dashboard?error=instagram`)
+    return NextResponse.redirect(`${baseUrl}/dashboard?error=instagram&reason=exception`)
   }
 }

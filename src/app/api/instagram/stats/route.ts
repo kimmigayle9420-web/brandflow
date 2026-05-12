@@ -47,6 +47,12 @@ export async function GET() {
     .single()
 
   if (profileErr || !profile?.instagram_access_token || !profile?.instagram_user_id) {
+    console.warn("[instagram/stats] no token on profile", {
+      userId: user.id,
+      profileErr: profileErr?.message,
+      hasToken: Boolean(profile?.instagram_access_token),
+      hasIgId: Boolean(profile?.instagram_user_id),
+    })
     return NextResponse.json({ connected: false })
   }
 
@@ -71,8 +77,16 @@ export async function GET() {
     )
     const account = await accountRes.json()
     if (account?.error) {
-      console.error("[instagram/stats] account error", account.error)
-      return NextResponse.json({ connected: false, error: "graph_error" })
+      console.error("[instagram/stats] account error", {
+        status: accountRes.status,
+        igId,
+        error: account.error,
+      })
+      return NextResponse.json({
+        connected: false,
+        error: "graph_error",
+        graphError: account.error,
+      })
     }
 
     // 2. 30-day insights — reach, views, profile_views. Run in parallel with
