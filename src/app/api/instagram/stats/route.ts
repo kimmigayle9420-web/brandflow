@@ -165,7 +165,7 @@ export async function GET() {
       profileViews,
       recentPosts,
     }
-    console.error("[instagram/stats] SUCCESS returning", {
+    console.log("[instagram/stats] returning payload", {
       connected: payload.connected,
       followers: payload.followers,
       posts: payload.recentPosts.length,
