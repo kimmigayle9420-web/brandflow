@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation"
 import {
   LayoutDashboard,
   CalendarDays,
+  CalendarRange,
   Settings,
   Zap,
   LogOut,
@@ -18,6 +19,7 @@ const navItems = [
   { href: "/dashboard", label: "Dashboard", mobileLabel: "Home", icon: LayoutDashboard },
   { href: "/content-creator", label: "Content Creator", mobileLabel: "Create", icon: PenLine },
   { href: "/content-planner", label: "Content Planner", mobileLabel: "Plan", icon: CalendarDays },
+  { href: "/calendar", label: "Calendar", mobileLabel: "Calendar", icon: CalendarRange },
   { href: "/settings", label: "Settings", mobileLabel: "Settings", icon: Settings },
 ]
 

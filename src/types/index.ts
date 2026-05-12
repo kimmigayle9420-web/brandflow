@@ -83,6 +83,8 @@ export type Idea = {
   media_url: string | null
   status: IdeaStatus
   scheduled_date: string | null
+  scheduled_at: string | null
+  platform: PostPlatform | null
   created_at: string
   updated_at: string
 }
