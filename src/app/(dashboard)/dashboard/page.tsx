@@ -1,89 +1,722 @@
-import { createClient } from "@/lib/supabase/server"
-import type { Metadata } from "next"
-import { PlatformDashboard } from "./_components/platform-dashboard"
+"use client"
 
-export const metadata: Metadata = {
-  title: "Dashboard — BrandFlow",
-  description: "Your creative brand hub",
+import { useEffect, useMemo, useState } from "react"
+import Link from "next/link"
+import { ArrowRight } from "lucide-react"
+import { createClient } from "@/lib/supabase/client"
+import { PLATFORMS, PROFILE, type Pillar, type PlatformId } from "@/data/dashboard"
+import { Sparkline } from "./_components/sparkline"
+import { BarRow } from "./_components/bar-row"
+import { PlatformIcon } from "./_components/platform-icon"
+
+// ─── Design tokens ────────────────────────────────────────────────────────────
+const TOKENS = {
+  bg: "#EDE6DC",
+  card: "#F4EEE2",
+  cardSoft: "#EFE7D8",
+  ink: "#2D2D2D",
+  inkSoft: "#4A4944",
+  orange: "#E06A33",
+  brown: "#8B7261",
+  brownSoft: "#C2B5A3",
+  hairline: "rgba(45,45,45,0.08)",
+  hairlineStrong: "rgba(45,45,45,0.14)",
+  fontBody: '"DM Sans", "Inter", system-ui, -apple-system, sans-serif',
+  fontMono: '"JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace',
 }
 
-export default async function DashboardPage() {
-  const supabase = createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+const SWATCH: Record<Pillar["swatch"], string> = {
+  orange: TOKENS.orange,
+  brown: TOKENS.brown,
+  ink: TOKENS.ink,
+  brownSoft: TOKENS.brownSoft,
+}
 
-  // YYYY-MM-DD in the server's local time — adequate for upcoming filter
-  const today = new Date().toISOString().slice(0, 10)
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+function formatToday(): string {
+  const d = new Date()
+  const weekday = d.toLocaleDateString("en-GB", { weekday: "long" })
+  const day = d.toLocaleDateString("en-GB", { day: "numeric" })
+  const month = d.toLocaleDateString("en-GB", { month: "long" })
+  const year = d.getFullYear()
+  return `${weekday} · ${day} ${month} ${year}`
+}
 
-  const [
-    { data: brands },
-    profileResult,
-    upcomingResult,
-    scheduledCountResult,
-    ideasCountResult,
-  ] = await Promise.all([
-    supabase
-      .from("brands")
-      .select("id, name")
-      .eq("user_id", user!.id)
-      .order("created_at", { ascending: false })
-      .limit(1),
-    supabase
-      .from("profiles")
-      .select("full_name, social_accounts")
-      .eq("id", user!.id)
-      .single(),
-    (supabase.from("ideas") as any)
-      .select("id, title, format, scheduled_date, status")
-      .eq("user_id", user!.id)
-      .not("scheduled_date", "is", null)
-      .gte("scheduled_date", today)
-      .order("scheduled_date", { ascending: true })
-      .limit(3),
-    (supabase.from("ideas") as any)
-      .select("id", { count: "exact", head: true })
-      .eq("user_id", user!.id)
-      .not("scheduled_date", "is", null)
-      .gte("scheduled_date", today),
-    supabase
-      .from("ideas")
-      .select("id", { count: "exact", head: true })
-      .eq("user_id", user!.id),
-  ])
+function greeting(): string {
+  const h = new Date().getHours()
+  if (h < 12) return "Good morning"
+  if (h < 18) return "Good afternoon"
+  return "Good evening"
+}
 
-  const firstName = profileResult.data?.full_name?.split(" ")[0] ?? "there"
-  const primaryBrand = brands?.[0] ?? null
-  const socialAccounts = (profileResult.data?.social_accounts ?? {}) as Record<string, string>
+// ─── Top-level page (client component) ────────────────────────────────────────
+export default function DashboardPage() {
+  const [active, setActive] = useState<PlatformId>("instagram")
+  const [firstName, setFirstName] = useState<string>(PROFILE.firstName)
+  const [handle, setHandle] = useState<string>(PROFILE.handle)
 
-  let pillarsCount = 0
-  if (primaryBrand) {
-    const { count } = await supabase
-      .from("content_pillars")
-      .select("id", { count: "exact", head: true })
-      .eq("brand_id", primaryBrand.id)
-    pillarsCount = count ?? 0
-  }
+  // Overlay handle/name from Supabase if available; otherwise keep design defaults
+  useEffect(() => {
+    let cancelled = false
+    const supabase = createClient()
+    void (async () => {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user || cancelled) return
+      const { data } = await supabase
+        .from("profiles")
+        .select("full_name, social_accounts")
+        .eq("id", user.id)
+        .single()
+      if (cancelled || !data) return
+      const fn = (data as any).full_name?.split(" ")[0]
+      if (fn) setFirstName(fn)
+      const social = (data as any).social_accounts as Record<string, string> | null
+      const platformKey = active === "shorts" ? "youtube" : active
+      const h = social?.[platformKey]
+      if (h) setHandle(h.replace(/^@/, ""))
+    })()
+    return () => {
+      cancelled = true
+    }
+    // re-run when platform changes (handle may differ per platform)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [active])
 
-  const upcomingIdeas = (upcomingResult.data ?? []) as {
-    id: string
-    title: string
-    format: "post" | "carousel" | "reel"
-    scheduled_date: string | null
-    status: "idea" | "draft" | "scheduled" | "posted"
-  }[]
+  const today = useMemo(() => formatToday(), [])
 
   return (
-    <PlatformDashboard
-      firstName={firstName}
-      brandName={primaryBrand?.name ?? null}
-      socialAccounts={socialAccounts}
-      upcomingIdeas={upcomingIdeas}
-      counts={{
-        scheduled: scheduledCountResult.count ?? 0,
-        ideas: ideasCountResult.count ?? 0,
-        pillars: pillarsCount,
+    <div
+      className="min-h-full"
+      style={{ backgroundColor: TOKENS.bg, color: TOKENS.ink, fontFamily: TOKENS.fontBody }}
+    >
+      <div className="max-w-[1180px] mx-auto px-5 md:px-8 py-6 md:py-9 space-y-7">
+
+        {/* ─── Top bar ────────────────────────────────────────────── */}
+        <header className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-5">
+          <div>
+            <p
+              className="text-[11px] uppercase tracking-[0.18em]"
+              style={{ color: TOKENS.brown, fontFamily: TOKENS.fontMono }}
+            >
+              {`// ${today}`}
+            </p>
+            <h1
+              className="text-[28px] md:text-[38px] font-medium leading-[1.1] mt-2"
+              style={{ color: TOKENS.ink, letterSpacing: "-0.01em" }}
+            >
+              {greeting()},{" "}
+              <em style={{ color: TOKENS.orange, fontStyle: "italic", fontWeight: 500 }}>
+                {firstName}.
+              </em>
+            </h1>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <PlatformSwitcher active={active} onChange={setActive} />
+            <Link
+              href="/content-creator"
+              className="inline-flex items-center gap-1.5 h-10 px-4 rounded-full text-sm font-medium transition-opacity hover:opacity-90"
+              style={{ backgroundColor: TOKENS.ink, color: TOKENS.bg }}
+            >
+              New post <ArrowRight className="h-3.5 w-3.5" />
+            </Link>
+          </div>
+        </header>
+
+        {/* ─── Profile band ───────────────────────────────────────── */}
+        <ProfileBand handle={handle} platformId={active} />
+
+        {/* ─── Stats row ──────────────────────────────────────────── */}
+        <StatsRow platformId={active} />
+
+        {/* ─── Two-column body ────────────────────────────────────── */}
+        <section
+          className="grid gap-5"
+          style={{ gridTemplateColumns: "minmax(0, 1.4fr) minmax(0, 1fr)" }}
+        >
+          <RecentPostsCard platformId={active} />
+          <div className="space-y-5">
+            <ThisWeekCard platformId={active} />
+            <AudienceCard platformId={active} />
+          </div>
+        </section>
+
+        {/* ─── Algorithm Watch ────────────────────────────────────── */}
+        <AlgorithmWatchCard platformId={active} />
+
+      </div>
+
+      {/* Body-level keyframes for the live pulse */}
+      <style jsx global>{`
+        @keyframes pulseDot {
+          0%, 100% { transform: scale(1);   opacity: 1;   }
+          50%      { transform: scale(1.6); opacity: 0.4; }
+        }
+      `}</style>
+    </div>
+  )
+}
+
+// ─── Platform switcher (pill) ─────────────────────────────────────────────────
+function PlatformSwitcher({
+  active,
+  onChange,
+}: {
+  active: PlatformId
+  onChange: (id: PlatformId) => void
+}) {
+  const ids: PlatformId[] = ["instagram", "tiktok", "shorts"]
+  return (
+    <div
+      role="tablist"
+      aria-label="Platform"
+      className="inline-flex items-center p-1 rounded-full"
+      style={{ backgroundColor: TOKENS.card, border: `1px solid ${TOKENS.hairline}` }}
+    >
+      {ids.map((id) => {
+        const p = PLATFORMS[id]
+        const isActive = active === id
+        return (
+          <button
+            key={id}
+            type="button"
+            role="tab"
+            aria-selected={isActive}
+            onClick={() => onChange(id)}
+            title={p.name}
+            className="h-8 w-9 rounded-full inline-flex items-center justify-center transition-colors"
+            style={
+              isActive
+                ? { backgroundColor: p.accent, color: "#FFFFFF" }
+                : { color: TOKENS.brown }
+            }
+          >
+            <PlatformIcon id={id} size={15} />
+          </button>
+        )
+      })}
+    </div>
+  )
+}
+
+// ─── Profile band ─────────────────────────────────────────────────────────────
+function ProfileBand({ handle, platformId }: { handle: string; platformId: PlatformId }) {
+  const accent = PLATFORMS[platformId].accent
+  return (
+    <section
+      className="grid gap-6 rounded-[18px] p-6 md:p-7"
+      style={{
+        backgroundColor: TOKENS.card,
+        border: `1px solid ${TOKENS.hairline}`,
+        gridTemplateColumns: "minmax(0, 1.1fr) minmax(0, 0.9fr)",
       }}
-    />
+    >
+      {/* Left — identity */}
+      <div className="flex items-start gap-5">
+        <div
+          className="w-16 h-16 rounded-full flex items-center justify-center shrink-0 text-2xl font-medium"
+          style={{
+            backgroundColor: TOKENS.bg,
+            color: TOKENS.ink,
+            border: `1px solid ${TOKENS.hairlineStrong}`,
+          }}
+          aria-hidden
+        >
+          {PROFILE.firstName.charAt(0)}
+        </div>
+        <div className="min-w-0">
+          <p
+            className="text-[10px] uppercase tracking-[0.18em] mb-1.5"
+            style={{ color: TOKENS.brown, fontFamily: TOKENS.fontMono }}
+          >
+            // creator
+          </p>
+          <h2 className="text-xl md:text-2xl font-medium leading-tight" style={{ color: TOKENS.ink }}>
+            {PROFILE.fullName}
+          </h2>
+          <p className="text-sm mt-1" style={{ color: accent }}>
+            @{handle}
+          </p>
+          <p className="text-[13px] mt-3 leading-relaxed max-w-[36ch]" style={{ color: TOKENS.inkSoft }}>
+            {PROFILE.bio}
+          </p>
+        </div>
+      </div>
+
+      {/* Right — pillars 2×2 */}
+      <div>
+        <p
+          className="text-[10px] uppercase tracking-[0.18em] mb-3"
+          style={{ color: TOKENS.brown, fontFamily: TOKENS.fontMono }}
+        >
+          // content mix
+        </p>
+        <div className="grid grid-cols-2 gap-2">
+          {PROFILE.pillars.map((p) => (
+            <div
+              key={p.name}
+              className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl"
+              style={{ backgroundColor: TOKENS.bg, border: `1px solid ${TOKENS.hairline}` }}
+            >
+              <span
+                className="block w-3 h-3 rounded-sm shrink-0"
+                style={{ backgroundColor: SWATCH[p.swatch] }}
+                aria-hidden
+              />
+              <div className="min-w-0 flex-1">
+                <p className="text-[12px] font-medium truncate" style={{ color: TOKENS.ink }}>
+                  {p.name}
+                </p>
+              </div>
+              <span
+                className="text-[12px] tabular-nums font-medium shrink-0"
+                style={{ color: TOKENS.ink, fontFamily: TOKENS.fontMono }}
+              >
+                {p.pct}%
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  )
+}
+
+// ─── Stats row ────────────────────────────────────────────────────────────────
+function StatsRow({ platformId }: { platformId: PlatformId }) {
+  const platform = PLATFORMS[platformId]
+  return (
+    <section className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      {platform.stats.map((s) => {
+        const isHighlight = s.highlight
+        return (
+          <div
+            key={s.label}
+            className="rounded-[18px] p-5"
+            style={{
+              backgroundColor: isHighlight ? platform.accent : TOKENS.card,
+              color: isHighlight ? "#FFFFFF" : TOKENS.ink,
+              border: isHighlight ? "none" : `1px solid ${TOKENS.hairline}`,
+            }}
+          >
+            <div className="flex items-baseline justify-between gap-2">
+              <span
+                className="text-[10px] uppercase tracking-[0.16em]"
+                style={{
+                  color: isHighlight ? "rgba(255,255,255,0.85)" : TOKENS.brown,
+                  fontFamily: TOKENS.fontMono,
+                }}
+              >
+                {s.label}
+              </span>
+              {s.deltaPct && (
+                <span
+                  className="text-[10px] tabular-nums font-medium"
+                  style={{
+                    color: isHighlight ? "rgba(255,255,255,0.95)" : TOKENS.orange,
+                    fontFamily: TOKENS.fontMono,
+                  }}
+                >
+                  {s.deltaPct}
+                </span>
+              )}
+            </div>
+
+            <div className="mt-3 flex items-end justify-between gap-3">
+              <p
+                className="text-[28px] md:text-[32px] font-medium leading-none tabular-nums"
+                style={{ letterSpacing: "-0.01em" }}
+              >
+                {s.value}
+              </p>
+              {s.sparkline && (
+                <Sparkline
+                  data={s.sparkline}
+                  color={isHighlight ? "rgba(255,255,255,0.9)" : platform.accent}
+                  height={28}
+                  width={84}
+                />
+              )}
+            </div>
+
+            <div className="mt-3 flex items-center justify-between gap-2">
+              {s.delta && (
+                <span
+                  className="text-[11px] tabular-nums"
+                  style={{
+                    color: isHighlight ? "rgba(255,255,255,0.85)" : TOKENS.inkSoft,
+                    fontFamily: TOKENS.fontMono,
+                  }}
+                >
+                  {s.delta}
+                </span>
+              )}
+              {!s.delta && !s.goal && <span />}
+
+              {s.goal && (
+                <div className="flex items-center gap-2 flex-1 min-w-0">
+                  <span
+                    className="block flex-1 h-1 rounded-full overflow-hidden"
+                    style={{
+                      backgroundColor: isHighlight
+                        ? "rgba(255,255,255,0.25)"
+                        : "rgba(45,45,45,0.10)",
+                    }}
+                    aria-hidden
+                  >
+                    <span
+                      className="block h-full rounded-full"
+                      style={{
+                        width: `${Math.min(100, (s.goal.current / s.goal.max) * 100)}%`,
+                        backgroundColor: isHighlight ? "#FFFFFF" : platform.accent,
+                      }}
+                    />
+                  </span>
+                  <span
+                    className="text-[10px] shrink-0"
+                    style={{
+                      color: isHighlight ? "rgba(255,255,255,0.85)" : TOKENS.brown,
+                      fontFamily: TOKENS.fontMono,
+                    }}
+                  >
+                    {s.goal.label}
+                  </span>
+                </div>
+              )}
+            </div>
+          </div>
+        )
+      })}
+    </section>
+  )
+}
+
+// ─── Recent posts ─────────────────────────────────────────────────────────────
+function RecentPostsCard({ platformId }: { platformId: PlatformId }) {
+  const platform = PLATFORMS[platformId]
+  return (
+    <div
+      className="rounded-[18px] p-5 md:p-6"
+      style={{ backgroundColor: TOKENS.card, border: `1px solid ${TOKENS.hairline}` }}
+    >
+      <CardHeader eyebrow="// recent posts" title={`On ${platform.name}`} />
+
+      <ul className="mt-4 divide-y" style={{ borderColor: TOKENS.hairline }}>
+        {platform.posts.map((post, i) => (
+          <li
+            key={i}
+            className="grid items-center gap-4 py-3.5"
+            style={{ gridTemplateColumns: "44px minmax(0, 1fr) auto" }}
+          >
+            {/* thumbnail with format badge */}
+            <div className="relative shrink-0">
+              <div
+                className="w-11 h-11 rounded-xl flex items-center justify-center text-lg"
+                style={{ backgroundColor: TOKENS.bg, border: `1px solid ${TOKENS.hairline}` }}
+                aria-hidden
+              >
+                {post.emoji}
+              </div>
+            </div>
+
+            {/* title + meta */}
+            <div className="min-w-0">
+              <p className="text-[14px] font-medium truncate" style={{ color: TOKENS.ink }}>
+                {post.title}
+              </p>
+              <div className="flex items-center gap-2 mt-1">
+                <span
+                  className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium uppercase tracking-wider"
+                  style={{
+                    backgroundColor: "rgba(224,106,51,0.10)",
+                    color: TOKENS.orange,
+                  }}
+                >
+                  {post.format}
+                </span>
+                <span
+                  className="text-[11px]"
+                  style={{ color: TOKENS.brown, fontFamily: TOKENS.fontMono }}
+                >
+                  {post.date}
+                </span>
+              </div>
+            </div>
+
+            {/* 3 stats */}
+            <div className="flex items-center gap-5 shrink-0">
+              <MicroStat value={post.primary}  label={post.primaryLabel} />
+              <MicroStat value={post.likes}    label="likes"            />
+              <MicroStat value={post.comments} label="comments"         />
+            </div>
+          </li>
+        ))}
+      </ul>
+    </div>
+  )
+}
+
+function MicroStat({ value, label }: { value: string; label: string }) {
+  return (
+    <div className="text-right">
+      <p
+        className="text-[13px] font-medium tabular-nums leading-none"
+        style={{ color: TOKENS.ink }}
+      >
+        {value}
+      </p>
+      <p
+        className="text-[10px] mt-1 uppercase tracking-wider"
+        style={{ color: TOKENS.brown, fontFamily: TOKENS.fontMono }}
+      >
+        {label}
+      </p>
+    </div>
+  )
+}
+
+// ─── This week ────────────────────────────────────────────────────────────────
+function ThisWeekCard({ platformId }: { platformId: PlatformId }) {
+  const platform = PLATFORMS[platformId]
+  const tw = platform.thisWeek
+  return (
+    <div
+      className="rounded-[18px] p-5 md:p-6"
+      style={{ backgroundColor: TOKENS.card, border: `1px solid ${TOKENS.hairline}` }}
+    >
+      <CardHeader eyebrow="// this week" title={tw.range} />
+
+      <ul className="mt-4 space-y-2.5">
+        {tw.rows.map((r) => (
+          <li key={r.label} className="flex items-baseline justify-between gap-3">
+            <span className="text-[12px]" style={{ color: TOKENS.inkSoft }}>
+              {r.label}
+            </span>
+            <span
+              className="text-[14px] font-medium tabular-nums"
+              style={{ color: TOKENS.ink, fontFamily: TOKENS.fontMono }}
+            >
+              {r.value}
+            </span>
+          </li>
+        ))}
+      </ul>
+
+      {/* dot calendar */}
+      <div
+        className="mt-5 pt-5 grid grid-cols-7 gap-2"
+        style={{ borderTop: `1px solid ${TOKENS.hairline}` }}
+      >
+        {tw.days.map((d) => (
+          <div key={d.date} className="flex flex-col items-center gap-1.5">
+            <span
+              className="text-[10px] uppercase tracking-wider"
+              style={{ color: d.today ? TOKENS.orange : TOKENS.brown, fontFamily: TOKENS.fontMono }}
+            >
+              {d.d}
+            </span>
+            <span
+              className="block w-2.5 h-2.5 rounded-full"
+              style={{
+                backgroundColor: d.posted
+                  ? platform.accent
+                  : "transparent",
+                border: d.posted
+                  ? "none"
+                  : `1px solid ${TOKENS.hairlineStrong}`,
+                outline: d.today ? `2px solid ${TOKENS.orange}` : "none",
+                outlineOffset: d.today ? "2px" : undefined,
+              }}
+              aria-hidden
+            />
+            <span
+              className="text-[10px] tabular-nums"
+              style={{ color: TOKENS.inkSoft, fontFamily: TOKENS.fontMono }}
+            >
+              {d.date}
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+// ─── Audience ─────────────────────────────────────────────────────────────────
+function AudienceCard({ platformId }: { platformId: PlatformId }) {
+  const platform = PLATFORMS[platformId]
+  return (
+    <div
+      className="rounded-[18px] p-5 md:p-6"
+      style={{ backgroundColor: TOKENS.card, border: `1px solid ${TOKENS.hairline}` }}
+    >
+      <CardHeader eyebrow="// audience" title={platform.audience.title} />
+
+      <div className="mt-5">
+        <p
+          className="text-[10px] uppercase tracking-[0.18em] mb-3"
+          style={{ color: TOKENS.brown, fontFamily: TOKENS.fontMono }}
+        >
+          Age & gender
+        </p>
+        <BarRow rows={platform.audience.demographics} accent={platform.accent} max={50} />
+      </div>
+
+      <div className="mt-5 pt-5" style={{ borderTop: `1px solid ${TOKENS.hairline}` }}>
+        <p
+          className="text-[10px] uppercase tracking-[0.18em] mb-3"
+          style={{ color: TOKENS.brown, fontFamily: TOKENS.fontMono }}
+        >
+          Top geo
+        </p>
+        <BarRow rows={platform.audience.countries} accent={TOKENS.brown} max={40} />
+      </div>
+    </div>
+  )
+}
+
+// ─── Algorithm Watch ──────────────────────────────────────────────────────────
+function AlgorithmWatchCard({ platformId }: { platformId: PlatformId }) {
+  const platform = PLATFORMS[platformId]
+  const aw = platform.algorithmWatch
+  return (
+    <section
+      className="rounded-[18px] p-5 md:p-7"
+      style={{ backgroundColor: TOKENS.card, border: `1px solid ${TOKENS.hairline}` }}
+    >
+      {/* Header */}
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <p
+            className="text-[10px] uppercase tracking-[0.18em] mb-1.5"
+            style={{ color: TOKENS.brown, fontFamily: TOKENS.fontMono }}
+          >
+            // algorithm watch
+          </p>
+          <h3 className="text-[20px] md:text-[22px] font-medium leading-tight" style={{ color: TOKENS.ink }}>
+            What changed on{" "}
+            <em style={{ color: platform.accent, fontStyle: "italic", fontWeight: 500 }}>
+              {platform.name}
+            </em>
+          </h3>
+        </div>
+
+        <div
+          className="inline-flex items-center gap-2 h-7 px-2.5 rounded-full"
+          style={{ backgroundColor: TOKENS.bg, border: `1px solid ${TOKENS.hairline}` }}
+        >
+          <span className="relative inline-flex w-1.5 h-1.5">
+            <span
+              className="absolute inset-0 rounded-full"
+              style={{ backgroundColor: "#3D8F4B", animation: "pulseDot 1.8s ease-out infinite" }}
+            />
+            <span className="relative block w-1.5 h-1.5 rounded-full" style={{ backgroundColor: "#3D8F4B" }} />
+          </span>
+          <span
+            className="text-[10px] uppercase tracking-[0.16em]"
+            style={{ color: TOKENS.inkSoft, fontFamily: TOKENS.fontMono }}
+          >
+            live
+          </span>
+        </div>
+      </div>
+
+      {/* Scan row */}
+      <div
+        className="mt-5 grid grid-cols-2 gap-4 rounded-xl px-4 py-3"
+        style={{ backgroundColor: TOKENS.bg, border: `1px solid ${TOKENS.hairline}` }}
+      >
+        <ScanCell label="Last scan" value={aw.lastScan} />
+        <ScanCell label="Next scan" value={aw.nextScan} />
+      </div>
+
+      {/* Changelog */}
+      <ul className="mt-5 space-y-4">
+        {aw.entries.map((entry, i) => (
+          <li
+            key={i}
+            className="grid gap-4"
+            style={{ gridTemplateColumns: "76px minmax(0, 1fr) auto" }}
+          >
+            <div>
+              <span
+                className="inline-block px-2 py-1 rounded text-[10px] uppercase tracking-wider"
+                style={{
+                  backgroundColor: TOKENS.bg,
+                  color: TOKENS.brown,
+                  fontFamily: TOKENS.fontMono,
+                  border: `1px solid ${TOKENS.hairline}`,
+                }}
+              >
+                {entry.date}
+              </span>
+            </div>
+            <div className="min-w-0">
+              <p className="text-[14px] font-medium leading-snug" style={{ color: TOKENS.ink }}>
+                {entry.headline}
+              </p>
+              <p className="text-[12px] mt-1 leading-relaxed" style={{ color: TOKENS.inkSoft }}>
+                {entry.signal}
+              </p>
+            </div>
+            <div className="shrink-0 self-center">
+              <span
+                className="inline-flex items-center gap-1 text-[11px] font-medium"
+                style={{ color: platform.accent, fontFamily: TOKENS.fontMono }}
+              >
+                BrandFlow adapts <ArrowRight className="h-3 w-3" />
+              </span>
+            </div>
+          </li>
+        ))}
+      </ul>
+
+      {/* Prediction */}
+      <p
+        className="mt-5 pt-5 text-[13px] italic leading-relaxed"
+        style={{
+          color: TOKENS.inkSoft,
+          borderTop: `1px solid ${TOKENS.hairline}`,
+        }}
+      >
+        {aw.prediction}
+      </p>
+    </section>
+  )
+}
+
+function ScanCell({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <p
+        className="text-[10px] uppercase tracking-[0.16em] mb-1"
+        style={{ color: TOKENS.brown, fontFamily: TOKENS.fontMono }}
+      >
+        {label}
+      </p>
+      <p
+        className="text-[13px] tabular-nums"
+        style={{ color: TOKENS.ink, fontFamily: TOKENS.fontMono }}
+      >
+        {value}
+      </p>
+    </div>
+  )
+}
+
+// ─── Shared card header ───────────────────────────────────────────────────────
+function CardHeader({ eyebrow, title }: { eyebrow: string; title: string }) {
+  return (
+    <div>
+      <p
+        className="text-[10px] uppercase tracking-[0.18em] mb-1"
+        style={{ color: TOKENS.brown, fontFamily: TOKENS.fontMono }}
+      >
+        {eyebrow}
+      </p>
+      <h3 className="text-[16px] font-medium" style={{ color: TOKENS.ink }}>
+        {title}
+      </h3>
+    </div>
   )
 }
