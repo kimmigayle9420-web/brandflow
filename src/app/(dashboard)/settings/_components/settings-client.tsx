@@ -11,7 +11,9 @@ import { getInitials, TONES } from "@/lib/utils"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { ChevronDown, ChevronUp, Copy, Check, ExternalLink, AlertTriangle } from "lucide-react"
-import type { Brand } from "@/types"
+import type { Brand, SocialAccount, SocialAccountsMap } from "@/types"
+import { normalizeSocialAccounts } from "@/lib/social-accounts"
+import { saveSocialStats } from "@/app/(dashboard)/dashboard/_actions/social-accounts"
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
@@ -137,8 +139,11 @@ export function SettingsPageClient() {
   const [creatingBrand, setCreatingBrand] = useState(false)
 
   // ── Social accounts state ──────────────────────────────────────────────────
-  const [socialAccounts, setSocialAccounts] = useState<Record<string, string>>({})
+  const [socialAccounts, setSocialAccounts] = useState<Record<string, SocialAccount>>({})
   const [disconnecting, setDisconnecting] = useState<string | null>(null)
+  // Per-platform draft values for the followers/engagement inputs
+  const [statsDraft, setStatsDraft] = useState<Record<string, { followers: string; engagement: string }>>({})
+  const [savingStats, setSavingStats] = useState<string | null>(null)
 
   // ── Password state ─────────────────────────────────────────────────────────
   const [newPassword, setNewPassword] = useState("")
@@ -169,7 +174,21 @@ export function SettingsPageClient() {
     ])
 
     setFullName(profile?.full_name ?? "")
-    setSocialAccounts((profile?.social_accounts as Record<string, string>) ?? {})
+    const normalized = normalizeSocialAccounts(
+      (profile?.social_accounts ?? {}) as SocialAccountsMap | null,
+    )
+    setSocialAccounts(normalized)
+    setStatsDraft(
+      Object.fromEntries(
+        Object.entries(normalized).map(([platform, acct]) => [
+          platform,
+          {
+            followers: acct.followers ? String(acct.followers) : "",
+            engagement: acct.engagement ? String(acct.engagement) : "",
+          },
+        ]),
+      ),
+    )
 
     const primaryBrand = brands?.[0] ?? null
     setBrand(primaryBrand)
@@ -288,9 +307,42 @@ export function SettingsPageClient() {
       toast({ title: "Failed to disconnect", description: error.message, variant: "destructive" })
     } else {
       setSocialAccounts(updated)
+      setStatsDraft((prev) => {
+        const { [platformId]: _, ...rest } = prev
+        return rest
+      })
       toast({ title: "Account disconnected" })
     }
     setDisconnecting(null)
+  }
+
+  const handleSaveStats = async (platformId: string) => {
+    const draft = statsDraft[platformId]
+    if (!draft) return
+    const followers = parseInt(draft.followers || "0", 10)
+    const engagement = parseFloat(draft.engagement || "0")
+    if (!Number.isFinite(followers) || followers < 0) {
+      toast({ title: "Follower count must be a positive number", variant: "destructive" })
+      return
+    }
+    if (!Number.isFinite(engagement) || engagement < 0 || engagement > 100) {
+      toast({ title: "Engagement must be between 0 and 100", variant: "destructive" })
+      return
+    }
+    setSavingStats(platformId)
+    try {
+      const result = await saveSocialStats(platformId, { followers, engagement })
+      setSocialAccounts(result.accounts)
+      toast({ title: `${PLATFORM_META[platformId]?.name ?? platformId} stats saved ✓` })
+    } catch (err: unknown) {
+      toast({
+        title: "Failed to save stats",
+        description: err instanceof Error ? err.message : "Try again.",
+        variant: "destructive",
+      })
+    } finally {
+      setSavingStats(null)
+    }
   }
 
   const handleChangePassword = async (e: React.FormEvent) => {
@@ -477,7 +529,10 @@ export function SettingsPageClient() {
           </SettingsSection>
 
           {/* ── 3. Social Accounts ──────────────────────────────────────── */}
-          <SettingsSection title="Social Accounts" subtitle="Your connected social platforms">
+          <SettingsSection
+            title="Social Accounts"
+            subtitle="Add your follower count and engagement % so the dashboard can show real stats. We don't have API access to pull these automatically — enter them manually."
+          >
             {connectedPlatforms.length === 0 ? (
               <div className="py-6 text-center">
                 <p className="text-sm mb-3" style={{ color: "#8A7060" }}>No social accounts connected yet.</p>
@@ -494,31 +549,100 @@ export function SettingsPageClient() {
               </div>
             ) : (
               <div className="space-y-3">
-                {connectedPlatforms.map(([platformId, handle]) => {
+                {connectedPlatforms.map(([platformId, account]) => {
                   const meta = PLATFORM_META[platformId] ?? { emoji: "🌐", name: platformId, bg: "bg-slate-500" }
+                  const draft = statsDraft[platformId] ?? { followers: "", engagement: "" }
+                  const isSaving = savingStats === platformId
+                  const currentFollowers = account.followers ?? 0
+                  const currentEngagement = account.engagement ?? 0
+                  const draftFollowers = parseInt(draft.followers || "0", 10) || 0
+                  const draftEngagement = parseFloat(draft.engagement || "0") || 0
+                  const hasUnsavedChanges =
+                    draftFollowers !== currentFollowers || draftEngagement !== currentEngagement
+
                   return (
                     <div
                       key={platformId}
-                      className="flex items-center gap-3 p-3 rounded-2xl"
+                      className="p-4 rounded-2xl space-y-3"
                       style={{ backgroundColor: "#FAFAF5", border: "1px solid #E5DDD5" }}
                     >
-                      <div className={`w-8 h-8 rounded-xl ${meta.bg} flex items-center justify-center text-sm shrink-0`}>
-                        <span role="img" aria-label={meta.name}>{meta.emoji}</span>
+                      {/* Header row: icon + handle + disconnect */}
+                      <div className="flex items-center gap-3">
+                        <div className={`w-8 h-8 rounded-xl ${meta.bg} flex items-center justify-center text-sm shrink-0`}>
+                          <span role="img" aria-label={meta.name}>{meta.emoji}</span>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-semibold" style={{ color: "#2D1810" }}>{meta.name}</p>
+                          <p className="text-xs truncate" style={{ color: "#F97066" }}>{account.handle}</p>
+                        </div>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          disabled={disconnecting === platformId}
+                          onClick={() => handleDisconnectSocial(platformId)}
+                          className="rounded-xl text-xs h-7 px-3 hover:bg-red-50 hover:text-red-600"
+                          style={{ color: "#A89080" }}
+                        >
+                          {disconnecting === platformId ? "…" : "Disconnect"}
+                        </Button>
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold" style={{ color: "#2D1810" }}>{meta.name}</p>
-                        <p className="text-xs truncate" style={{ color: "#F97066" }}>{handle}</p>
+
+                      {/* Stats inputs */}
+                      <div className="grid grid-cols-1 sm:grid-cols-[1fr_1fr_auto] gap-2 sm:gap-3 items-end">
+                        <div className="space-y-1">
+                          <Label className="text-xs font-medium" style={{ color: "#5A3825" }}>
+                            Followers
+                          </Label>
+                          <Input
+                            type="number"
+                            min={0}
+                            step={1}
+                            inputMode="numeric"
+                            value={draft.followers}
+                            onChange={(e) =>
+                              setStatsDraft((prev) => ({
+                                ...prev,
+                                [platformId]: { ...draft, followers: e.target.value },
+                              }))
+                            }
+                            placeholder="e.g. 12400"
+                            className="h-9 rounded-xl border-[#E5DDD5] focus-visible:ring-[#F97066]/50 bg-white"
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs font-medium" style={{ color: "#5A3825" }}>
+                            Avg Engagement %
+                          </Label>
+                          <Input
+                            type="number"
+                            min={0}
+                            max={100}
+                            step={0.1}
+                            inputMode="decimal"
+                            value={draft.engagement}
+                            onChange={(e) =>
+                              setStatsDraft((prev) => ({
+                                ...prev,
+                                [platformId]: { ...draft, engagement: e.target.value },
+                              }))
+                            }
+                            placeholder="e.g. 4.2"
+                            className="h-9 rounded-xl border-[#E5DDD5] focus-visible:ring-[#F97066]/50 bg-white"
+                          />
+                        </div>
+                        <Button
+                          size="sm"
+                          disabled={isSaving || !hasUnsavedChanges}
+                          onClick={() => handleSaveStats(platformId)}
+                          className="rounded-xl text-xs h-9 px-4 hover:opacity-90 disabled:opacity-50"
+                          style={{
+                            backgroundColor: hasUnsavedChanges ? "#F97066" : "#E5DDD5",
+                            color: hasUnsavedChanges ? "white" : "#A89080",
+                          }}
+                        >
+                          {isSaving ? "Saving…" : "Save"}
+                        </Button>
                       </div>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        disabled={disconnecting === platformId}
-                        onClick={() => handleDisconnectSocial(platformId)}
-                        className="rounded-xl text-xs h-7 px-3 hover:bg-red-50 hover:text-red-600"
-                        style={{ color: "#A89080" }}
-                      >
-                        {disconnecting === platformId ? "…" : "Disconnect"}
-                      </Button>
                     </div>
                   )
                 })}

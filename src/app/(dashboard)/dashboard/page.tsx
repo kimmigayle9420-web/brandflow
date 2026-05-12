@@ -3,7 +3,8 @@ import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import { getInitials } from "@/lib/utils"
 import { SocialConnect } from "./_components/social-connect"
-import type { Brand, ContentPillar } from "@/types"
+import type { Brand, ContentPillar, SocialAccount, SocialAccountsMap } from "@/types"
+import { normalizeSocialAccounts } from "@/lib/social-accounts"
 import type { Metadata } from "next"
 
 export const metadata: Metadata = {
@@ -32,7 +33,9 @@ export default async function DashboardPage() {
 
   const firstName = profileResult.data?.full_name?.split(" ")[0] ?? "there"
   const primaryBrand = brands?.[0] ?? null
-  const socialAccounts = (profileResult.data?.social_accounts ?? {}) as Record<string, string>
+  const socialAccounts = normalizeSocialAccounts(
+    (profileResult.data?.social_accounts ?? {}) as SocialAccountsMap | null,
+  )
 
   // Fetch content pillars for the primary brand
   let pillars: ContentPillar[] | null = null
@@ -138,7 +141,35 @@ export default async function DashboardPage() {
           </div>
         </section>
 
-        {/* ─── Section 3: Content Pillars ─────────────────────────── */}
+        {/* ─── Section 3: Platform Stats ──────────────────────────── */}
+        <section>
+          <SectionHeader
+            title="Platform Stats"
+            subtitle="Followers and average engagement across your platforms"
+            action={
+              Object.keys(socialAccounts).length > 0 ? (
+                <Link href="/settings">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="rounded-xl"
+                    style={{ borderColor: "#E8D8D0", color: "#7A5C50" }}
+                  >
+                    Edit stats
+                  </Button>
+                </Link>
+              ) : null
+            }
+          />
+          <div
+            className="p-6 rounded-3xl"
+            style={{ backgroundColor: "#FFFFFF", boxShadow: "0 4px 24px rgba(180, 100, 60, 0.09)" }}
+          >
+            <PlatformStats accounts={socialAccounts} />
+          </div>
+        </section>
+
+        {/* ─── Section 4: Content Pillars ─────────────────────────── */}
         <section>
           <SectionHeader
             title="Content Pillars"
@@ -405,6 +436,117 @@ function BrandProfileCard({ brand }: { brand: Brand }) {
           {(brand.target_audience ?? "Not specified").replace(/\* /g, "• ").replace(/\*/g, "")}
         </p>
       </div>
+    </div>
+  )
+}
+
+// ─── Platform Stats ───────────────────────────────────────────────────────────
+
+const PLATFORM_META: Record<string, { name: string; emoji: string; bg: string }> = {
+  instagram: { name: "Instagram", emoji: "📸", bg: "bg-gradient-to-br from-pink-500 to-orange-400" },
+  tiktok:    { name: "TikTok",    emoji: "🎵", bg: "bg-gradient-to-br from-slate-800 to-slate-900" },
+  youtube:   { name: "YouTube",   emoji: "▶️", bg: "bg-gradient-to-br from-red-500 to-red-600" },
+  twitter:   { name: "X / Twitter", emoji: "𝕏", bg: "bg-gradient-to-br from-slate-700 to-slate-900" },
+  pinterest: { name: "Pinterest", emoji: "📌", bg: "bg-gradient-to-br from-rose-500 to-red-600" },
+  facebook:  { name: "Facebook",  emoji: "👥", bg: "bg-gradient-to-br from-blue-500 to-blue-700" },
+  linkedin:  { name: "LinkedIn",  emoji: "💼", bg: "bg-gradient-to-br from-blue-700 to-blue-800" },
+}
+
+function formatFollowers(n: number): string {
+  if (!Number.isFinite(n) || n <= 0) return "0"
+  return n.toLocaleString("en-US")
+}
+
+function formatEngagement(n: number): string {
+  if (!Number.isFinite(n) || n <= 0) return "0%"
+  return `${n.toFixed(1)}%`
+}
+
+function PlatformStats({ accounts }: { accounts: Record<string, SocialAccount> }) {
+  const entries = Object.entries(accounts)
+
+  if (entries.length === 0) {
+    return (
+      <div className="text-center py-6">
+        <p className="text-sm mb-3" style={{ color: "#8A7060" }}>
+          No platforms connected yet — connect your social accounts to see follower and engagement stats here.
+        </p>
+        <Link href="/settings">
+          <Button
+            variant="outline"
+            size="sm"
+            className="rounded-xl"
+            style={{ borderColor: "#E8D8D0", color: "#7A5C50" }}
+          >
+            Go to Settings →
+          </Button>
+        </Link>
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-2.5">
+      {entries.map(([platformId, account]) => {
+        const meta = PLATFORM_META[platformId] ?? { name: platformId, emoji: "🌐", bg: "bg-slate-500" }
+        const hasStats = (account.followers ?? 0) > 0 || (account.engagement ?? 0) > 0
+        return (
+          <div
+            key={platformId}
+            className="flex items-center gap-4 px-4 py-3.5 rounded-2xl"
+            style={{ backgroundColor: "#FAFAF5", border: "1px solid #F0E8E0" }}
+          >
+            {/* Platform identity (left) */}
+            <div className="flex items-center gap-3 flex-1 min-w-0">
+              <div className={`w-9 h-9 rounded-xl ${meta.bg} flex items-center justify-center text-sm shadow-sm shrink-0`}>
+                <span role="img" aria-label={meta.name}>{meta.emoji}</span>
+              </div>
+              <div className="min-w-0">
+                <p className="text-sm font-semibold truncate" style={{ color: "#2D1810" }}>
+                  {meta.name}
+                </p>
+                <p className="text-xs truncate" style={{ color: "#8A7060" }}>
+                  {account.handle.startsWith("@") || account.handle.startsWith("http")
+                    ? account.handle
+                    : `@${account.handle}`}
+                </p>
+              </div>
+            </div>
+
+            {hasStats ? (
+              <>
+                {/* Followers (middle) */}
+                <div className="text-right shrink-0">
+                  <p className="text-base md:text-lg font-bold leading-none" style={{ color: "#2D1810" }}>
+                    {formatFollowers(account.followers)}
+                  </p>
+                  <p className="text-[10px] mt-1 uppercase tracking-wide" style={{ color: "#A89080" }}>
+                    followers
+                  </p>
+                </div>
+
+                {/* Engagement (right) */}
+                <div className="text-right shrink-0 w-20">
+                  <p className="text-base md:text-lg font-bold leading-none" style={{ color: "#F97066" }}>
+                    {formatEngagement(account.engagement)}
+                  </p>
+                  <p className="text-[10px] mt-1 uppercase tracking-wide" style={{ color: "#A89080" }}>
+                    avg engagement
+                  </p>
+                </div>
+              </>
+            ) : (
+              <Link
+                href="/settings"
+                className="text-xs font-medium px-3 py-1.5 rounded-full hover:opacity-80 shrink-0 transition-opacity"
+                style={{ backgroundColor: "#FEF0EA", color: "#D4432A", border: "1px solid #F5C4BC" }}
+              >
+                + Add stats
+              </Link>
+            )}
+          </div>
+        )
+      })}
     </div>
   )
 }
