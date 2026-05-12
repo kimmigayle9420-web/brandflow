@@ -37,8 +37,10 @@ export async function GET() {
   } = await supabase.auth.getUser()
 
   if (!user) {
+    console.warn("[instagram/stats] no authenticated user")
     return NextResponse.json({ connected: false, error: "not_authenticated" }, { status: 401 })
   }
+  console.log("[instagram/stats] user resolved", { userId: user.id })
 
   const { data: profile, error: profileErr } = await supabase
     .from("profiles")
@@ -53,8 +55,14 @@ export async function GET() {
       hasToken: Boolean(profile?.instagram_access_token),
       hasIgId: Boolean(profile?.instagram_user_id),
     })
-    return NextResponse.json({ connected: false })
+    return NextResponse.json({ connected: false, reason: "no_token" })
   }
+
+  console.log("[instagram/stats] token found, fetching Graph API", {
+    userId: user.id,
+    igId: profile.instagram_user_id,
+    tokenTail: profile.instagram_access_token.slice(-8),
+  })
 
   const token = profile.instagram_access_token
   const igId = profile.instagram_user_id
