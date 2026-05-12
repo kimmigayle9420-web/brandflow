@@ -46,9 +46,11 @@ export type Platform = {
   shortName: string
   accent: string
   handleHint: string
-  // `true` when the platform's API isn't wired up yet and the stats below are
-  // illustrative placeholders rather than live numbers. The dashboard surfaces
-  // a "Preview data" banner so users don't mistake it for real analytics.
+  // `true` when the platform's data is still placeholder/sample rather than
+  // live numbers — either the platform's API isn't wired up yet (TikTok,
+  // YouTube Shorts) or Instagram is connected but real posts haven't synced
+  // yet. The dashboard surfaces a "Preview data" banner so users don't
+  // mistake it for real analytics.
   isPreview?: boolean
   stats: Stat[]
   posts: RecentPost[]
@@ -94,6 +96,7 @@ export const PLATFORMS: Record<PlatformId, Platform> = {
     shortName: "Instagram",
     accent: "#E06A33",
     handleHint: "@maya.makes",
+    isPreview: true,
     stats: [
       {
         label: "Followers",

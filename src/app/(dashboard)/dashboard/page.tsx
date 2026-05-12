@@ -164,10 +164,15 @@ function buildInstagramPlatform(base: Platform, stats: Extract<IgStats, { connec
     }
   })
 
+  const hasRealPosts = newPosts.length > 0
   return {
     ...base,
+    // Once we have real Graph API stats, this platform is no longer preview/sample data.
+    // If posts are missing we keep the placeholder posts but flag the platform as preview
+    // so the banner stays visible until the user has any real media.
+    isPreview: !hasRealPosts,
     stats: newStats,
-    posts: newPosts.length > 0 ? newPosts : base.posts,
+    posts: hasRealPosts ? newPosts : base.posts,
   }
 }
 
@@ -249,8 +254,12 @@ export default function DashboardPage() {
     return base
   }, [active, igStats])
 
+  // On the Instagram tab we must never render the hardcoded stat numbers (47.2K
+  // followers, 612K reach, etc.) unless the Graph API has confirmed the account
+  // is connected. While the stats request is in flight (igStats === null) we
+  // also treat it as "not connected" so the fake numbers never flash on screen.
   const nothingConnected =
-    active === "instagram" && igStats !== null && igStats.connected === false
+    active === "instagram" && (igStats === null || igStats.connected === false)
 
   return (
     <div
@@ -306,7 +315,7 @@ export default function DashboardPage() {
           <NothingConnectedState firstName={firstName} />
         ) : (
           <>
-            {/* Preview banner for platforms whose API isn't wired up yet */}
+            {/* Preview banner for platforms whose data is still placeholder */}
             {effectivePlatform.isPreview && (
               <PreviewBanner platformName={effectivePlatform.name} />
             )}
@@ -348,9 +357,10 @@ export default function DashboardPage() {
 }
 
 // ─── Preview-data banner ─────────────────────────────────────────────────────
-// Shown for platforms whose API isn't wired up yet — the numbers are sample
-// data so the dashboard has something to render. The banner makes it explicit
-// so users don't mistake them for real analytics.
+// Shown when the visible numbers are still placeholder/sample data — either
+// the platform has no live integration yet (TikTok, Shorts) or Instagram is
+// connected but posts haven't synced. Explicit copy stops users mistaking the
+// numbers for real analytics.
 function PreviewBanner({ platformName }: { platformName: string }) {
   return (
     <div
@@ -371,8 +381,8 @@ function PreviewBanner({ platformName }: { platformName: string }) {
         PREVIEW
       </span>
       <p className="text-[13px] leading-relaxed" style={{ color: TOKENS.inkSoft }}>
-        {platformName} stats below are sample data. Live {platformName} integration is coming soon —
-        connect Instagram for real numbers today.
+        {platformName} stats below are sample data — your real numbers will appear here once
+        your account syncs.
       </p>
     </div>
   )
