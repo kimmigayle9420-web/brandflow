@@ -73,10 +73,10 @@ export function SocialConnect({ connectedPlatforms = [] }: SocialConnectProps) {
     <div className="space-y-4">
       <div className="flex items-start justify-between">
         <div>
-          <h2 className="text-lg font-semibold" style={{ color: "#2D1810" }}>
+          <h2 className="text-lg font-semibold" style={{ color: "#2D2D2D" }}>
             Social Accounts
           </h2>
-          <p className="text-sm mt-0.5" style={{ color: "#8A7060" }}>
+          <p className="text-sm mt-0.5" style={{ color: "#8B7261" }}>
             Connect your platforms to schedule and publish content
           </p>
         </div>
@@ -98,8 +98,8 @@ export function SocialConnect({ connectedPlatforms = [] }: SocialConnectProps) {
               key={platform.id}
               className="flex items-center gap-2.5 p-3.5 rounded-2xl border transition-all"
               style={{
-                backgroundColor: platform.connected ? "#F0FDF4" : "#FFFCF8",
-                borderColor: platform.connected ? "#BBF7D0" : "#E8E0D5",
+                backgroundColor: platform.connected ? "#F0FDF4" : "#FFFFFF",
+                borderColor: platform.connected ? "#BBF7D0" : "#C2B5A3",
               }}
             >
               {/* Platform icon */}
@@ -116,10 +116,10 @@ export function SocialConnect({ connectedPlatforms = [] }: SocialConnectProps) {
 
               {/* Label + status */}
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium truncate" style={{ color: "#2D1810" }}>
+                <p className="text-sm font-medium truncate" style={{ color: "#2D2D2D" }}>
                   {platform.label}
                 </p>
-                <p className="text-xs" style={{ color: platform.connected ? "#2E7D32" : "#A89080" }}>
+                <p className="text-xs" style={{ color: platform.connected ? "#2E7D32" : "#C2B5A3" }}>
                   {platform.connected ? "Connected" : "Not connected"}
                 </p>
               </div>
@@ -131,8 +131,8 @@ export function SocialConnect({ connectedPlatforms = [] }: SocialConnectProps) {
                 className="h-7 text-xs px-2 shrink-0 rounded-lg"
                 style={
                   platform.connected
-                    ? { color: "#8A7060" }
-                    : { color: "#F97066", fontWeight: 500 }
+                    ? { color: "#8B7261" }
+                    : { color: "#E06A33", fontWeight: 500 }
                 }
               >
                 {platform.connected ? "Manage" : "Connect"}

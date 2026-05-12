@@ -45,7 +45,7 @@ export default async function ContentCreatorPage() {
   }
 
   return (
-    <div className="flex flex-col min-h-full" style={{ backgroundColor: "#FAFAF5" }}>
+    <div className="flex flex-col min-h-full" style={{ backgroundColor: "#EDE6DC" }}>
       <Header
         title="Content Creator"
         description="Research your niche, manage pillars, and generate content — all in one place."

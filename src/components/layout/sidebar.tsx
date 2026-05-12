@@ -37,22 +37,22 @@ export function Sidebar() {
       {/* ── Desktop sidebar (md and above) ── */}
       <aside
         className="hidden md:flex h-full w-64 flex-col border-r shrink-0"
-        style={{ backgroundColor: "#FEFCF8", borderColor: "#E5DDD5" }}
+        style={{ backgroundColor: "#2D2D2D", borderColor: "#2D2D2D" }}
       >
         {/* Logo */}
         <div
           className="flex items-center gap-2.5 px-6 py-5"
-          style={{ borderBottom: "1px solid #E5DDD5" }}
+          style={{ borderBottom: "1px solid rgba(255,255,255,0.08)" }}
         >
           <div
             className="flex h-8 w-8 items-center justify-center rounded-xl"
-            style={{ backgroundColor: "#F97066" }}
+            style={{ backgroundColor: "#E06A33" }}
           >
             <Zap className="h-4 w-4 text-white" />
           </div>
           <span
             className="text-lg font-bold tracking-tight"
-            style={{ color: "#2D1810" }}
+            style={{ color: "#FFFFFF" }}
           >
             BrandFlow
           </span>
@@ -69,12 +69,12 @@ export function Sidebar() {
                 href={item.href}
                 className={cn(
                   "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors",
-                  isActive ? "" : "hover:bg-[#FDF5EE]"
+                  isActive ? "" : "hover:bg-white/5"
                 )}
                 style={
                   isActive
-                    ? { backgroundColor: "#FEF0EA", color: "#D4432A" }
-                    : { color: "#7A5C50" }
+                    ? { backgroundColor: "#E06A33", color: "#FFFFFF" }
+                    : { color: "#EDE6DC" }
                 }
               >
                 <Icon className="h-4 w-4 shrink-0" />
@@ -85,11 +85,11 @@ export function Sidebar() {
         </nav>
 
         {/* Sign out */}
-        <div className="px-3 py-4" style={{ borderTop: "1px solid #E5DDD5" }}>
+        <div className="px-3 py-4" style={{ borderTop: "1px solid rgba(255,255,255,0.08)" }}>
           <button
             onClick={handleSignOut}
-            className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors hover:bg-[#FDF5EE]"
-            style={{ color: "#7A5C50" }}
+            className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors hover:bg-white/5"
+            style={{ color: "#EDE6DC" }}
           >
             <LogOut className="h-4 w-4 shrink-0" />
             Sign Out
@@ -101,8 +101,8 @@ export function Sidebar() {
       <nav
         className="md:hidden fixed bottom-0 left-0 right-0 z-50 flex items-stretch border-t"
         style={{
-          backgroundColor: "#FEFCF8",
-          borderColor: "#E5DDD5",
+          backgroundColor: "#2D2D2D",
+          borderColor: "#2D2D2D",
           paddingBottom: "env(safe-area-inset-bottom)",
         }}
       >
@@ -121,20 +121,20 @@ export function Sidebar() {
                 style={{
                   width: "40px",
                   height: "28px",
-                  backgroundColor: isActive ? "#FEE8E4" : "transparent",
+                  backgroundColor: isActive ? "#E06A33" : "transparent",
                 }}
               >
                 <Icon
                   style={{
                     width: "20px",
                     height: "20px",
-                    color: isActive ? "#F97066" : "#9A8070",
+                    color: isActive ? "#FFFFFF" : "#EDE6DC",
                   }}
                 />
               </div>
               <span
                 className="text-[10px] font-medium leading-none text-center"
-                style={{ color: isActive ? "#F97066" : "#9A8070" }}
+                style={{ color: isActive ? "#FFFFFF" : "#EDE6DC" }}
               >
                 {item.mobileLabel}
               </span>

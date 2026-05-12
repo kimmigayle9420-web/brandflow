@@ -297,7 +297,7 @@ export default function NicheResearchPage() {
               <Card>
                 <CardHeader className="pb-3">
                   <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                    <TrendingUp className="h-4 w-4 text-orange-500" />
+                    <TrendingUp className="h-4 w-4 text-[#E06A33]" />
                     Platform Strategy
                   </CardTitle>
                 </CardHeader>
