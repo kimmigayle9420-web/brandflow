@@ -11,6 +11,9 @@ import {
   LogOut,
   PenLine,
   Layers,
+  Search,
+  TrendingUp,
+  Building2,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { createClient } from "@/lib/supabase/client"
@@ -21,6 +24,9 @@ const navItems = [
   { href: "/content-pillars", label: "Content Pillars", mobileLabel: "Pillars", icon: Layers },
   { href: "/content-creator", label: "Content Creator", mobileLabel: "Create", icon: PenLine },
   { href: "/content-planner", label: "Content Planner", mobileLabel: "Plan", icon: CalendarDays },
+  { href: "/content-research", label: "Content Research", mobileLabel: "Research", icon: Search },
+  { href: "/niche-research", label: "Niche Research", mobileLabel: "Niche", icon: TrendingUp },
+  { href: "/brands", label: "My Brands", mobileLabel: "Brands", icon: Building2 },
   { href: "/calendar", label: "Calendar", mobileLabel: "Calendar", icon: CalendarRange },
   { href: "/settings", label: "Settings", mobileLabel: "Settings", icon: Settings },
 ]
@@ -32,8 +38,8 @@ export function Sidebar() {
 
   const handleSignOut = async () => {
     await supabase.auth.signOut()
-    router.push("/login")
     router.refresh()
+    router.push("/login")
   }
 
   return (

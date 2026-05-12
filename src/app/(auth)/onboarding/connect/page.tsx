@@ -1,7 +1,7 @@
 "use client"
 
-import { useState } from "react"
-import { useRouter } from "next/navigation"
+import { Suspense, useState, useEffect } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
 import { Instagram, CheckCircle2, ArrowRight, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -63,8 +63,9 @@ const PLATFORMS: PlatformDef[] = [
   },
 ]
 
-export default function ConnectAccountsPage() {
+function ConnectAccountsInner() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const supabase = createClient()
 
   const [connected, setConnected] = useState<Record<string, string>>({})
@@ -73,6 +74,13 @@ export default function ConnectAccountsPage() {
   const [saving, setSaving] = useState(false)
   const [igLoading, setIgLoading] = useState(false)
 
+  // When the OAuth callback returns here with ?connected=instagram, mark it.
+  useEffect(() => {
+    if (searchParams.get("connected") === "instagram") {
+      setConnected((prev) => ({ ...prev, instagram: "connected" }))
+    }
+  }, [searchParams])
+
   const handleInstagramOAuth = async () => {
     setIgLoading(true)
     try {
@@ -80,8 +88,15 @@ export default function ConnectAccountsPage() {
       const data = await res.json()
       if (data.url) {
         window.location.href = data.url
+        // Don't reset igLoading — the page is navigating away
+      } else {
+        // App ID missing or misconfigured — surface the error and reset
+        console.error("[onboarding/connect] Instagram OAuth not configured", data)
+        setIgLoading(false)
+        alert("Instagram connection isn't set up yet. Contact support.")
       }
-    } catch {
+    } catch (err) {
+      console.error("[onboarding/connect] Instagram OAuth fetch failed", err)
       setIgLoading(false)
     }
   }
@@ -274,5 +289,13 @@ export default function ConnectAccountsPage() {
         )}
       </div>
     </div>
+  )
+}
+
+export default function ConnectAccountsPage() {
+  return (
+    <Suspense>
+      <ConnectAccountsInner />
+    </Suspense>
   )
 }

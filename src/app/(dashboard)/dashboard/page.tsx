@@ -231,6 +231,8 @@ function DashboardPageInner() {
   const [handle, setHandle] = useState<string>(PROFILE.handle)
   const [igStats, setIgStats] = useState<IgStats | null>(null)
   const [igLoading, setIgLoading] = useState(false)
+  // Live content pillars from Supabase — null until loaded (fallback renders static)
+  const [livePillars, setLivePillars] = useState<{ name: string; pct: number; color: string }[] | null>(null)
 
   // Overlay handle/name from Supabase if available; otherwise keep design defaults
   useEffect(() => {
@@ -263,6 +265,39 @@ function DashboardPageInner() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [active])
 
+  // Fetch live content pillars from Supabase once on mount.
+  useEffect(() => {
+    let cancelled = false
+    const supabase = createClient()
+    void (async () => {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user || cancelled) return
+      const { data: brand } = await supabase
+        .from("brands")
+        .select("id")
+        .eq("user_id", user.id)
+        .limit(1)
+        .maybeSingle()
+      if (!brand?.id || cancelled) return
+      const { data: rows } = await supabase
+        .from("content_pillars")
+        .select("name, weekly_quota, color")
+        .eq("brand_id", brand.id)
+        .order("sort_order")
+      if (cancelled || !rows?.length) return
+      const total = rows.reduce((s, p) => s + (p.weekly_quota ?? 1), 0) || 1
+      setLivePillars(
+        rows.slice(0, 4).map((p) => ({
+          name: p.name,
+          pct: Math.round(((p.weekly_quota ?? 1) / total) * 100),
+          color: p.color ?? TOKENS.orange,
+        }))
+      )
+    })()
+    return () => { cancelled = true }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   // When the user is on the Instagram tab, fetch real Graph API stats once.
   useEffect(() => {
     if (active !== "instagram") return
@@ -293,9 +328,10 @@ function DashboardPageInner() {
   }, [active, igStats])
 
   // Use state + effect for time-dependent values so server and client render
-  // the same initial string (empty), avoiding React hydration mismatch #425.
-  const [today, setToday] = useState("")
-  const [currentGreeting, setCurrentGreeting] = useState("")
+  // the same initial string, avoiding React hydration mismatch #425.
+  // Initialise with en-dashes so there's no visible blank flash on first paint.
+  const [today, setToday] = useState("— — —")
+  const [currentGreeting, setCurrentGreeting] = useState("Hello")
   useEffect(() => {
     setToday(formatToday())
     setCurrentGreeting(greeting())
@@ -338,7 +374,7 @@ function DashboardPageInner() {
               className="text-[11px] uppercase tracking-[0.18em]"
               style={{ color: TOKENS.brown, fontFamily: TOKENS.fontMono }}
             >
-              {today ? `// ${today}` : ""}
+              {`// ${today}`}
             </p>
             <h1
               className="text-[28px] md:text-[38px] font-medium leading-[1.1] mt-2"
@@ -384,7 +420,7 @@ function DashboardPageInner() {
             )}
 
             {/* ─── Profile band ─────────────────────────────────── */}
-            <ProfileBand handle={handle} fullName={fullName} platform={effectivePlatform} />
+            <ProfileBand handle={handle} fullName={fullName} platform={effectivePlatform} livePillars={livePillars} />
 
             {/* ─── Stats row ────────────────────────────────────── */}
             <StatsRow platform={effectivePlatform} />
@@ -627,8 +663,22 @@ function PlatformSwitcher({
 }
 
 // ─── Profile band ─────────────────────────────────────────────────────────────
-function ProfileBand({ handle, fullName, platform }: { handle: string; fullName: string; platform: Platform }) {
+function ProfileBand({
+  handle,
+  fullName,
+  platform,
+  livePillars,
+}: {
+  handle: string
+  fullName: string
+  platform: Platform
+  livePillars: { name: string; pct: number; color: string }[] | null
+}) {
   const accent = platform.accent
+  // Merge: prefer live Supabase pillars; fall back to static PROFILE.pillars.
+  const pillarsToRender: { name: string; pct: number; color: string }[] =
+    livePillars ??
+    PROFILE.pillars.map((p) => ({ name: p.name, pct: p.pct, color: SWATCH[p.swatch] }))
   return (
     <section
       className="grid gap-6 rounded-[18px] p-6 md:p-7"
@@ -679,7 +729,7 @@ function ProfileBand({ handle, fullName, platform }: { handle: string; fullName:
           // content mix
         </p>
         <div className="grid grid-cols-2 gap-2">
-          {PROFILE.pillars.map((p) => (
+          {pillarsToRender.map((p) => (
             <div
               key={p.name}
               className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl"
@@ -687,7 +737,7 @@ function ProfileBand({ handle, fullName, platform }: { handle: string; fullName:
             >
               <span
                 className="block w-3 h-3 rounded-sm shrink-0"
-                style={{ backgroundColor: SWATCH[p.swatch] }}
+                style={{ backgroundColor: p.color }}
                 aria-hidden
               />
               <div className="min-w-0 flex-1">
@@ -908,7 +958,7 @@ function ThisWeekCard({ platform }: { platform: Platform }) {
       className="rounded-[18px] p-5 md:p-6"
       style={{ backgroundColor: TOKENS.card, border: `1px solid ${TOKENS.hairline}` }}
     >
-      <CardHeader eyebrow="// this week" title={tw.range} />
+      <CardHeader eyebrow="// this week" title={tw.range} sample={platform.isPreview} />
 
       <ul className="mt-4 space-y-2.5">
         {tw.rows.map((r) => (
@@ -973,7 +1023,7 @@ function AudienceCard({ platform }: { platform: Platform }) {
       className="rounded-[18px] p-5 md:p-6"
       style={{ backgroundColor: TOKENS.card, border: `1px solid ${TOKENS.hairline}` }}
     >
-      <CardHeader eyebrow="// audience" title={platform.audience.title} />
+      <CardHeader eyebrow="// audience" title={platform.audience.title} sample={platform.isPreview} />
 
       <div className="mt-5">
         <p
@@ -1023,23 +1073,38 @@ function AlgorithmWatchCard({ platform }: { platform: Platform }) {
           </h3>
         </div>
 
-        <div
-          className="inline-flex items-center gap-2 h-7 px-2.5 rounded-full"
-          style={{ backgroundColor: TOKENS.bg, border: `1px solid ${TOKENS.hairline}` }}
-        >
-          <span className="relative inline-flex w-1.5 h-1.5">
+        <div className="flex items-center gap-2">
+          {aw && platform.isPreview && (
             <span
-              className="absolute inset-0 rounded-full"
-              style={{ backgroundColor: "#3D8F4B", animation: "pulseDot 1.8s ease-out infinite" }}
-            />
-            <span className="relative block w-1.5 h-1.5 rounded-full" style={{ backgroundColor: "#3D8F4B" }} />
-          </span>
-          <span
-            className="text-[10px] uppercase tracking-[0.16em]"
-            style={{ color: TOKENS.inkSoft, fontFamily: TOKENS.fontMono }}
+              className="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-semibold tracking-wider"
+              style={{
+                backgroundColor: TOKENS.bg,
+                color: TOKENS.brown,
+                border: `1px solid ${TOKENS.hairlineStrong}`,
+                fontFamily: TOKENS.fontMono,
+              }}
+            >
+              SAMPLE
+            </span>
+          )}
+          <div
+            className="inline-flex items-center gap-2 h-7 px-2.5 rounded-full"
+            style={{ backgroundColor: TOKENS.bg, border: `1px solid ${TOKENS.hairline}` }}
           >
-            live
-          </span>
+            <span className="relative inline-flex w-1.5 h-1.5">
+              <span
+                className="absolute inset-0 rounded-full"
+                style={{ backgroundColor: "#3D8F4B", animation: "pulseDot 1.8s ease-out infinite" }}
+              />
+              <span className="relative block w-1.5 h-1.5 rounded-full" style={{ backgroundColor: "#3D8F4B" }} />
+            </span>
+            <span
+              className="text-[10px] uppercase tracking-[0.16em]"
+              style={{ color: TOKENS.inkSoft, fontFamily: TOKENS.fontMono }}
+            >
+              live
+            </span>
+          </div>
         </div>
       </div>
 
@@ -1127,18 +1192,41 @@ function ScanCell({ label, value }: { label: string; value: string }) {
 }
 
 // ─── Shared card header ───────────────────────────────────────────────────────
-function CardHeader({ eyebrow, title }: { eyebrow: string; title: string }) {
+function CardHeader({
+  eyebrow,
+  title,
+  sample,
+}: {
+  eyebrow: string
+  title: string
+  sample?: boolean
+}) {
   return (
-    <div>
-      <p
-        className="text-[10px] uppercase tracking-[0.18em] mb-1"
-        style={{ color: TOKENS.brown, fontFamily: TOKENS.fontMono }}
-      >
-        {eyebrow}
-      </p>
-      <h3 className="text-[16px] font-medium" style={{ color: TOKENS.ink }}>
-        {title}
-      </h3>
+    <div className="flex items-start justify-between gap-3">
+      <div>
+        <p
+          className="text-[10px] uppercase tracking-[0.18em] mb-1"
+          style={{ color: TOKENS.brown, fontFamily: TOKENS.fontMono }}
+        >
+          {eyebrow}
+        </p>
+        <h3 className="text-[16px] font-medium" style={{ color: TOKENS.ink }}>
+          {title}
+        </h3>
+      </div>
+      {sample && (
+        <span
+          className="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-semibold tracking-wider shrink-0 mt-0.5"
+          style={{
+            backgroundColor: TOKENS.bg,
+            color: TOKENS.brown,
+            border: `1px solid ${TOKENS.hairlineStrong}`,
+            fontFamily: TOKENS.fontMono,
+          }}
+        >
+          SAMPLE
+        </span>
+      )}
     </div>
   )
 }

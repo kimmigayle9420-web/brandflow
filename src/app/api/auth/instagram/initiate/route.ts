@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server"
+import { INSTAGRAM_OAUTH_SCOPE } from "@/lib/instagram-scope"
 
 // JSON variant of /api/auth/instagram — used by the signup page so it can
 // gracefully toast "not configured" instead of redirecting to an error page.
@@ -19,7 +20,9 @@ export async function GET(request: Request) {
     client_id: appId,
     redirect_uri: redirectUri,
     response_type: "code",
-    scope: "pages_show_list,pages_read_engagement,business_management,instagram_basic",
+    scope: INSTAGRAM_OAUTH_SCOPE,
+    // Carry origin so the callback knows to return to onboarding Step 2.
+    state: "onboarding",
   })
 
   const authUrl = `https://www.facebook.com/v19.0/dialog/oauth?${params.toString()}`

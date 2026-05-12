@@ -108,6 +108,26 @@ export default function OnboardingPage() {
   const [voice, setVoice] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
 
+  // Guard: if user already has a brand, skip onboarding and go to dashboard
+  useEffect(() => {
+    let cancelled = false
+    void (async () => {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user || cancelled) return
+      const { data } = await supabase
+        .from("brands")
+        .select("id")
+        .eq("user_id", user.id)
+        .limit(1)
+        .maybeSingle()
+      if (!cancelled && data?.id) {
+        router.replace("/dashboard")
+      }
+    })()
+    return () => { cancelled = true }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   const manualReady = style !== null && voice !== null
 
   const finish = async (brandData: {

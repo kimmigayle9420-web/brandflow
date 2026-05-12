@@ -18,6 +18,8 @@ export async function GET(request: Request) {
   const code = searchParams.get("code")
   const oauthError = searchParams.get("error")
   const oauthErrorDesc = searchParams.get("error_description")
+  // "onboarding" when the flow was initiated from /onboarding/connect Step 2.
+  const oauthState = searchParams.get("state")
 
   // Canonical base URL — used for both the OAuth redirect_uri (must match what
   // we sent to Meta) AND every user-facing redirect, so the user always lands
@@ -235,11 +237,17 @@ export async function GET(request: Request) {
       return NextResponse.redirect(`${baseUrl}/dashboard?error=instagram&reason=profile_update`)
     }
 
-    const successUrl = `${baseUrl}/dashboard?connected=instagram`
+    // If the OAuth was initiated from onboarding Step 2, send the user back
+    // there so they can see the "connected ✓" state before hitting the dashboard.
+    const successUrl =
+      oauthState === "onboarding"
+        ? `${baseUrl}/onboarding/connect?connected=instagram`
+        : `${baseUrl}/dashboard?connected=instagram`
     console.log("[instagram/callback] success — redirecting", {
       successUrl,
       igUserId,
       hasUsername: Boolean(igUsername),
+      oauthState,
     })
     return NextResponse.redirect(successUrl)
   } catch (err) {

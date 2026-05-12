@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server"
+import { INSTAGRAM_OAUTH_SCOPE } from "@/lib/instagram-scope"
 
 // Kicks off Meta's Facebook Login dialog. Meta returns to /api/auth/instagram/callback,
 // which exchanges the code for a long-lived token and discovers the user's IG Business Account.
@@ -20,10 +21,7 @@ export async function GET(request: Request) {
     client_id: appId,
     redirect_uri: redirectUri,
     response_type: "code",
-    // instagram_manage_insights requires App Review before it can be requested
-    // in the OAuth scope. Remove it here until the app is approved — the stats
-    // route degrades gracefully (reach/profile_views return 0 without it).
-    scope: "pages_show_list,pages_read_engagement,business_management,instagram_basic",
+    scope: INSTAGRAM_OAUTH_SCOPE,
   })
 
   return NextResponse.redirect(
