@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect, useMemo, useRef, useCallback } from "react"
+import { useSearchParams } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -11,7 +12,7 @@ import {
   LayoutGrid, Image as ImageIcon, Save, Trash2, Wand2, Instagram,
   Music2, Youtube, Heart, MessageCircle, Send, Bookmark, MoreHorizontal,
   ChevronLeft, ChevronRight, Hash, Calendar, Play, Volume2,
-  Eye, ImageOff,
+  Eye, ImageOff, Download,
 } from "lucide-react"
 import type { Brand, ContentPillar, Idea } from "@/types"
 
@@ -623,17 +624,21 @@ function MediaUploader({
   onAdd,
   onRemove,
   onSelect,
+  onReorder,
   activeIndex,
 }: {
   media: MediaItem[]
   onAdd: (items: MediaItem[]) => void
   onRemove: (index: number) => void
   onSelect: (index: number) => void
+  onReorder: (from: number, to: number) => void
   activeIndex: number
 }) {
   const inputRef = useRef<HTMLInputElement>(null)
   const [dragOver, setDragOver] = useState(false)
   const [urlInput, setUrlInput] = useState("")
+  const [draggingIdx, setDraggingIdx] = useState<number | null>(null)
+  const [dragOverIdx, setDragOverIdx] = useState<number | null>(null)
   const { toast } = useToast()
 
   const handleFiles = (files: FileList | File[] | null) => {
@@ -707,11 +712,22 @@ function MediaUploader({
             {media.map((m, i) => (
               <div
                 key={i}
-                className="relative aspect-square rounded-lg overflow-hidden cursor-pointer group bg-[#1f1614]"
+                draggable
+                onDragStart={() => setDraggingIdx(i)}
+                onDragEnd={() => { setDraggingIdx(null); setDragOverIdx(null) }}
+                onDragOver={(e) => { e.preventDefault(); setDragOverIdx(i) }}
+                onDrop={(e) => {
+                  e.preventDefault()
+                  if (draggingIdx !== null && draggingIdx !== i) onReorder(draggingIdx, i)
+                  setDraggingIdx(null)
+                  setDragOverIdx(null)
+                }}
+                className="relative aspect-square rounded-lg overflow-hidden cursor-grab active:cursor-grabbing group bg-[#1f1614] transition-opacity"
                 onClick={() => onSelect(i)}
                 style={{
-                  outline: i === activeIndex ? "2px solid #F97066" : "1px solid #E5DDD5",
-                  outlineOffset: i === activeIndex ? "2px" : "0px",
+                  outline: i === activeIndex ? "2px solid #F97066" : dragOverIdx === i ? "2px solid #C2B5A3" : "1px solid #E5DDD5",
+                  outlineOffset: i === activeIndex || dragOverIdx === i ? "2px" : "0px",
+                  opacity: draggingIdx === i ? 0.4 : 1,
                 }}
               >
                 {m.type === "video" ? (
@@ -736,6 +752,10 @@ function MediaUploader({
                     LOCAL
                   </span>
                 )}
+                {/* Drag handle hint */}
+                <span className="absolute top-1 left-1 text-[9px] font-bold text-white/70 bg-black/40 rounded px-1 opacity-0 group-hover:opacity-100 transition-opacity select-none">
+                  ⠿
+                </span>
               </div>
             ))}
             <button
@@ -751,7 +771,7 @@ function MediaUploader({
           </div>
           {media.length > 1 && (
             <p className="text-[11px] font-medium" style={{ color: "#7A5C50" }}>
-              {media.length} items · click a thumb to preview
+              {media.length} items · click to preview · drag to reorder
             </p>
           )}
         </div>
@@ -968,6 +988,9 @@ function EditorWorkspace({
         media_count: state.media.length,
       },
       media_url: firstPersistable?.url ?? null,
+      // When adding to the calendar, mark today as the scheduled date so the
+      // idea shows up on the calendar timeline (the user can drag it later).
+      ...(status === "scheduled" && { scheduled_at: new Date().toISOString() }),
       status: status === "draft" ? ("draft" as const) : ("scheduled" as const),
     }
 
@@ -1014,6 +1037,24 @@ function EditorWorkspace({
     toast({ title: "Deleted" })
     onDeleted()
     onClose()
+  }
+
+  const handleDownload = () => {
+    const item = state.media[state.mediaIndex] ?? state.media[0]
+    if (!item) {
+      toast({ title: "No media to download", variant: "destructive" })
+      return
+    }
+    if (item.isBlob) {
+      // Local file — trigger browser download
+      const a = document.createElement("a")
+      a.href = item.url
+      a.download = item.name
+      a.click()
+    } else {
+      // Remote URL — open in new tab so user can save it
+      window.open(item.url, "_blank", "noopener,noreferrer")
+    }
   }
 
   if (!open) return null
@@ -1065,6 +1106,18 @@ function EditorWorkspace({
               aria-label="Delete"
             >
               {deleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+            </button>
+          )}
+          {state.media.length > 0 && (
+            <button
+              type="button"
+              onClick={handleDownload}
+              title="Download current media"
+              className="hidden sm:inline-flex h-10 w-10 rounded-xl border items-center justify-center transition-colors hover:bg-[#EDE6DC]"
+              style={{ borderColor: "#E5DDD5", color: "#5A3825" }}
+              aria-label="Download media"
+            >
+              <Download className="h-4 w-4" />
             </button>
           )}
           <Button
@@ -1139,6 +1192,12 @@ function EditorWorkspace({
                   }
                 })}
                 onSelect={(i) => setState((s) => ({ ...s, mediaIndex: i }))}
+                onReorder={(from, to) => setState((s) => {
+                  const next = [...s.media]
+                  const [moved] = next.splice(from, 1)
+                  next.splice(to, 0, moved)
+                  return { ...s, media: next, mediaIndex: to }
+                })}
                 activeIndex={state.mediaIndex}
               />
             </div>
@@ -1467,6 +1526,7 @@ export function ContentCreatorClient({
 }) {
   const supabase = createClient()
   const { toast } = useToast()
+  const searchParams = useSearchParams()
 
   const [pillars] = useState<ContentPillar[]>(initialPillars)
   const [ideas, setIdeas] = useState<Idea[]>([])
@@ -1475,6 +1535,22 @@ export function ContentCreatorClient({
   const [editorOpen, setEditorOpen] = useState(false)
   const [editorState, setEditorState] = useState<EditorState>(EMPTY_EDITOR)
   const [migrationNeeded, setMigrationNeeded] = useState(false)
+
+  // Auto-open editor pre-selecting the pillar passed via ?pillar=<id>
+  const autoOpenedRef = useRef(false)
+  useEffect(() => {
+    if (autoOpenedRef.current) return
+    const pillarParam = searchParams.get("pillar")
+    if (!pillarParam) return
+    const validPillar = pillars.find((p) => p.id === pillarParam)
+    if (!validPillar) return
+    autoOpenedRef.current = true
+    setActivePillarId(pillarParam)
+    setEditorState({ ...EMPTY_EDITOR, pillarId: pillarParam })
+    setEditorOpen(true)
+    // Remove param from URL so a back-navigation doesn't re-trigger
+    window.history.replaceState({}, "", window.location.pathname)
+  }, [pillars, searchParams])
 
   const handle = useMemo(() => {
     return (

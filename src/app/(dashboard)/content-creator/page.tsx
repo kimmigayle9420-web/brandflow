@@ -1,3 +1,4 @@
+import { Suspense } from "react"
 import { createClient } from "@/lib/supabase/server"
 import { Header } from "@/components/layout/header"
 import { ContentCreatorClient } from "./_components/content-creator-client"
@@ -49,12 +50,14 @@ export default async function ContentCreatorPage() {
         description="Filter post ideas by pillar, draft a new one, and schedule when it goes live."
       />
       <div className="flex-1 w-full px-4 py-6 md:px-6 lg:px-10 md:py-8">
-        <ContentCreatorClient
-          brand={primaryBrand}
-          initialPillars={initialPillars}
-          socialAccounts={socialAccounts}
-          userId={user!.id}
-        />
+        <Suspense>
+          <ContentCreatorClient
+            brand={primaryBrand}
+            initialPillars={initialPillars}
+            socialAccounts={socialAccounts}
+            userId={user!.id}
+          />
+        </Suspense>
       </div>
     </div>
   )

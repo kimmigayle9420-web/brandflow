@@ -22,6 +22,7 @@ export default async function ContentPlannerPage() {
     supabase
       .from("content_pillars")
       .select("*")
+      .eq("user_id", user!.id)
       .order("sort_order"),
   ])
 

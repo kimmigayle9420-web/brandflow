@@ -233,6 +233,8 @@ function DashboardPageInner() {
   const [igLoading, setIgLoading] = useState(false)
   // Live content pillars from Supabase — null until loaded (fallback renders static)
   const [livePillars, setLivePillars] = useState<{ name: string; pct: number; color: string }[] | null>(null)
+  // Live bio / niche from the user's brand — null until loaded
+  const [liveBio, setLiveBio] = useState<string | null>(null)
 
   // Overlay handle/name from Supabase if available; otherwise keep design defaults
   useEffect(() => {
@@ -274,11 +276,12 @@ function DashboardPageInner() {
       if (!user || cancelled) return
       const { data: brand } = await supabase
         .from("brands")
-        .select("id")
+        .select("id, niche")
         .eq("user_id", user.id)
         .limit(1)
         .maybeSingle()
       if (!brand?.id || cancelled) return
+      if (brand.niche) setLiveBio(brand.niche)
       const { data: rows } = await supabase
         .from("content_pillars")
         .select("name, weekly_quota, color")
@@ -420,7 +423,7 @@ function DashboardPageInner() {
             )}
 
             {/* ─── Profile band ─────────────────────────────────── */}
-            <ProfileBand handle={handle} fullName={fullName} platform={effectivePlatform} livePillars={livePillars} />
+            <ProfileBand handle={handle} fullName={fullName} platform={effectivePlatform} livePillars={livePillars} liveBio={liveBio} />
 
             {/* ─── Stats row ────────────────────────────────────── */}
             <StatsRow platform={effectivePlatform} />
@@ -668,11 +671,13 @@ function ProfileBand({
   fullName,
   platform,
   livePillars,
+  liveBio,
 }: {
   handle: string
   fullName: string
   platform: Platform
   livePillars: { name: string; pct: number; color: string }[] | null
+  liveBio: string | null
 }) {
   const accent = platform.accent
   // Merge: prefer live Supabase pillars; fall back to static PROFILE.pillars.
@@ -715,7 +720,7 @@ function ProfileBand({
             @{handle}
           </p>
           <p className="text-[13px] mt-3 leading-relaxed max-w-[36ch]" style={{ color: TOKENS.inkSoft }}>
-            {PROFILE.bio}
+            {liveBio ?? PROFILE.bio}
           </p>
         </div>
       </div>
