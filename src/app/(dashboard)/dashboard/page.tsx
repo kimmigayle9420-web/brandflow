@@ -271,7 +271,7 @@ function DashboardPageInner() {
     setIgLoading(true)
     void (async () => {
       try {
-        const res = await fetch("/api/instagram/stats")
+        const res = await fetch("/api/instagram/stats", { cache: "no-store" })
         const json = await res.json()
         if (cancelled) return
         if (json?.connected) {
@@ -289,7 +289,8 @@ function DashboardPageInner() {
     return () => {
       cancelled = true
     }
-  }, [active, igStats, igLoading])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [active, igStats])
 
   const today = useMemo(() => formatToday(), [])
 

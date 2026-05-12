@@ -182,8 +182,12 @@ export async function GET(request: Request) {
       data: { user },
     } = await supabase.auth.getUser()
     if (!user) {
-      console.error("[instagram/callback] no authenticated user — redirecting to /login")
-      return NextResponse.redirect(`${baseUrl}/login?error=instagram_no_session`)
+      console.error("[instagram/callback] no authenticated user — redirecting to /login with returnTo")
+      // Pass returnTo so login sends the user back through the Instagram OAuth flow
+      // after they sign in, rather than just dropping them on /dashboard without a token.
+      return NextResponse.redirect(
+        `${baseUrl}/login?returnTo=${encodeURIComponent("/api/auth/instagram")}`
+      )
     }
 
     const expiresAt = new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString()
