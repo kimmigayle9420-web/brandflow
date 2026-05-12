@@ -1528,29 +1528,28 @@ export function ContentCreatorClient({
   const { toast } = useToast()
   const searchParams = useSearchParams()
 
+  // If ?pillar=<id> is in the URL, use it to pre-select the pillar and
+  // immediately open the editor. We read this once at render time rather than
+  // in an effect to avoid any timing / guard issues.
+  const urlPillarId = searchParams.get("pillar")
+
   const [pillars] = useState<ContentPillar[]>(initialPillars)
   const [ideas, setIdeas] = useState<Idea[]>([])
   const [loading, setLoading] = useState(true)
-  const [activePillarId, setActivePillarId] = useState<string>("all")
-  const [editorOpen, setEditorOpen] = useState(false)
-  const [editorState, setEditorState] = useState<EditorState>(EMPTY_EDITOR)
+  const [activePillarId, setActivePillarId] = useState<string>(urlPillarId ?? "all")
+  const [editorOpen, setEditorOpen] = useState(!!urlPillarId)
+  const [editorState, setEditorState] = useState<EditorState>(
+    urlPillarId ? { ...EMPTY_EDITOR, pillarId: urlPillarId } : EMPTY_EDITOR
+  )
   const [migrationNeeded, setMigrationNeeded] = useState(false)
 
-  // Auto-open editor pre-selecting the pillar passed via ?pillar=<id>
-  const autoOpenedRef = useRef(false)
+  // Clean up the URL param once on mount so back-navigation doesn't re-open
   useEffect(() => {
-    if (autoOpenedRef.current) return
-    const pillarParam = searchParams.get("pillar")
-    if (!pillarParam) return
-    const validPillar = pillars.find((p) => p.id === pillarParam)
-    if (!validPillar) return
-    autoOpenedRef.current = true
-    setActivePillarId(pillarParam)
-    setEditorState({ ...EMPTY_EDITOR, pillarId: pillarParam })
-    setEditorOpen(true)
-    // Remove param from URL so a back-navigation doesn't re-trigger
-    window.history.replaceState({}, "", window.location.pathname)
-  }, [pillars, searchParams])
+    if (urlPillarId) {
+      window.history.replaceState({}, "", window.location.pathname)
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const handle = useMemo(() => {
     return (
