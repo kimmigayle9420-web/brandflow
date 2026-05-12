@@ -20,7 +20,9 @@ export async function GET(request: Request) {
     client_id: appId,
     redirect_uri: redirectUri,
     response_type: "code",
-    scope: "pages_show_list,pages_read_engagement,business_management,instagram_basic",
+    // instagram_manage_insights is required for reach, profile_views, and
+    // views metrics on the account-level insights endpoint.
+    scope: "pages_show_list,pages_read_engagement,business_management,instagram_basic,instagram_manage_insights",
   })
 
   return NextResponse.redirect(
