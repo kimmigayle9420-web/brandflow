@@ -6,40 +6,41 @@
 
 @layer base {
   :root {
-    /* Warm cream background */
-    --background: 40 33% 97%;
-    --foreground: 20 40% 15%;
+    /* Concrete-light page background #EDE6DC */
+    --background: 33 30% 90%;
+    /* Graphite text #2D2D2D */
+    --foreground: 0 0% 18%;
 
-    /* Pure white cards so they pop off the cream bg */
+    /* White cards #FFFFFF */
     --card: 0 0% 100%;
-    --card-foreground: 20 40% 15%;
+    --card-foreground: 0 0% 18%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 20 40% 15%;
+    --popover-foreground: 0 0% 18%;
 
-    /* Primary: warm coral #F97066 */
-    --primary: 4 92% 69%;
+    /* Primary: Bright Brick #E06A33 */
+    --primary: 19 74% 54%;
     --primary-foreground: 0 0% 100%;
 
-    /* Secondary: soft warm peach */
-    --secondary: 30 40% 93%;
-    --secondary-foreground: 20 40% 25%;
+    /* Secondary: Concrete-light surface */
+    --secondary: 33 30% 90%;
+    --secondary-foreground: 0 0% 18%;
 
-    /* Muted: warm off-white */
-    --muted: 35 25% 93%;
-    --muted-foreground: 20 20% 50%;
+    /* Muted: Craft warm mid brown #8B7261 */
+    --muted: 33 30% 90%;
+    --muted-foreground: 24 18% 46%;
 
-    /* Accent: warm amber #E8956D */
-    --accent: 20 73% 67%;
+    /* Accent: Brick-dark #C45A26 (hover state) */
+    --accent: 20 68% 46%;
     --accent-foreground: 0 0% 100%;
 
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 100%;
 
-    /* Warm borders */
-    --border: 35 20% 88%;
-    --input: 35 20% 88%;
-    --ring: 4 92% 69%;
+    /* Concrete borders #C2B5A3 */
+    --border: 35 20% 70%;
+    --input: 35 20% 70%;
+    --ring: 19 74% 54%;
 
     /* Slightly more generous radius */
     --radius: 0.75rem;

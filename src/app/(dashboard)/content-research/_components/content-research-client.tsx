@@ -59,7 +59,7 @@ const PILLAR_COLORS = [
 ]
 
 const PRIORITY_STYLES: Record<string, string> = {
-  high: "bg-orange-50 text-orange-600 border-orange-200",
+  high: "bg-[#EDE6DC] text-[#C45A26] border-[#C45A26]",
   medium: "bg-amber-50 text-amber-600 border-amber-200",
   low: "bg-slate-50 text-slate-500 border-slate-200",
 }
@@ -99,7 +99,7 @@ function SectionHeader({
 }) {
   return (
     <div className="flex items-start gap-3 mb-6">
-      <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-orange-100 text-orange-500 shrink-0 mt-0.5">
+      <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#EDE6DC] text-[#E06A33] shrink-0 mt-0.5">
         {icon}
       </div>
       <div>
@@ -259,12 +259,12 @@ function PillarsSection({
           value={niche}
           onChange={(e) => setNiche(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && !loading && generate()}
-          className="bg-white border-slate-200 h-11 focus-visible:ring-orange-400 shadow-sm"
+          className="bg-white border-slate-200 h-11 focus-visible:ring-[#E06A33] shadow-sm"
         />
         <Button
           onClick={generate}
           disabled={loading || !niche.trim()}
-          className="bg-orange-500 hover:bg-orange-600 h-11 px-6 shrink-0 font-medium shadow-sm"
+          className="bg-[#E06A33] hover:bg-[#C45A26] h-11 px-6 shrink-0 font-medium shadow-sm"
         >
           {loading ? (
             <span className="flex items-center gap-2">
@@ -324,7 +324,7 @@ function PillarsSection({
                   size="sm"
                   onClick={savePillars}
                   disabled={saving}
-                  className="h-8 bg-orange-500 hover:bg-orange-600 px-4 gap-1.5"
+                  className="h-8 bg-[#E06A33] hover:bg-[#C45A26] px-4 gap-1.5"
                 >
                   {saving ? (
                     <>
@@ -346,7 +346,7 @@ function PillarsSection({
             {editedPillars.map((pillar, i) => (
               <Card
                 key={i}
-                className="bg-white border-0 ring-1 ring-slate-100 shadow-sm hover:shadow-md hover:ring-orange-100 transition-all duration-200 rounded-2xl"
+                className="bg-white border-0 ring-1 ring-slate-100 shadow-sm hover:shadow-md hover:ring-[#C2B5A3] transition-all duration-200 rounded-2xl"
               >
                 <CardContent className="p-5 space-y-3">
                   <div className="flex items-center gap-2">
@@ -367,7 +367,7 @@ function PillarsSection({
                   <Textarea
                     value={pillar.description}
                     onChange={(e) => updateField(i, "description", e.target.value)}
-                    className="text-xs text-slate-500 leading-relaxed bg-transparent border-slate-100 focus-visible:ring-orange-300 resize-none min-h-0"
+                    className="text-xs text-slate-500 leading-relaxed bg-transparent border-slate-100 focus-visible:ring-[#C45A26] resize-none min-h-0"
                     rows={3}
                     aria-label="Pillar description"
                   />
@@ -375,7 +375,7 @@ function PillarsSection({
                     <ul className="space-y-1 pt-1 border-t border-slate-50">
                       {pillar.postIdeas.map((idea, j) => (
                         <li key={j} className="text-xs text-slate-400 flex items-start gap-1.5">
-                          <span className="text-orange-400 mt-0.5 shrink-0">→</span>
+                          <span className="text-[#E06A33] mt-0.5 shrink-0">→</span>
                           <span>{idea}</span>
                         </li>
                       ))}
@@ -388,7 +388,7 @@ function PillarsSection({
 
           {!brand?.id && (
             <p className="text-xs text-slate-400">
-              <a href="/brands/new" className="text-orange-500 hover:underline">
+              <a href="/brands/new" className="text-[#E06A33] hover:underline">
                 Create a brand first
               </a>{" "}
               to save pillars.
@@ -535,12 +535,12 @@ function ProfileAnalyserSection({ brand }: { brand: Brand | null }) {
           value={url}
           onChange={(e) => setUrl(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && !loading && analyse()}
-          className="bg-white border-slate-200 h-11 focus-visible:ring-orange-400 shadow-sm"
+          className="bg-white border-slate-200 h-11 focus-visible:ring-[#E06A33] shadow-sm"
         />
         <Button
           onClick={analyse}
           disabled={loading || !url.trim()}
-          className="bg-orange-500 hover:bg-orange-600 h-11 px-6 shrink-0 font-medium shadow-sm"
+          className="bg-[#E06A33] hover:bg-[#C45A26] h-11 px-6 shrink-0 font-medium shadow-sm"
         >
           {loading ? (
             <span className="flex items-center gap-2">
@@ -585,7 +585,7 @@ function ProfileAnalyserSection({ brand }: { brand: Brand | null }) {
                 variant="outline"
                 onClick={saveToBrand}
                 disabled={savingToBrand}
-                className="h-8 gap-1.5 border-orange-200 text-orange-600 hover:bg-orange-50"
+                className="h-8 gap-1.5 border-[#C45A26] text-[#C45A26] hover:bg-[#EDE6DC]"
               >
                 {savingToBrand ? (
                   <>
@@ -629,7 +629,7 @@ function ProfileAnalyserSection({ brand }: { brand: Brand | null }) {
                 {result.contentThemes.map((theme, i) => (
                   <span
                     key={i}
-                    className="inline-flex items-center text-xs font-medium px-2 py-0.5 rounded-full bg-orange-50 text-orange-700 border border-orange-100"
+                    className="inline-flex items-center text-xs font-medium px-2 py-0.5 rounded-full bg-[#EDE6DC] text-[#C45A26] border border-[#C2B5A3]"
                   >
                     {theme}
                   </span>
@@ -642,7 +642,7 @@ function ProfileAnalyserSection({ brand }: { brand: Brand | null }) {
               <ul className="space-y-1">
                 {result.topTopics.map((topic, i) => (
                   <li key={i} className="flex items-start gap-1.5 text-xs text-slate-600">
-                    <span className="text-orange-400 font-bold mt-px shrink-0">·</span>
+                    <span className="text-[#E06A33] font-bold mt-px shrink-0">·</span>
                     {topic}
                   </li>
                 ))}
@@ -680,7 +680,7 @@ function ResultCard({
   children: React.ReactNode
 }) {
   return (
-    <Card className="bg-white border-0 ring-1 ring-slate-100 shadow-sm hover:shadow-md hover:ring-orange-100 transition-all duration-200 rounded-2xl">
+    <Card className="bg-white border-0 ring-1 ring-slate-100 shadow-sm hover:shadow-md hover:ring-[#C2B5A3] transition-all duration-200 rounded-2xl">
       <CardContent className="p-5">
         <div className="flex items-center gap-1.5 mb-2.5">
           <span className="text-sm">{icon}</span>
@@ -747,12 +747,12 @@ function NicheResearchSection({ defaultNiche }: { defaultNiche: string }) {
           value={topic}
           onChange={(e) => setTopic(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && !loading && research()}
-          className="bg-white border-slate-200 h-11 focus-visible:ring-orange-400 shadow-sm"
+          className="bg-white border-slate-200 h-11 focus-visible:ring-[#E06A33] shadow-sm"
         />
         <Button
           onClick={research}
           disabled={loading || !topic.trim()}
-          className="bg-orange-500 hover:bg-orange-600 h-11 px-6 shrink-0 font-medium shadow-sm"
+          className="bg-[#E06A33] hover:bg-[#C45A26] h-11 px-6 shrink-0 font-medium shadow-sm"
         >
           {loading ? (
             <span className="flex items-center gap-2">
@@ -777,8 +777,8 @@ function NicheResearchSection({ defaultNiche }: { defaultNiche: string }) {
       {/* Loading */}
       {loading && (
         <div className="mt-6 flex flex-col items-center justify-center py-16 text-center">
-          <div className="w-12 h-12 rounded-2xl bg-orange-100 flex items-center justify-center mb-4">
-            <Sparkles className="h-6 w-6 text-orange-500 animate-pulse" />
+          <div className="w-12 h-12 rounded-2xl bg-[#EDE6DC] flex items-center justify-center mb-4">
+            <Sparkles className="h-6 w-6 text-[#E06A33] animate-pulse" />
           </div>
           <p className="text-sm font-medium text-slate-700">Claude is researching your niche…</p>
           <p className="text-xs text-slate-400 mt-1">
@@ -848,7 +848,7 @@ function NicheResearchSection({ defaultNiche }: { defaultNiche: string }) {
           <Card className="bg-white border-0 ring-1 ring-slate-100 shadow-sm rounded-2xl">
             <CardContent className="p-6">
               <div className="flex items-center gap-2 mb-4">
-                <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-orange-50 text-orange-500">
+                <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#EDE6DC] text-[#E06A33]">
                   <TrendingUp className="h-3.5 w-3.5" />
                 </div>
                 <h3 className="text-sm font-semibold text-slate-800">Trending Topics Right Now</h3>
@@ -857,7 +857,7 @@ function NicheResearchSection({ defaultNiche }: { defaultNiche: string }) {
                 {result.trendingTopics.map((topic, i) => (
                   <span
                     key={i}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium bg-orange-50 text-orange-700 border border-orange-100"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium bg-[#EDE6DC] text-[#C45A26] border border-[#C2B5A3]"
                   >
                     <span className="text-xs">🔥</span>
                     {topic}

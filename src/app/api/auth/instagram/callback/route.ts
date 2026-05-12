@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
+import { normalizeSocialAccounts } from "@/lib/social-accounts"
+import type { SocialAccount, SocialAccountsMap } from "@/types"
 
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url)
@@ -66,8 +68,20 @@ export async function GET(request: Request) {
 
     if (fetchError) throw new Error(fetchError.message)
 
-    const existing: Record<string, string> = profileRow?.social_accounts ?? {}
-    const updated: Record<string, string> = { ...existing, instagram: username }
+    const existing = normalizeSocialAccounts(
+      (profileRow?.social_accounts ?? {}) as SocialAccountsMap | null,
+    )
+    const prior = existing.instagram
+    const updated: Record<string, SocialAccount> = {
+      ...existing,
+      instagram: {
+        platform: "instagram",
+        handle: username,
+        followers: prior?.followers ?? 0,
+        engagement: prior?.engagement ?? 0,
+        url: prior?.url,
+      },
+    }
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { error: updateError } = (await (supabase as any)

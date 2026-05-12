@@ -24,28 +24,28 @@ export async function Header({ title, description }: HeaderProps) {
   return (
     <header
       className="flex items-center justify-between px-4 py-4 md:px-8 md:py-5"
-      style={{ borderBottom: "1px solid #E8E0D5", backgroundColor: "rgba(254,252,248,0.9)" }}
+      style={{ borderBottom: "1px solid #C2B5A3", backgroundColor: "rgba(237,230,220,0.9)" }}
     >
       <div>
-        <h1 className="text-xl md:text-2xl font-semibold leading-tight" style={{ color: "#2D1810" }}>
+        <h1 className="text-xl md:text-2xl font-semibold leading-tight" style={{ color: "#2D2D2D" }}>
           {title}
         </h1>
         {description && (
-          <p className="text-sm mt-0.5" style={{ color: "#8A7060" }}>
+          <p className="text-sm mt-0.5" style={{ color: "#8B7261" }}>
             {description}
           </p>
         )}
       </div>
       <div className="flex items-center gap-3">
         <div className="text-right hidden sm:block">
-          <p className="text-sm font-medium leading-tight" style={{ color: "#2D1810" }}>{name}</p>
-          <p className="text-xs" style={{ color: "#8A7060" }}>{user?.email}</p>
+          <p className="text-sm font-medium leading-tight" style={{ color: "#2D2D2D" }}>{name}</p>
+          <p className="text-xs" style={{ color: "#8B7261" }}>{user?.email}</p>
         </div>
         <Avatar className="h-9 w-9">
           <AvatarImage src={profile?.data?.avatar_url ?? undefined} />
           <AvatarFallback
             className="text-sm font-medium"
-            style={{ backgroundColor: "#FEE8E4", color: "#D4432A" }}
+            style={{ backgroundColor: "#EDE6DC", color: "#C45A26" }}
           >
             {getInitials(name)}
           </AvatarFallback>

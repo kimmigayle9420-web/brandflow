@@ -1,12 +1,13 @@
 import { createClient } from "@/lib/supabase/server"
 import { Header } from "@/components/layout/header"
 import { ContentCreatorClient } from "./_components/content-creator-client"
-import type { Brand, ContentPillar } from "@/types"
+import type { Brand, ContentPillar, SocialAccountsMap } from "@/types"
+import { normalizeSocialAccounts, toHandleMap } from "@/lib/social-accounts"
 import type { Metadata } from "next"
 
 export const metadata: Metadata = {
-  title: "Content Creator — BrandFlow",
-  description: "Research your niche, manage pillars, and generate content",
+  title: "Content hub — BrandFlow",
+  description: "Plan, draft, and schedule posts across your content pillars.",
 }
 
 export default async function ContentCreatorPage() {
@@ -28,7 +29,9 @@ export default async function ContentCreatorPage() {
 
   const primaryBrand: Brand | null = brands && brands.length > 0 ? (brands[0] as unknown as Brand) : null
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const socialAccounts = ((profile as any)?.social_accounts ?? {}) as Record<string, string>
+  const socialAccounts = toHandleMap(
+    normalizeSocialAccounts(((profile as any)?.social_accounts ?? {}) as SocialAccountsMap | null),
+  )
 
   let initialPillars: ContentPillar[] = []
   if (primaryBrand) {
@@ -42,10 +45,10 @@ export default async function ContentCreatorPage() {
   }
 
   return (
-    <div className="flex flex-col min-h-full" style={{ backgroundColor: "#FAFAF5" }}>
+    <div className="flex flex-col min-h-full" style={{ backgroundColor: "#EDE6DC" }}>
       <Header
-        title="Content Creator"
-        description="Research your niche, manage pillars, and generate content — all in one place."
+        title="Content hub"
+        description="Filter post ideas by pillar, draft a new one, and schedule when it goes live."
       />
       <div className="flex-1 w-full px-4 py-6 md:px-6 lg:px-10 md:py-8">
         <ContentCreatorClient

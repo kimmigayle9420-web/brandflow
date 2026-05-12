@@ -39,12 +39,14 @@ export async function POST(request: Request) {
 
   let body: {
     hook?: string
+    topic?: string
     notes?: string
     brandName?: string
     niche?: string
     tone?: string
     targetAudience?: string
     pillarName?: string
+    pillarDescription?: string
     pillarVoiceDirection?: string
     pillarFormatPreference?: string
   }
@@ -54,10 +56,11 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Invalid request body' }, { status: 400 })
   }
 
-  const { hook, notes, brandName, niche, tone, targetAudience, pillarName, pillarVoiceDirection, pillarFormatPreference } = body
+  const { hook, topic, notes, brandName, niche, tone, targetAudience, pillarName, pillarDescription, pillarVoiceDirection, pillarFormatPreference } = body
 
   const pillarContext = pillarName ? `
 Content Pillar: ${pillarName}
+${pillarDescription ? `Pillar description / POV: ${pillarDescription}` : ''}
 ${pillarVoiceDirection ? `Voice direction: ${pillarVoiceDirection}` : ''}
 ${pillarFormatPreference && pillarFormatPreference !== 'any' ? `Preferred format: ${pillarFormatPreference}` : ''}` : ''
 
@@ -68,6 +71,7 @@ Brand context:
 - Niche: ${niche || 'general'}
 - Tone: ${tone || 'conversational, authentic'}
 - Target audience: ${targetAudience || 'general audience'}
+${topic ? `- Topic / angle: ${topic}` : ''}
 - Hook to open with: ${hook || 'general content hook'}
 ${notes ? `- Additional context / notes: ${notes}` : ''}
 ${pillarContext}

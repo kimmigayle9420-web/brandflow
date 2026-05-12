@@ -6,9 +6,15 @@ import { useRouter } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { useToast } from "@/components/ui/use-toast"
+import { Loader2 } from "lucide-react"
+
+const PALETTE = {
+  brick: "#F97066",
+  graphite: "#2D1810",
+  muted: "#8A7060",
+  border: "#E5DDD5",
+}
 
 export default function LoginPage() {
   const [email, setEmail] = useState("")
@@ -35,52 +41,81 @@ export default function LoginPage() {
   }
 
   return (
-    <Card className="shadow-2xl border-slate-700 bg-white/95 backdrop-blur">
-      <CardHeader className="space-y-1">
-        <CardTitle className="text-2xl font-bold text-center">Welcome back</CardTitle>
-        <CardDescription className="text-center">
-          Sign in to your BrandFlow account
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <form onSubmit={handleLogin} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
-            <Input
-              id="email"
-              type="email"
-              placeholder="you@example.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              autoComplete="email"
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="password">Password</Label>
-            <Input
-              id="password"
-              type="password"
-              placeholder="••••••••"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              autoComplete="current-password"
-            />
-          </div>
-          <Button type="submit" className="w-full bg-indigo-600 hover:bg-indigo-700" disabled={loading}>
-            {loading ? "Signing in…" : "Sign In"}
-          </Button>
-        </form>
-      </CardContent>
-      <CardFooter className="flex justify-center">
-        <p className="text-sm text-slate-600">
-          Don&apos;t have an account?{" "}
-          <Link href="/signup" className="font-medium text-indigo-600 hover:underline">
-            Sign up free
-          </Link>
-        </p>
-      </CardFooter>
-    </Card>
+    <div
+      className="max-w-md mx-auto rounded-3xl p-8"
+      style={{ backgroundColor: "white", border: `1px solid ${PALETTE.border}` }}
+    >
+      <h1
+        className="text-[26px] leading-tight font-bold text-center mb-2"
+        style={{ color: PALETTE.graphite }}
+      >
+        Welcome back
+      </h1>
+      <p className="text-sm text-center mb-7" style={{ color: PALETTE.muted }}>
+        Sign in to your BrandFlow account
+      </p>
+
+      <form onSubmit={handleLogin} className="space-y-4">
+        <div className="space-y-2">
+          <label
+            htmlFor="email"
+            className="text-xs font-semibold tracking-wider block"
+            style={{ color: PALETTE.muted }}
+          >
+            EMAIL
+          </label>
+          <Input
+            id="email"
+            type="email"
+            placeholder="you@example.com"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+            autoComplete="email"
+            className="h-12 rounded-2xl px-4 text-[15px] bg-white"
+            style={{ borderColor: PALETTE.border, color: PALETTE.graphite }}
+          />
+        </div>
+        <div className="space-y-2">
+          <label
+            htmlFor="password"
+            className="text-xs font-semibold tracking-wider block"
+            style={{ color: PALETTE.muted }}
+          >
+            PASSWORD
+          </label>
+          <Input
+            id="password"
+            type="password"
+            placeholder="••••••••"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+            autoComplete="current-password"
+            className="h-12 rounded-2xl px-4 text-[15px] bg-white"
+            style={{ borderColor: PALETTE.border, color: PALETTE.graphite }}
+          />
+        </div>
+        <Button
+          type="submit"
+          disabled={loading}
+          className="w-full h-12 rounded-2xl font-semibold text-[15px] hover:opacity-90 transition-opacity disabled:opacity-50"
+          style={{ backgroundColor: PALETTE.brick, color: "white" }}
+        >
+          {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : "Sign in"}
+        </Button>
+      </form>
+
+      <p className="text-xs text-center mt-6" style={{ color: PALETTE.muted }}>
+        Don&apos;t have an account?{" "}
+        <Link
+          href="/signup"
+          className="font-semibold hover:underline"
+          style={{ color: PALETTE.brick }}
+        >
+          Sign up free
+        </Link>
+      </p>
+    </div>
   )
 }
