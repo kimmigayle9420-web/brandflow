@@ -10,6 +10,7 @@ import {
   Zap,
   LogOut,
   PenLine,
+  Layers,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { createClient } from "@/lib/supabase/client"
@@ -17,6 +18,7 @@ import { useRouter } from "next/navigation"
 
 const navItems = [
   { href: "/dashboard", label: "Dashboard", mobileLabel: "Home", icon: LayoutDashboard },
+  { href: "/content-pillars", label: "Content Pillars", mobileLabel: "Pillars", icon: Layers },
   { href: "/content-creator", label: "Content Creator", mobileLabel: "Create", icon: PenLine },
   { href: "/content-planner", label: "Content Planner", mobileLabel: "Plan", icon: CalendarDays },
   { href: "/calendar", label: "Calendar", mobileLabel: "Calendar", icon: CalendarRange },

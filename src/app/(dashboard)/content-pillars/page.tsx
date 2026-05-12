@@ -10,8 +10,20 @@ import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import { useToast } from "@/components/ui/use-toast"
-import { Plus, Trash2, Pencil, Layers, Sparkles, ArrowRight } from "lucide-react"
+import { Plus, Trash2, Pencil, Layers, Sparkles, ArrowRight, Wand2, Loader2 } from "lucide-react"
 import type { Brand, ContentPillar } from "@/types"
+
+type GeneratedPillar = {
+  name: string
+  emoji: string
+  description: string
+  perspective?: string
+  postIdeas?: string[]
+  voice_direction?: string | null
+  format_preference?: "post" | "carousel" | "reel" | "any"
+  weekly_quota?: number
+  archetype?: string | null
+}
 
 const PILLAR_COLORS = [
   "#F97066", "#E0A050", "#3A7D44", "#6B5EA8",
@@ -35,6 +47,14 @@ export default function ContentPillarsPage() {
   const [form, setForm] = useState({ name: "", description: "", color: "#F97066" })
   const [saving, setSaving] = useState(false)
 
+  // AI generation state
+  const [aiOpen, setAiOpen] = useState(false)
+  const [aiNiche, setAiNiche] = useState("")
+  const [aiGenerating, setAiGenerating] = useState(false)
+  const [aiPreview, setAiPreview] = useState<GeneratedPillar[]>([])
+  const [aiSaving, setAiSaving] = useState(false)
+  const [aiError, setAiError] = useState<string | null>(null)
+
   useEffect(() => {
     const fetchBrands = async () => {
       const { data: { user } } = await supabase.auth.getUser()
@@ -56,15 +76,21 @@ export default function ContentPillarsPage() {
   useEffect(() => {
     if (!selectedBrandId) return
     const fetchPillars = async () => {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("content_pillars")
         .select("*")
         .eq("brand_id", selectedBrandId)
         .order("sort_order")
+      if (error) {
+        toast({ title: "Couldn't load pillars", description: error.message, variant: "destructive" })
+        setPillars([])
+        return
+      }
       setPillars(data ?? [])
     }
     fetchPillars()
-  }, [selectedBrandId, supabase])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedBrandId])
 
   const openCreate = () => {
     setEditing(null)
@@ -134,6 +160,80 @@ export default function ContentPillarsPage() {
     setSaving(false)
   }
 
+  const openAiGenerator = () => {
+    const selectedBrand = brands.find((b) => b.id === selectedBrandId)
+    setAiNiche(selectedBrand?.niche ?? "")
+    setAiPreview([])
+    setAiError(null)
+    setAiOpen(true)
+  }
+
+  const handleGeneratePillars = async () => {
+    const trimmed = aiNiche.trim()
+    if (!trimmed) {
+      setAiError("Please enter a niche first.")
+      return
+    }
+    setAiGenerating(true)
+    setAiError(null)
+    setAiPreview([])
+    try {
+      const res = await fetch("/api/generate-pillars", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ niche: trimmed }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error ?? "Generation failed")
+      if (!Array.isArray(data.pillars) || data.pillars.length === 0) {
+        throw new Error("No pillars returned. Try again.")
+      }
+      setAiPreview(data.pillars as GeneratedPillar[])
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Something went wrong."
+      setAiError(msg)
+    } finally {
+      setAiGenerating(false)
+    }
+  }
+
+  const handleSaveGeneratedPillars = async () => {
+    if (aiPreview.length === 0 || !selectedBrandId) return
+    setAiSaving(true)
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) {
+      toast({ title: "Not signed in", variant: "destructive" })
+      setAiSaving(false)
+      return
+    }
+    const baseOrder = pillars.length
+    const inserts = aiPreview.map((p, i) => ({
+      brand_id: selectedBrandId,
+      user_id: user.id,
+      name: p.name,
+      emoji: p.emoji || null,
+      description: p.description || p.perspective || null,
+      color: PILLAR_COLORS[(baseOrder + i) % PILLAR_COLORS.length],
+      sort_order: baseOrder + i,
+      voice_direction: p.voice_direction ?? null,
+      format_preference: p.format_preference ?? "any",
+      weekly_quota: typeof p.weekly_quota === "number" ? p.weekly_quota : 2,
+    }))
+    const { data: inserted, error } = await supabase
+      .from("content_pillars")
+      .insert(inserts)
+      .select()
+    setAiSaving(false)
+    if (error) {
+      toast({ title: "Failed to save pillars", description: error.message, variant: "destructive" })
+      return
+    }
+    if (inserted) setPillars((prev) => [...prev, ...inserted])
+    toast({ title: `${inserts.length} pillar${inserts.length === 1 ? "" : "s"} added` })
+    setAiOpen(false)
+    setAiPreview([])
+  }
+
   const handleDelete = async (pillarId: string) => {
     const pillar = pillars.find((p) => p.id === pillarId)
     if (!window.confirm(`Delete "${pillar?.name ?? "this pillar"}"? This cannot be undone.`)) return
@@ -201,15 +301,27 @@ export default function ContentPillarsPage() {
                   <h2 className="text-base font-semibold" style={{ color: "#2D1810" }}>{selectedBrand.name}</h2>
                   <p className="text-sm" style={{ color: "#8A7060" }}>{pillars.length}/6 pillars defined · click a pillar to use it</p>
                 </div>
-                <Button
-                  onClick={openCreate}
-                  disabled={pillars.length >= 6}
-                  className="rounded-xl gap-2"
-                  style={{ backgroundColor: "#F97066", color: "white" }}
-                >
-                  <Plus className="h-4 w-4" />
-                  Add Pillar
-                </Button>
+                <div className="flex items-center gap-2">
+                  <Button
+                    onClick={openAiGenerator}
+                    disabled={pillars.length >= 6}
+                    variant="outline"
+                    className="rounded-xl gap-2"
+                    style={{ borderColor: "#F5C4BC", color: "#D4432A", backgroundColor: "#FEF0EA" }}
+                  >
+                    <Wand2 className="h-4 w-4" />
+                    Generate with AI
+                  </Button>
+                  <Button
+                    onClick={openCreate}
+                    disabled={pillars.length >= 6}
+                    className="rounded-xl gap-2"
+                    style={{ backgroundColor: "#F97066", color: "white" }}
+                  >
+                    <Plus className="h-4 w-4" />
+                    Add Pillar
+                  </Button>
+                </div>
               </div>
             )}
 
@@ -222,13 +334,24 @@ export default function ContentPillarsPage() {
                 <p className="text-sm mb-4" style={{ color: "#8A7060" }}>
                   No pillars yet. Add 3–6 content themes to guide your posting strategy.
                 </p>
-                <Button
-                  onClick={openCreate}
-                  className="rounded-xl"
-                  style={{ backgroundColor: "#F97066", color: "white" }}
-                >
-                  Add Your First Pillar
-                </Button>
+                <div className="flex flex-wrap items-center justify-center gap-2">
+                  <Button
+                    onClick={openAiGenerator}
+                    className="rounded-xl gap-2"
+                    style={{ backgroundColor: "#F97066", color: "white" }}
+                  >
+                    <Wand2 className="h-4 w-4" />
+                    Generate with AI
+                  </Button>
+                  <Button
+                    onClick={openCreate}
+                    variant="outline"
+                    className="rounded-xl"
+                    style={{ borderColor: "#E5DDD5", color: "#5A3825", backgroundColor: "white" }}
+                  >
+                    Add manually
+                  </Button>
+                </div>
               </div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
@@ -258,9 +381,10 @@ export default function ContentPillarsPage() {
                       <div className="absolute top-0 left-0 right-0 h-1.5" style={{ backgroundColor: pillar.color }} />
                       <div className="pt-5 pb-4 px-5">
                         <div className="flex items-start justify-between gap-2 mb-2">
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-2 min-w-0">
                             <div className="h-4 w-4 rounded-full shrink-0" style={{ backgroundColor: pillar.color }} />
-                            <h3 className="text-base font-semibold" style={{ color: "#2D1810" }}>{pillar.name}</h3>
+                            {pillar.emoji && <span className="text-base leading-none">{pillar.emoji}</span>}
+                            <h3 className="text-base font-semibold truncate" style={{ color: "#2D1810" }}>{pillar.name}</h3>
                           </div>
                           <span className="text-xs shrink-0" style={{ color: "#A89080" }}>#{index + 1}</span>
                         </div>
@@ -369,6 +493,107 @@ export default function ContentPillarsPage() {
               disabled={saving || !form.name.trim()}
             >
               {saving ? "Saving…" : editing ? "Update" : "Create"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* AI Generation Dialog */}
+      <Dialog open={aiOpen} onOpenChange={(open) => { setAiOpen(open); if (!open) { setAiPreview([]); setAiError(null) } }}>
+        <DialogContent className="sm:max-w-2xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Sparkles className="h-4 w-4" style={{ color: "#F97066" }} />
+              Generate pillars with AI
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label>Niche</Label>
+              <Input
+                value={aiNiche}
+                onChange={(e) => setAiNiche(e.target.value)}
+                placeholder="e.g. colour realism tattoos, vegan cooking, indie SaaS"
+                onKeyDown={(e) => { if (e.key === "Enter" && !aiGenerating) handleGeneratePillars() }}
+              />
+              <p className="text-xs" style={{ color: "#8A7060" }}>
+                We'll suggest 5 pillars mapped to the DMI archetype framework, tailored to your niche.
+              </p>
+            </div>
+
+            {aiError && (
+              <div className="rounded-xl px-3 py-2 text-sm" style={{ backgroundColor: "#FEE2E2", color: "#991B1B" }}>
+                {aiError}
+              </div>
+            )}
+
+            {aiPreview.length > 0 && (
+              <div className="space-y-3">
+                <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: "#8A7060" }}>
+                  Preview · {aiPreview.length} pillar{aiPreview.length === 1 ? "" : "s"}
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {aiPreview.map((p, i) => (
+                    <div
+                      key={i}
+                      className="rounded-2xl border p-4"
+                      style={{ borderColor: "#E5DDD5", backgroundColor: "white" }}
+                    >
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="text-lg leading-none">{p.emoji || "📌"}</span>
+                        <h4 className="font-semibold text-sm" style={{ color: "#2D1810" }}>{p.name}</h4>
+                      </div>
+                      {p.description && (
+                        <p className="text-xs leading-relaxed mb-2" style={{ color: "#5A3825" }}>{p.description}</p>
+                      )}
+                      {p.archetype && (
+                        <span
+                          className="inline-block text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full"
+                          style={{ backgroundColor: "#FEF0EA", color: "#D4432A" }}
+                        >
+                          {p.archetype}
+                        </span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {aiPreview.length === 0 && !aiGenerating && (
+              <div
+                className="rounded-2xl border-2 border-dashed p-6 text-center"
+                style={{ borderColor: "#E8D8D0", backgroundColor: "#FFF8F4", color: "#8A7060" }}
+              >
+                <Sparkles className="h-6 w-6 mx-auto mb-2" style={{ color: "#C4B5A5" }} />
+                <p className="text-xs">Hit "Generate" to preview 5 AI-crafted pillars before saving.</p>
+              </div>
+            )}
+          </div>
+
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setAiOpen(false)} className="rounded-xl">
+              Cancel
+            </Button>
+            <Button
+              onClick={handleGeneratePillars}
+              disabled={aiGenerating || !aiNiche.trim()}
+              variant="outline"
+              className="rounded-xl gap-2"
+              style={{ borderColor: "#F5C4BC", color: "#D4432A", backgroundColor: "#FEF0EA" }}
+            >
+              {aiGenerating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Wand2 className="h-4 w-4" />}
+              {aiPreview.length > 0 ? "Regenerate" : "Generate"}
+            </Button>
+            <Button
+              onClick={handleSaveGeneratedPillars}
+              disabled={aiSaving || aiPreview.length === 0}
+              className="rounded-xl gap-2"
+              style={{ backgroundColor: "#F97066", color: "white" }}
+            >
+              {aiSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+              Save {aiPreview.length || ""} pillars
             </Button>
           </DialogFooter>
         </DialogContent>

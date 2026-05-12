@@ -10,6 +10,7 @@ import {
   Sparkles, Loader2, Plus, X, Calendar, Clock, Upload, Film,
   LayoutGrid, FileText, Zap, Mic2, GraduationCap, Image as ImageIcon,
   Save, Trash2, Copy, Check, Wand2, Instagram, Music2, Youtube,
+  ImageOff, Link as LinkIcon,
 } from "lucide-react"
 import type { Brand, ContentPillar, Idea } from "@/types"
 
@@ -131,6 +132,110 @@ function PlatformGlyphs({ platforms }: { platforms: Platform[] }) {
   )
 }
 
+// ─── Media Preview ──────────────────────────────────────────────────────────
+// Renders the post's image or video at the right aspect ratio for the chosen
+// format. Square for feed (post/carousel/tutorial), 9:16 for vertical surfaces
+// (reel/story/voiceover). Shows a skeleton while loading and a fallback when
+// the URL is broken — so a generated/external image URL never silently fails.
+
+function aspectForFormat(format: UiFormat): string {
+  switch (format) {
+    case "reel":
+    case "story":
+    case "voiceover":
+      return "9 / 16"
+    case "carousel":
+    case "tutorial":
+    case "post":
+    default:
+      return "1 / 1"
+  }
+}
+
+function isVideoUrl(url: string): boolean {
+  return /\.(mp4|mov|webm|m4v)(\?|$)/i.test(url)
+}
+
+function MediaPreview({
+  url,
+  name,
+  format,
+  onRemove,
+}: {
+  url: string
+  name: string | null
+  format: UiFormat
+  onRemove: () => void
+}) {
+  const [status, setStatus] = useState<"loading" | "ready" | "error">("loading")
+  const aspect = aspectForFormat(format)
+  const video = isVideoUrl(url)
+
+  // Object URLs (blob:) load synchronously, so we don't need a loader for them.
+  useEffect(() => {
+    if (url.startsWith("blob:") || url.startsWith("data:")) {
+      setStatus("ready")
+    } else {
+      setStatus("loading")
+    }
+  }, [url])
+
+  return (
+    <div className="relative rounded-xl overflow-hidden bg-[#F5F0EA]" style={{ aspectRatio: aspect }}>
+      {status === "loading" && (
+        <div className="absolute inset-0 flex items-center justify-center bg-[#F5F0EA] animate-pulse">
+          <ImageIcon className="h-8 w-8" style={{ color: "#C4B5A5" }} />
+        </div>
+      )}
+
+      {status === "error" ? (
+        <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-center px-4">
+          <ImageOff className="h-8 w-8" style={{ color: "#A89080" }} />
+          <p className="text-xs font-medium" style={{ color: "#7A5C50" }}>No preview available</p>
+          <p className="text-[10px]" style={{ color: "#A89080" }}>The image URL couldn't be loaded</p>
+        </div>
+      ) : video ? (
+        <video
+          src={url}
+          className="w-full h-full object-cover"
+          controls
+          onLoadedData={() => setStatus("ready")}
+          onError={() => setStatus("error")}
+        />
+      ) : (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={url}
+          alt={name ?? "Post media preview"}
+          className="w-full h-full object-cover"
+          style={{ visibility: status === "loading" ? "hidden" : "visible" }}
+          onLoad={() => setStatus("ready")}
+          onError={() => setStatus("error")}
+        />
+      )}
+
+      <button
+        type="button"
+        onClick={onRemove}
+        className="absolute top-2 right-2 h-8 w-8 rounded-full flex items-center justify-center z-10"
+        style={{ backgroundColor: "rgba(45,24,16,0.7)", color: "white" }}
+        aria-label="Remove media"
+      >
+        <X className="h-4 w-4" />
+      </button>
+
+      {name && status !== "error" && (
+        <div
+          className="absolute bottom-0 left-0 right-0 px-3 py-1.5 text-[10px] font-medium truncate"
+          style={{ backgroundColor: "rgba(45,24,16,0.6)", color: "white" }}
+        >
+          {name}
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ─── Idea Card ───────────────────────────────────────────────────────────────
 
 function IdeaCard({
@@ -145,6 +250,8 @@ function IdeaCard({
   const fmt = getUiFormat(idea)
   const platforms = getStoredPlatforms(idea)
   const desc = idea.hook || idea.caption?.split(/[.\n]/)[0]?.trim() || "No description yet"
+  const mediaUrl = idea.media_url && !idea.media_url.startsWith("blob:") ? idea.media_url : null
+  const [thumbError, setThumbError] = useState(false)
 
   return (
     <button
@@ -157,6 +264,21 @@ function IdeaCard({
         <FormatBadge format={fmt} />
         <PlatformGlyphs platforms={platforms} />
       </div>
+
+      {mediaUrl && !thumbError && !isVideoUrl(mediaUrl) && (
+        <div
+          className="relative rounded-xl overflow-hidden mb-3 bg-[#F5F0EA]"
+          style={{ aspectRatio: aspectForFormat(fmt) }}
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={mediaUrl}
+            alt={idea.title || "Post preview"}
+            className="w-full h-full object-cover"
+            onError={() => setThumbError(true)}
+          />
+        </div>
+      )}
 
       <h3 className="text-sm font-semibold leading-snug line-clamp-2 mb-1.5" style={{ color: "#2D1810" }}>
         {idea.title || "Untitled idea"}
@@ -483,6 +605,11 @@ function SideRail({
       platforms: state.platforms,
     }
 
+    // Only persist non-blob URLs — blob: URLs are tab-local and won't survive
+    // a reload. Skip them so we don't store dead links.
+    const persistableMediaUrl =
+      state.mediaUrl && !state.mediaUrl.startsWith("blob:") ? state.mediaUrl : null
+
     // Fields that are valid in both insert and update (user_id and brand_id
     // are insert-only; the schema's Update type forbids changing them).
     const shared = {
@@ -495,6 +622,7 @@ function SideRail({
         ? state.hashtags.map((t) => (t.startsWith("#") ? t : `#${t}`)).join(" ")
         : null,
       script: scriptPayload,
+      media_url: persistableMediaUrl,
       status,
       ...(scheduledIso ? { scheduled_date: scheduledIso } : {}),
     }
@@ -764,23 +892,29 @@ function SideRail({
               Visuals
             </label>
             <div className="rounded-2xl border p-4 space-y-3" style={{ borderColor: "#E5DDD5", backgroundColor: "white" }}>
-              {state.mediaUrl && (
-                <div className="relative rounded-xl overflow-hidden bg-[#F5F0EA]" style={{ aspectRatio: "1" }}>
-                  {state.mediaUrl.match(/\.(mp4|mov|webm)$/i) ? (
-                    <video src={state.mediaUrl} className="w-full h-full object-cover" controls />
-                  ) : (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={state.mediaUrl} alt={state.mediaName ?? "Uploaded media"} className="w-full h-full object-cover" />
-                  )}
-                  <button
-                    type="button"
-                    onClick={() => setState((prev) => ({ ...prev, mediaUrl: null, mediaName: null }))}
-                    className="absolute top-2 right-2 h-8 w-8 rounded-full flex items-center justify-center"
-                    style={{ backgroundColor: "rgba(45,24,16,0.7)", color: "white" }}
-                    aria-label="Remove media"
-                  >
-                    <X className="h-4 w-4" />
-                  </button>
+              {state.mediaUrl ? (
+                <MediaPreview
+                  url={state.mediaUrl}
+                  name={state.mediaName}
+                  format={state.format}
+                  onRemove={() => setState((prev) => ({ ...prev, mediaUrl: null, mediaName: null }))}
+                />
+              ) : (
+                <div
+                  className="rounded-xl border-2 border-dashed flex flex-col items-center justify-center text-center px-4"
+                  style={{
+                    aspectRatio: aspectForFormat(state.format),
+                    borderColor: "#E5DDD5",
+                    backgroundColor: "#FAFAF5",
+                  }}
+                >
+                  <ImageIcon className="h-8 w-8 mb-2" style={{ color: "#C4B5A5" }} />
+                  <p className="text-xs font-medium" style={{ color: "#7A5C50" }}>
+                    No preview yet
+                  </p>
+                  <p className="text-[10px] mt-1" style={{ color: "#A89080" }}>
+                    Upload or paste a URL · {state.format === "reel" || state.format === "story" || state.format === "voiceover" ? "9:16" : "1:1"}
+                  </p>
                 </div>
               )}
               <input
@@ -811,6 +945,24 @@ function SideRail({
                   <span className="text-xs font-semibold">Design in Canva</span>
                   <span className="text-[10px]">Opens template</span>
                 </button>
+              </div>
+              <div className="relative">
+                <LinkIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4" style={{ color: "#8A7060" }} />
+                <Input
+                  type="url"
+                  placeholder="Or paste an image URL…"
+                  value={state.mediaUrl && !state.mediaUrl.startsWith("blob:") ? state.mediaUrl : ""}
+                  onChange={(e) => {
+                    const v = e.target.value.trim()
+                    setState((prev) => ({
+                      ...prev,
+                      mediaUrl: v || null,
+                      mediaName: v ? v.split("/").pop()?.split("?")[0] ?? null : null,
+                    }))
+                  }}
+                  className="pl-9 text-xs min-h-[40px]"
+                  style={{ borderColor: "#E5DDD5", backgroundColor: "#FAFAF5" }}
+                />
               </div>
             </div>
           </div>
