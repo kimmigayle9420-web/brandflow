@@ -27,7 +27,7 @@ export default async function BrandDetailPage({ params }: Props) {
     draft: "bg-slate-100 text-slate-700",
     scheduled: "bg-blue-100 text-blue-700",
     published: "bg-green-100 text-green-700",
-    archived: "bg-orange-100 text-orange-700",
+    archived: "bg-[#EDE6DC] text-[#C45A26]",
   }
 
   return (

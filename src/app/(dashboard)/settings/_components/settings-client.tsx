@@ -28,7 +28,7 @@ const PLATFORM_META: Record<string, { emoji: string; name: string; bg: string }>
 }
 
 const AVATAR_COLORS = [
-  "#F97066", "#E8956D", "#D4432A", "#B07D10", "#4CAF70",
+  "#E06A33", "#C45A26", "#C45A26", "#B07D10", "#4CAF70",
 ]
 
 function avatarColor(name: string) {
@@ -78,9 +78,9 @@ function SettingsSection({
       className="rounded-3xl p-6 space-y-5"
       style={{ backgroundColor: "#FFFFFF", boxShadow: "0 4px 24px rgba(180, 100, 60, 0.09)" }}
     >
-      <div style={{ borderBottom: "1px solid #F0E8E0" }} className="pb-4">
-        <h2 className="text-base font-semibold" style={{ color: "#2D1810" }}>{title}</h2>
-        {subtitle && <p className="text-sm mt-0.5" style={{ color: "#8A7060" }}>{subtitle}</p>}
+      <div style={{ borderBottom: "1px solid #EDE6DC" }} className="pb-4">
+        <h2 className="text-base font-semibold" style={{ color: "#2D2D2D" }}>{title}</h2>
+        {subtitle && <p className="text-sm mt-0.5" style={{ color: "#8B7261" }}>{subtitle}</p>}
       </div>
       {children}
     </div>
@@ -90,7 +90,7 @@ function SettingsSection({
 function FieldRow({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="space-y-1.5">
-      <Label className="text-sm font-medium" style={{ color: "#5A3825" }}>{label}</Label>
+      <Label className="text-sm font-medium" style={{ color: "#5A5A5A" }}>{label}</Label>
       {children}
     </div>
   )
@@ -108,7 +108,7 @@ function CopyButton({ text }: { text: string }) {
         setTimeout(() => setCopied(false), 2000)
       }}
       className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium transition-all"
-      style={{ backgroundColor: "#FEF0EA", color: "#D4432A", border: "1px solid #F5C4BC" }}
+      style={{ backgroundColor: "#EDE6DC", color: "#C45A26", border: "1px solid #F5C4BC" }}
     >
       {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
       {copied ? "Copied!" : "Copy Migration SQL"}
@@ -280,8 +280,8 @@ export function SettingsPageClient() {
         niche: brandNiche,
         tone_of_voice: brandTone || null,
         target_audience: brandAudience || null,
-        primary_color: "#F97066",
-        secondary_color: "#E8956D",
+        primary_color: "#E06A33",
+        secondary_color: "#C45A26",
       })
       .select()
       .single()
@@ -386,16 +386,16 @@ export function SettingsPageClient() {
   const connectedPlatforms = Object.entries(socialAccounts).filter(([, v]) => !!v)
 
   return (
-    <div className="flex flex-col min-h-full" style={{ backgroundColor: "#FAFAF5" }}>
+    <div className="flex flex-col min-h-full" style={{ backgroundColor: "#EDE6DC" }}>
       {/* Page header */}
-      <div className="px-4 pt-6 pb-5 md:px-8 md:pt-8 md:pb-6" style={{ borderBottom: "1px solid #E8E0D5" }}>
-        <h1 className="text-2xl md:text-4xl font-semibold leading-tight" style={{ color: "#2D1810" }}>Settings</h1>
-        <p className="mt-1.5 text-base" style={{ color: "#8A7060" }}>Manage your account, brand, and integrations</p>
+      <div className="px-4 pt-6 pb-5 md:px-8 md:pt-8 md:pb-6" style={{ borderBottom: "1px solid #C2B5A3" }}>
+        <h1 className="text-2xl md:text-4xl font-semibold leading-tight" style={{ color: "#2D2D2D" }}>Settings</h1>
+        <p className="mt-1.5 text-base" style={{ color: "#8B7261" }}>Manage your account, brand, and integrations</p>
       </div>
 
       {loading ? (
         <div className="flex-1 flex items-center justify-center">
-          <div className="h-8 w-8 rounded-full border-2 border-[#F97066] border-t-transparent animate-spin" />
+          <div className="h-8 w-8 rounded-full border-2 border-[#E06A33] border-t-transparent animate-spin" />
         </div>
       ) : (
         <div className="flex-1 w-full max-w-2xl px-4 py-6 md:px-8 md:py-10 space-y-8">
@@ -411,8 +411,8 @@ export function SettingsPageClient() {
                 {initials}
               </div>
               <div>
-                <p className="font-semibold" style={{ color: "#2D1810" }}>{fullName || "No name set"}</p>
-                <p className="text-sm" style={{ color: "#8A7060" }}>{user?.email}</p>
+                <p className="font-semibold" style={{ color: "#2D2D2D" }}>{fullName || "No name set"}</p>
+                <p className="text-sm" style={{ color: "#8B7261" }}>{user?.email}</p>
               </div>
             </div>
 
@@ -422,7 +422,7 @@ export function SettingsPageClient() {
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
                   placeholder="Your name"
-                  className="border-[#E5DDD5] focus-visible:ring-[#F97066]/50 rounded-xl"
+                  className="border-[#C2B5A3] focus-visible:ring-[#E06A33]/50 rounded-xl"
                 />
               </FieldRow>
               <FieldRow label="Email">
@@ -430,23 +430,23 @@ export function SettingsPageClient() {
                   value={user?.email ?? ""}
                   disabled
                   className="rounded-xl"
-                  style={{ backgroundColor: "#F8F4F0", color: "#8A7060", borderColor: "#E5DDD5" }}
+                  style={{ backgroundColor: "#EDE6DC", color: "#8B7261", borderColor: "#C2B5A3" }}
                 />
-                <p className="text-xs mt-1" style={{ color: "#A89080" }}>Email is managed through your login provider and cannot be changed here.</p>
+                <p className="text-xs mt-1" style={{ color: "#C2B5A3" }}>Email is managed through your login provider and cannot be changed here.</p>
               </FieldRow>
               <Button
                 type="submit"
                 disabled={savingProfile}
                 className="rounded-xl font-medium hover:opacity-90"
-                style={{ backgroundColor: "#F97066", color: "white" }}
+                style={{ backgroundColor: "#E06A33", color: "white" }}
               >
                 {savingProfile ? "Saving…" : "Update Profile"}
               </Button>
             </form>
 
             {/* Password change */}
-            <div style={{ borderTop: "1px solid #F0E8E0" }} className="pt-5 mt-2">
-              <p className="text-sm font-semibold mb-3" style={{ color: "#2D1810" }}>Change Password</p>
+            <div style={{ borderTop: "1px solid #EDE6DC" }} className="pt-5 mt-2">
+              <p className="text-sm font-semibold mb-3" style={{ color: "#2D2D2D" }}>Change Password</p>
               <form onSubmit={handleChangePassword} className="space-y-3">
                 <FieldRow label="New Password">
                   <Input
@@ -456,7 +456,7 @@ export function SettingsPageClient() {
                     placeholder="At least 8 characters"
                     minLength={8}
                     required
-                    className="border-[#E5DDD5] focus-visible:ring-[#F97066]/50 rounded-xl"
+                    className="border-[#C2B5A3] focus-visible:ring-[#E06A33]/50 rounded-xl"
                   />
                 </FieldRow>
                 <Button
@@ -464,7 +464,7 @@ export function SettingsPageClient() {
                   variant="outline"
                   disabled={changingPassword || newPassword.length < 8}
                   className="rounded-xl"
-                  style={{ borderColor: "#E5DDD5", color: "#5A3825" }}
+                  style={{ borderColor: "#C2B5A3", color: "#5A5A5A" }}
                 >
                   {changingPassword ? "Updating…" : "Change Password"}
                 </Button>
@@ -484,7 +484,7 @@ export function SettingsPageClient() {
                   onChange={(e) => setBrandName(e.target.value)}
                   placeholder="e.g. Kimmi Gayle Tattoos"
                   required
-                  className="border-[#E5DDD5] focus-visible:ring-[#F97066]/50 rounded-xl"
+                  className="border-[#C2B5A3] focus-visible:ring-[#E06A33]/50 rounded-xl"
                 />
               </FieldRow>
               <FieldRow label="Niche">
@@ -493,7 +493,7 @@ export function SettingsPageClient() {
                   onChange={(e) => setBrandNiche(e.target.value)}
                   placeholder="e.g. Fine line tattoo artist"
                   required
-                  className="border-[#E5DDD5] focus-visible:ring-[#F97066]/50 rounded-xl"
+                  className="border-[#C2B5A3] focus-visible:ring-[#E06A33]/50 rounded-xl"
                 />
               </FieldRow>
               <FieldRow label="Tone of Voice">
@@ -501,7 +501,7 @@ export function SettingsPageClient() {
                   value={brandTone}
                   onChange={(e) => setBrandTone(e.target.value)}
                   placeholder="e.g. Warm, artistic, approachable"
-                  className="border-[#E5DDD5] focus-visible:ring-[#F97066]/50 rounded-xl"
+                  className="border-[#C2B5A3] focus-visible:ring-[#E06A33]/50 rounded-xl"
                   list="tone-options"
                 />
                 <datalist id="tone-options">
@@ -514,14 +514,14 @@ export function SettingsPageClient() {
                   onChange={(e) => setBrandAudience(e.target.value)}
                   placeholder="e.g. Women aged 25–40 interested in minimalist tattoos"
                   rows={2}
-                  className="border-[#E5DDD5] focus-visible:ring-[#F97066]/50 rounded-xl resize-none"
+                  className="border-[#C2B5A3] focus-visible:ring-[#E06A33]/50 rounded-xl resize-none"
                 />
               </FieldRow>
               <Button
                 type="submit"
                 disabled={savingBrand || creatingBrand || !brandName || !brandNiche}
                 className="rounded-xl font-medium hover:opacity-90"
-                style={{ backgroundColor: "#F97066", color: "white" }}
+                style={{ backgroundColor: "#E06A33", color: "white" }}
               >
                 {(savingBrand || creatingBrand) ? "Saving…" : brand ? "Save Brand" : "Create Brand →"}
               </Button>
@@ -535,13 +535,13 @@ export function SettingsPageClient() {
           >
             {connectedPlatforms.length === 0 ? (
               <div className="py-6 text-center">
-                <p className="text-sm mb-3" style={{ color: "#8A7060" }}>No social accounts connected yet.</p>
+                <p className="text-sm mb-3" style={{ color: "#8B7261" }}>No social accounts connected yet.</p>
                 <Link href="/dashboard">
                   <Button
                     variant="outline"
                     size="sm"
                     className="rounded-xl"
-                    style={{ borderColor: "#E5DDD5", color: "#5A3825" }}
+                    style={{ borderColor: "#C2B5A3", color: "#5A5A5A" }}
                   >
                     Connect accounts on Dashboard →
                   </Button>
@@ -564,7 +564,7 @@ export function SettingsPageClient() {
                     <div
                       key={platformId}
                       className="p-4 rounded-2xl space-y-3"
-                      style={{ backgroundColor: "#FAFAF5", border: "1px solid #E5DDD5" }}
+                      style={{ backgroundColor: "#EDE6DC", border: "1px solid #C2B5A3" }}
                     >
                       {/* Header row: icon + handle + disconnect */}
                       <div className="flex items-center gap-3">
@@ -572,8 +572,8 @@ export function SettingsPageClient() {
                           <span role="img" aria-label={meta.name}>{meta.emoji}</span>
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-semibold" style={{ color: "#2D1810" }}>{meta.name}</p>
-                          <p className="text-xs truncate" style={{ color: "#F97066" }}>{account.handle}</p>
+                          <p className="text-sm font-semibold" style={{ color: "#2D2D2D" }}>{meta.name}</p>
+                          <p className="text-xs truncate" style={{ color: "#E06A33" }}>{account.handle}</p>
                         </div>
                         <Button
                           size="sm"
@@ -581,7 +581,7 @@ export function SettingsPageClient() {
                           disabled={disconnecting === platformId}
                           onClick={() => handleDisconnectSocial(platformId)}
                           className="rounded-xl text-xs h-7 px-3 hover:bg-red-50 hover:text-red-600"
-                          style={{ color: "#A89080" }}
+                          style={{ color: "#C2B5A3" }}
                         >
                           {disconnecting === platformId ? "…" : "Disconnect"}
                         </Button>
@@ -590,7 +590,7 @@ export function SettingsPageClient() {
                       {/* Stats inputs */}
                       <div className="grid grid-cols-1 sm:grid-cols-[1fr_1fr_auto] gap-2 sm:gap-3 items-end">
                         <div className="space-y-1">
-                          <Label className="text-xs font-medium" style={{ color: "#5A3825" }}>
+                          <Label className="text-xs font-medium" style={{ color: "#8B7261" }}>
                             Followers
                           </Label>
                           <Input
@@ -606,11 +606,11 @@ export function SettingsPageClient() {
                               }))
                             }
                             placeholder="e.g. 12400"
-                            className="h-9 rounded-xl border-[#E5DDD5] focus-visible:ring-[#F97066]/50 bg-white"
+                            className="h-9 rounded-xl border-[#C2B5A3] focus-visible:ring-[#E06A33]/50 bg-white"
                           />
                         </div>
                         <div className="space-y-1">
-                          <Label className="text-xs font-medium" style={{ color: "#5A3825" }}>
+                          <Label className="text-xs font-medium" style={{ color: "#8B7261" }}>
                             Avg Engagement %
                           </Label>
                           <Input
@@ -627,7 +627,7 @@ export function SettingsPageClient() {
                               }))
                             }
                             placeholder="e.g. 4.2"
-                            className="h-9 rounded-xl border-[#E5DDD5] focus-visible:ring-[#F97066]/50 bg-white"
+                            className="h-9 rounded-xl border-[#C2B5A3] focus-visible:ring-[#E06A33]/50 bg-white"
                           />
                         </div>
                         <Button
@@ -636,8 +636,8 @@ export function SettingsPageClient() {
                           onClick={() => handleSaveStats(platformId)}
                           className="rounded-xl text-xs h-9 px-4 hover:opacity-90 disabled:opacity-50"
                           style={{
-                            backgroundColor: hasUnsavedChanges ? "#F97066" : "#E5DDD5",
-                            color: hasUnsavedChanges ? "white" : "#A89080",
+                            backgroundColor: hasUnsavedChanges ? "#E06A33" : "#C2B5A3",
+                            color: hasUnsavedChanges ? "white" : "#8B7261",
                           }}
                         >
                           {isSaving ? "Saving…" : "Save"}
@@ -650,7 +650,7 @@ export function SettingsPageClient() {
                   <Link
                     href="/dashboard"
                     className="text-sm font-medium transition-colors hover:opacity-80"
-                    style={{ color: "#F97066" }}
+                    style={{ color: "#E06A33" }}
                   >
                     + Connect more accounts →
                   </Link>
@@ -665,17 +665,17 @@ export function SettingsPageClient() {
             <div className="space-y-3">
               <div
                 className="flex items-start gap-4 p-4 rounded-2xl"
-                style={{ backgroundColor: "#FAFAF5", border: "1px solid #E5DDD5" }}
+                style={{ backgroundColor: "#EDE6DC", border: "1px solid #C2B5A3" }}
               >
                 <div
                   className="w-9 h-9 rounded-xl flex items-center justify-center text-base shrink-0 font-bold"
-                  style={{ backgroundColor: "#2D1810", color: "#FFF8F4" }}
+                  style={{ backgroundColor: "#2D2D2D", color: "#FFFFFF" }}
                 >
                   ◆
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <p className="text-sm font-semibold" style={{ color: "#2D1810" }}>Anthropic (Claude AI)</p>
+                    <p className="text-sm font-semibold" style={{ color: "#2D2D2D" }}>Anthropic (Claude AI)</p>
                     <span
                       className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium"
                       style={{ backgroundColor: "#F0FDF4", color: "#16A34A", border: "1px solid #BBF7D0" }}
@@ -683,18 +683,18 @@ export function SettingsPageClient() {
                       ● Active
                     </span>
                   </div>
-                  <p className="text-xs mt-1 leading-relaxed" style={{ color: "#8A7060" }}>
+                  <p className="text-xs mt-1 leading-relaxed" style={{ color: "#8B7261" }}>
                     API key is configured via your Vercel environment variables. To update it, go to your{" "}
                     <a
                       href="https://vercel.com/dashboard"
                       target="_blank"
                       rel="noopener noreferrer"
                       className="underline hover:opacity-70"
-                      style={{ color: "#F97066" }}
+                      style={{ color: "#E06A33" }}
                     >
                       Vercel project settings
                     </a>
-                    {" "}→ Environment Variables → update <code className="text-xs bg-[#FEF0EA] px-1 rounded">ANTHROPIC_API_KEY</code>.
+                    {" "}→ Environment Variables → update <code className="text-xs bg-[#EDE6DC] px-1 rounded">ANTHROPIC_API_KEY</code>.
                   </p>
                 </div>
               </div>
@@ -702,7 +702,7 @@ export function SettingsPageClient() {
               {/* Canva */}
               <div
                 className="flex items-start gap-4 p-4 rounded-2xl"
-                style={{ backgroundColor: "#FAFAF5", border: "1px solid #E5DDD5" }}
+                style={{ backgroundColor: "#EDE6DC", border: "1px solid #C2B5A3" }}
               >
                 <div
                   className="w-9 h-9 rounded-xl flex items-center justify-center text-base shrink-0"
@@ -712,7 +712,7 @@ export function SettingsPageClient() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <p className="text-sm font-semibold" style={{ color: "#2D1810" }}>Canva</p>
+                    <p className="text-sm font-semibold" style={{ color: "#2D2D2D" }}>Canva</p>
                     <span
                       className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium"
                       style={{ backgroundColor: "#F5F3FF", color: "#6D28D9", border: "1px solid #DDD6FE" }}
@@ -720,7 +720,7 @@ export function SettingsPageClient() {
                       ● Connected
                     </span>
                   </div>
-                  <p className="text-xs mt-1 leading-relaxed" style={{ color: "#8A7060" }}>
+                  <p className="text-xs mt-1 leading-relaxed" style={{ color: "#8B7261" }}>
                     Connected via URL integration — no additional setup needed. Use the ✨ Canva buttons in Content Creator to open your designs directly.
                   </p>
                 </div>
@@ -736,20 +736,20 @@ export function SettingsPageClient() {
             <button
               type="button"
               onClick={handleToggleDbStatus}
-              className="w-full flex items-center justify-between p-6 transition-colors hover:bg-[#FAFAF5]"
+              className="w-full flex items-center justify-between p-6 transition-colors hover:bg-[#EDE6DC]"
             >
               <div className="text-left">
-                <p className="text-base font-semibold" style={{ color: "#2D1810" }}>Database Status</p>
-                <p className="text-sm mt-0.5" style={{ color: "#8A7060" }}>Migration health check for developers</p>
+                <p className="text-base font-semibold" style={{ color: "#2D2D2D" }}>Database Status</p>
+                <p className="text-sm mt-0.5" style={{ color: "#8B7261" }}>Migration health check for developers</p>
               </div>
               {dbStatusOpen
-                ? <ChevronUp className="h-4 w-4 shrink-0" style={{ color: "#8A7060" }} />
-                : <ChevronDown className="h-4 w-4 shrink-0" style={{ color: "#8A7060" }} />
+                ? <ChevronUp className="h-4 w-4 shrink-0" style={{ color: "#8B7261" }} />
+                : <ChevronDown className="h-4 w-4 shrink-0" style={{ color: "#8B7261" }} />
               }
             </button>
 
             {dbStatusOpen && (
-              <div className="px-6 pb-6 space-y-4" style={{ borderTop: "1px solid #F0E8E0" }}>
+              <div className="px-6 pb-6 space-y-4" style={{ borderTop: "1px solid #EDE6DC" }}>
                 <div className="pt-4 space-y-3">
                   <StatusRow
                     label="ideas table"
@@ -773,7 +773,7 @@ export function SettingsPageClient() {
                     </p>
                     <pre
                       className="text-xs overflow-auto p-3 rounded-xl leading-relaxed"
-                      style={{ backgroundColor: "#FFF8E6", color: "#5A3825", maxHeight: "200px" }}
+                      style={{ backgroundColor: "#FFF8E6", color: "#5A5A5A", maxHeight: "200px" }}
                     >
                       {MIGRATION_SQL}
                     </pre>
@@ -784,7 +784,7 @@ export function SettingsPageClient() {
                         target="_blank"
                         rel="noopener noreferrer"
                         className="flex items-center gap-1 text-xs font-medium hover:opacity-70"
-                        style={{ color: "#F97066" }}
+                        style={{ color: "#E06A33" }}
                       >
                         Open Supabase <ExternalLink className="h-3 w-3" />
                       </a>
@@ -804,23 +804,23 @@ export function SettingsPageClient() {
           {/* ── 6. Danger Zone ──────────────────────────────────────────── */}
           <div
             className="rounded-3xl p-6 space-y-5"
-            style={{ backgroundColor: "#FFFFFF", boxShadow: "0 4px 24px rgba(180, 100, 60, 0.09)", border: "1px solid #FDE8E4" }}
+            style={{ backgroundColor: "#FFFFFF", boxShadow: "0 4px 24px rgba(180, 100, 60, 0.09)", border: "1px solid #EDE6DC" }}
           >
-            <div style={{ borderBottom: "1px solid #FDE8E4" }} className="pb-4">
-              <h2 className="text-base font-semibold" style={{ color: "#B03020" }}>Danger Zone</h2>
-              <p className="text-sm mt-0.5" style={{ color: "#8A7060" }}>Irreversible actions — proceed with care</p>
+            <div style={{ borderBottom: "1px solid #EDE6DC" }} className="pb-4">
+              <h2 className="text-base font-semibold" style={{ color: "#C45A26" }}>Danger Zone</h2>
+              <p className="text-sm mt-0.5" style={{ color: "#8B7261" }}>Irreversible actions — proceed with care</p>
             </div>
 
             {/* Delete content */}
             <div className="space-y-3">
               <div>
-                <p className="text-sm font-semibold" style={{ color: "#2D1810" }}>Delete all my content</p>
-                <p className="text-xs mt-0.5" style={{ color: "#8A7060" }}>
+                <p className="text-sm font-semibold" style={{ color: "#2D2D2D" }}>Delete all my content</p>
+                <p className="text-xs mt-0.5" style={{ color: "#8B7261" }}>
                   Permanently deletes all ideas and content pillars for your brand. Your brand profile is kept.
                 </p>
               </div>
               {!brand ? (
-                <p className="text-xs" style={{ color: "#A89080" }}>No brand set up — nothing to delete.</p>
+                <p className="text-xs" style={{ color: "#C2B5A3" }}>No brand set up — nothing to delete.</p>
               ) : (
                 <div className="flex items-center gap-3">
                   <Input
@@ -847,11 +847,11 @@ export function SettingsPageClient() {
             </div>
 
             {/* Delete account */}
-            <div style={{ borderTop: "1px solid #FDE8E4" }} className="pt-5 space-y-2">
-              <p className="text-sm font-semibold" style={{ color: "#2D1810" }}>Delete Account</p>
-              <p className="text-xs" style={{ color: "#8A7060" }}>
+            <div style={{ borderTop: "1px solid #EDE6DC" }} className="pt-5 space-y-2">
+              <p className="text-sm font-semibold" style={{ color: "#2D2D2D" }}>Delete Account</p>
+              <p className="text-xs" style={{ color: "#8B7261" }}>
                 To permanently delete your account and all associated data, please email us at{" "}
-                <a href="mailto:support@brandflow.app" className="underline hover:opacity-70" style={{ color: "#F97066" }}>
+                <a href="mailto:support@brandflow.app" className="underline hover:opacity-70" style={{ color: "#E06A33" }}>
                   support@brandflow.app
                 </a>
                 {" "}with the subject line "Delete my account". We&apos;ll process your request within 48 hours.
@@ -861,7 +861,7 @@ export function SettingsPageClient() {
                 variant="outline"
                 size="sm"
                 className="rounded-xl mt-2"
-                style={{ borderColor: "#E5DDD5", color: "#5A3825" }}
+                style={{ borderColor: "#C2B5A3", color: "#5A5A5A" }}
               >
                 Sign Out First
               </Button>
@@ -871,17 +871,17 @@ export function SettingsPageClient() {
           {/* Beta plan card */}
           <div
             className="rounded-3xl p-5 flex items-center justify-between"
-            style={{ backgroundColor: "#FEF0EA", border: "1px solid #F5C4BC" }}
+            style={{ backgroundColor: "#EDE6DC", border: "1px solid #F5C4BC" }}
           >
             <div>
-              <p className="font-semibold" style={{ color: "#2D1810" }}>Free Plan — Beta</p>
-              <p className="text-sm mt-0.5" style={{ color: "#8A7060" }}>
+              <p className="font-semibold" style={{ color: "#2D2D2D" }}>Free Plan — Beta</p>
+              <p className="text-sm mt-0.5" style={{ color: "#8B7261" }}>
                 Unlimited brands and posts during our beta period. 🎉
               </p>
             </div>
             <span
               className="text-xs px-2.5 py-1 rounded-full font-semibold shrink-0"
-              style={{ backgroundColor: "#F97066", color: "white" }}
+              style={{ backgroundColor: "#E06A33", color: "white" }}
             >
               Beta
             </span>
@@ -908,7 +908,7 @@ function StatusRow({
     <div className="flex items-start gap-3">
       <div className="mt-0.5 shrink-0">
         {ok === null ? (
-          <div className="h-4 w-4 rounded-full border-2 border-[#E5DDD5] border-t-[#8A7060] animate-spin" />
+          <div className="h-4 w-4 rounded-full border-2 border-[#C2B5A3] border-t-[#8B7261] animate-spin" />
         ) : ok ? (
           <div
             className="h-4 w-4 rounded-full flex items-center justify-center"
@@ -926,10 +926,10 @@ function StatusRow({
         )}
       </div>
       <div>
-        <p className="text-sm font-medium" style={{ color: "#2D1810" }}>
-          <code className="text-xs bg-[#F8F4F0] px-1.5 py-0.5 rounded-lg">{label}</code>
+        <p className="text-sm font-medium" style={{ color: "#2D2D2D" }}>
+          <code className="text-xs bg-[#EDE6DC] px-1.5 py-0.5 rounded-lg">{label}</code>
         </p>
-        <p className="text-xs mt-0.5" style={{ color: "#8A7060" }}>{description}</p>
+        <p className="text-xs mt-0.5" style={{ color: "#8B7261" }}>{description}</p>
       </div>
     </div>
   )

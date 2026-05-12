@@ -40,7 +40,7 @@ export const STATUSES = [
   { value: "draft", label: "Draft", color: "bg-slate-100 text-slate-700" },
   { value: "scheduled", label: "Scheduled", color: "bg-blue-100 text-blue-700" },
   { value: "published", label: "Published", color: "bg-green-100 text-green-700" },
-  { value: "archived", label: "Archived", color: "bg-orange-100 text-orange-700" },
+  { value: "archived", label: "Archived", color: "bg-[#EDE6DC] text-[#C45A26]" },
 ] as const
 
 export const FORMAT_OPTIONS = [

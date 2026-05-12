@@ -50,6 +50,15 @@ module.exports = {
           DEFAULT: 'hsl(var(--card))',
           foreground: 'hsl(var(--card-foreground))',
         },
+        brandflow: {
+          concrete: '#C2B5A3',
+          'concrete-light': '#EDE6DC',
+          craft: '#8B7261',
+          brick: '#E06A33',
+          'brick-dark': '#C45A26',
+          graphite: '#2D2D2D',
+          'graphite-light': '#5A5A5A',
+        },
       },
       borderRadius: {
         lg: 'var(--radius)',

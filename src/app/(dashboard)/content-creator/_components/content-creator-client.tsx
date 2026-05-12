@@ -113,11 +113,11 @@ const PILLAR_COLORS = [
 ]
 
 const PILLAR_PASTELS = [
-  { bg: "#FEF0EA", border: "#F5C4BC", accent: "#D4432A", text: "#7A2015" },  // coral
+  { bg: "#EDE6DC", border: "#F5C4BC", accent: "#C45A26", text: "#7A2015" },  // coral
   { bg: "#F0F7EE", border: "#B8DDB0", accent: "#3A7D44", text: "#1A4D25" },  // sage
   { bg: "#FFFBEA", border: "#F5DFA0", accent: "#B07D10", text: "#6B4D00" },  // amber
   { bg: "#F3F0FF", border: "#C9BFF0", accent: "#6B5EA8", text: "#3A2D78" },  // lavender
-  { bg: "#FFF5F0", border: "#F5C8B0", accent: "#C05830", text: "#7A2810" },  // peach
+  { bg: "#FFFFFF", border: "#F5C8B0", accent: "#C05830", text: "#7A2810" },  // peach
   { bg: "#EFF7FF", border: "#B0D0F0", accent: "#2070B8", text: "#103A68" },  // sky
 ]
 
@@ -292,7 +292,7 @@ function CopyButton({ text, label }: { text: string; label?: string }) {
     return (
       <Button size="sm" variant="outline" onClick={handleCopy}
         className="gap-1.5 h-7 text-xs"
-        style={{ color: "#7A5C50", borderColor: "#E5DDD5" }}>
+        style={{ color: "#8B7261", borderColor: "#C2B5A3" }}>
         {copied ? <Check className="h-3 w-3 text-green-500" /> : <Copy className="h-3 w-3" />}
         {copied ? "Copied!" : label}
       </Button>
@@ -300,8 +300,8 @@ function CopyButton({ text, label }: { text: string; label?: string }) {
   }
   return (
     <button onClick={handleCopy} title="Copy"
-      className="h-7 w-7 flex items-center justify-center rounded-lg transition-colors hover:bg-[#FEF0EA]">
-      {copied ? <Check className="h-3.5 w-3.5 text-green-500" /> : <Copy className="h-3.5 w-3.5" style={{ color: "#8A7060" }} />}
+      className="h-7 w-7 flex items-center justify-center rounded-lg transition-colors hover:bg-[#EDE6DC]">
+      {copied ? <Check className="h-3.5 w-3.5 text-green-500" /> : <Copy className="h-3.5 w-3.5" style={{ color: "#8B7261" }} />}
     </button>
   )
 }
@@ -316,13 +316,13 @@ function SectionCard({ title, icon, children, className }: {
 }) {
   return (
     <div className={cn("rounded-2xl border bg-white p-5 space-y-4", className)}
-      style={{ borderColor: "#E5DDD5", boxShadow: "0 1px 4px rgba(45,24,16,0.06)" }}>
+      style={{ borderColor: "#C2B5A3", boxShadow: "0 1px 4px rgba(45,24,16,0.06)" }}>
       <div className="flex items-center gap-2">
         <div className="h-7 w-7 rounded-lg flex items-center justify-center"
-          style={{ backgroundColor: "#FEF0EA" }}>
-          <span style={{ color: "#D4432A" }}>{icon}</span>
+          style={{ backgroundColor: "#EDE6DC" }}>
+          <span style={{ color: "#C45A26" }}>{icon}</span>
         </div>
-        <h3 className="text-sm font-semibold" style={{ color: "#2D1810" }}>{title}</h3>
+        <h3 className="text-sm font-semibold" style={{ color: "#2D2D2D" }}>{title}</h3>
       </div>
       {children}
     </div>
@@ -334,9 +334,9 @@ function SectionCard({ title, icon, children, className }: {
 function SectionLabel({ label, icon }: { label: string; icon?: React.ReactNode }) {
   return (
     <div className="flex items-center gap-2 mb-3">
-      {icon && <span style={{ color: "#F97066" }}>{icon}</span>}
-      <span className="text-xs font-bold uppercase tracking-widest" style={{ color: "#8A7060" }}>{label}</span>
-      <div className="flex-1 h-px" style={{ backgroundColor: "#E5DDD5" }} />
+      {icon && <span style={{ color: "#E06A33" }}>{icon}</span>}
+      <span className="text-xs font-bold uppercase tracking-widest" style={{ color: "#8B7261" }}>{label}</span>
+      <div className="flex-1 h-px" style={{ backgroundColor: "#C2B5A3" }} />
     </div>
   )
 }
@@ -367,16 +367,16 @@ function CollapsibleSection({
       <button
         onClick={toggle}
         className="w-full flex items-center justify-between py-3 group transition-colors hover:opacity-80"
-        style={{ borderBottom: open ? "1px solid #E5DDD5" : "1px solid transparent" }}
+        style={{ borderBottom: open ? "1px solid #C2B5A3" : "1px solid transparent" }}
       >
         <div className="flex items-center gap-2">
-          <span style={{ color: "#F97066" }}>{icon}</span>
-          <span className="text-sm font-bold uppercase tracking-widest" style={{ color: "#8A7060" }}>{title}</span>
-          <div className="h-px flex-1 min-w-[20px]" style={{ backgroundColor: open ? "transparent" : "#E5DDD5" }} />
+          <span style={{ color: "#E06A33" }}>{icon}</span>
+          <span className="text-sm font-bold uppercase tracking-widest" style={{ color: "#8B7261" }}>{title}</span>
+          <div className="h-px flex-1 min-w-[20px]" style={{ backgroundColor: open ? "transparent" : "#C2B5A3" }} />
         </div>
         <ChevronDown
           className="h-4 w-4 shrink-0 transition-transform duration-200"
-          style={{ color: "#8A7060", transform: open ? "rotate(180deg)" : "rotate(0deg)" }}
+          style={{ color: "#8B7261", transform: open ? "rotate(180deg)" : "rotate(0deg)" }}
         />
       </button>
       {open && (
@@ -411,7 +411,7 @@ function MigrationBanner({ onDismiss }: { onDismiss: () => void }) {
             </p>
           </div>
         </div>
-        <button onClick={onDismiss} className="text-xs shrink-0 mt-0.5" style={{ color: "#A07060" }}>✕</button>
+        <button onClick={onDismiss} className="text-xs shrink-0 mt-0.5" style={{ color: "#8B7261" }}>✕</button>
       </div>
       <button
         onClick={handleCopy}
@@ -436,7 +436,7 @@ function ActionButton({ onClick, loading, disabled, children, className }: {
   return (
     <Button onClick={onClick} disabled={loading || disabled}
       className={cn("gap-2 font-medium", className)}
-      style={{ backgroundColor: "#F97066", color: "white" }}
+      style={{ backgroundColor: "#E06A33", color: "white" }}
     >
       {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
       {children}
@@ -471,10 +471,10 @@ function ImagePanel({
           onChange={(e) => onPromptChange(e.target.value)}
           placeholder={`Describe your ${label.toLowerCase()}…`}
           className="flex-1 text-sm"
-          style={{ borderColor: "#E5DDD5" }}
+          style={{ borderColor: "#C2B5A3" }}
         />
         <Button onClick={onGenerate} disabled={!prompt.trim() || generating} size="sm"
-          className="gap-1.5 shrink-0" style={{ backgroundColor: "#F97066", color: "white" }}>
+          className="gap-1.5 shrink-0" style={{ backgroundColor: "#E06A33", color: "white" }}>
           {generating && !imageLoaded
             ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
             : <ImageIcon className="h-3.5 w-3.5" />}
@@ -482,7 +482,7 @@ function ImagePanel({
         </Button>
         {imageUrl && (
           <Button onClick={onRegenerate} size="sm" variant="outline"
-            className="gap-1.5 shrink-0" style={{ borderColor: "#E5DDD5", color: "#7A5C50" }}>
+            className="gap-1.5 shrink-0" style={{ borderColor: "#C2B5A3", color: "#8B7261" }}>
             <RefreshCw className="h-3.5 w-3.5" />
           </Button>
         )}
@@ -491,14 +491,14 @@ function ImagePanel({
         <div className={cn("relative w-full rounded-xl overflow-hidden bg-[#F5F0EA]", aspectRatio)}>
           {!imageLoaded && !imageError && (
             <div className="absolute inset-0 flex flex-col items-center justify-center gap-2">
-              <Loader2 className="h-8 w-8 animate-spin" style={{ color: "#F97066" }} />
-              <p className="text-xs" style={{ color: "#8A7060" }}>Generating image…</p>
+              <Loader2 className="h-8 w-8 animate-spin" style={{ color: "#E06A33" }} />
+              <p className="text-xs" style={{ color: "#8B7261" }}>Generating image…</p>
             </div>
           )}
           {imageError && (
             <div className="absolute inset-0 flex flex-col items-center justify-center gap-2">
-              <ImageIcon className="h-8 w-8" style={{ color: "#C4B5A5" }} />
-              <p className="text-xs" style={{ color: "#8A7060" }}>Generation failed — try regenerating</p>
+              <ImageIcon className="h-8 w-8" style={{ color: "#C2B5A3" }} />
+              <p className="text-xs" style={{ color: "#8B7261" }}>Generation failed — try regenerating</p>
             </div>
           )}
           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -533,34 +533,34 @@ function InstagramPreview({
     : ""
   return (
     <div className="rounded-2xl border bg-white overflow-hidden"
-      style={{ borderColor: "#E5DDD5", boxShadow: "0 2px 8px rgba(45,24,16,0.08)" }}>
-      <div className="flex items-center gap-2.5 px-3 py-2.5 border-b" style={{ borderColor: "#F0EAE3" }}>
+      style={{ borderColor: "#C2B5A3", boxShadow: "0 2px 8px rgba(45,24,16,0.08)" }}>
+      <div className="flex items-center gap-2.5 px-3 py-2.5 border-b" style={{ borderColor: "#EDE6DC" }}>
         <div className="h-8 w-8 rounded-full flex items-center justify-center text-white text-xs font-bold"
-          style={{ backgroundColor: "#F97066" }}>
+          style={{ backgroundColor: "#E06A33" }}>
           {brandName ? brandName.charAt(0).toUpperCase() : "B"}
         </div>
         <div>
-          <p className="text-xs font-semibold leading-none" style={{ color: "#2D1810" }}>
+          <p className="text-xs font-semibold leading-none" style={{ color: "#2D2D2D" }}>
             {brandName ? brandName.toLowerCase().replace(/\s+/g, "_") : "your_brand"}
           </p>
-          <p className="text-[10px] mt-0.5" style={{ color: "#8A7060" }}>Sponsored</p>
+          <p className="text-[10px] mt-0.5" style={{ color: "#8B7261" }}>Sponsored</p>
         </div>
-        <div className="ml-auto text-lg leading-none" style={{ color: "#2D1810" }}>···</div>
+        <div className="ml-auto text-lg leading-none" style={{ color: "#2D2D2D" }}>···</div>
       </div>
       <div className="aspect-square w-full bg-[#F5F0EA] flex items-center justify-center relative overflow-hidden">
         {imageUrl && imageLoaded ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={imageUrl} alt="Post image" className="w-full h-full object-cover" />
         ) : imageUrl && !imageLoaded ? (
-          <Loader2 className="h-8 w-8 animate-spin" style={{ color: "#F97066" }} />
+          <Loader2 className="h-8 w-8 animate-spin" style={{ color: "#E06A33" }} />
         ) : (
           <div className="flex flex-col items-center gap-2">
-            <ImageIcon className="h-10 w-10" style={{ color: "#C4B5A5" }} />
-            <p className="text-xs" style={{ color: "#8A7060" }}>Image preview</p>
+            <ImageIcon className="h-10 w-10" style={{ color: "#C2B5A3" }} />
+            <p className="text-xs" style={{ color: "#8B7261" }}>Image preview</p>
           </div>
         )}
       </div>
-      <div className="flex items-center gap-3 px-3 py-2" style={{ color: "#2D1810" }}>
+      <div className="flex items-center gap-3 px-3 py-2" style={{ color: "#2D2D2D" }}>
         <span className="text-xl">♡</span>
         <span className="text-xl">💬</span>
         <span className="text-xl">↗</span>
@@ -568,21 +568,21 @@ function InstagramPreview({
       </div>
       <div className="px-3 pb-3 space-y-1.5">
         {caption ? (
-          <p className="text-xs leading-relaxed" style={{ color: "#2D1810" }}>
+          <p className="text-xs leading-relaxed" style={{ color: "#2D2D2D" }}>
             <span className="font-semibold">
               {brandName ? brandName.toLowerCase().replace(/\s+/g, "_") : "your_brand"}
             </span>{" "}
             {caption.length > 180 ? caption.substring(0, 180) + "…" : caption}
           </p>
         ) : (
-          <p className="text-xs italic" style={{ color: "#C4B5A5" }}>Caption will appear here…</p>
+          <p className="text-xs italic" style={{ color: "#C2B5A3" }}>Caption will appear here…</p>
         )}
         {allHashtags && (
           <p className="text-xs leading-relaxed" style={{ color: "#7B9ED9" }}>
             {allHashtags.length > 120 ? allHashtags.substring(0, 120) + "…" : allHashtags}
           </p>
         )}
-        <p className="text-[10px]" style={{ color: "#8A7060" }}>View all comments</p>
+        <p className="text-[10px]" style={{ color: "#8B7261" }}>View all comments</p>
       </div>
     </div>
   )
@@ -602,20 +602,20 @@ function CarouselMobilePreview({
 }) {
   const slide = slides[currentIndex]
   if (!slide) return null
-  const bgColor = slide.type === "cover" ? "#FEF0EA" : slide.type === "cta" ? "#F97066" : "#FFFFFF"
-  const textColor = slide.type === "cta" ? "#FFFFFF" : "#2D1810"
-  const mutedColor = slide.type === "cta" ? "rgba(255,255,255,0.8)" : "#8A7060"
+  const bgColor = slide.type === "cover" ? "#EDE6DC" : slide.type === "cta" ? "#E06A33" : "#FFFFFF"
+  const textColor = slide.type === "cta" ? "#FFFFFF" : "#2D2D2D"
+  const mutedColor = slide.type === "cta" ? "rgba(255,255,255,0.8)" : "#8B7261"
   return (
     <div className="flex flex-col items-center gap-2">
       <div className="w-[260px] rounded-3xl border-4 overflow-hidden"
-        style={{ borderColor: "#2D1810", boxShadow: "0 4px 20px rgba(45,24,16,0.2)" }}>
+        style={{ borderColor: "#2D2D2D", boxShadow: "0 4px 20px rgba(45,24,16,0.2)" }}>
         {slide.type === "cover" && imageUrl && imageLoaded && (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={imageUrl} alt="Cover" className="w-full aspect-video object-cover" />
         )}
         {slide.type === "cover" && imageUrl && !imageLoaded && (
           <div className="w-full aspect-video flex items-center justify-center" style={{ backgroundColor: "#F5F0EA" }}>
-            <Loader2 className="h-6 w-6 animate-spin" style={{ color: "#F97066" }} />
+            <Loader2 className="h-6 w-6 animate-spin" style={{ color: "#E06A33" }} />
           </div>
         )}
         <div className="p-4 min-h-[200px] flex flex-col justify-center" style={{ backgroundColor: bgColor }}>
@@ -626,7 +626,7 @@ function CarouselMobilePreview({
             </span>
             {slide.type === "cover" && (
               <span className="text-[10px] font-bold px-2 py-0.5 rounded-full"
-                style={{ backgroundColor: "#F97066", color: "white" }}>COVER</span>
+                style={{ backgroundColor: "#E06A33", color: "white" }}>COVER</span>
             )}
             {slide.type === "cta" && (
               <span className="text-[10px] font-bold px-2 py-0.5 rounded-full"
@@ -643,7 +643,7 @@ function CarouselMobilePreview({
             <ul className="space-y-1.5 mt-1">
               {slide.bullets.map((bullet, i) => (
                 <li key={i} className="flex items-start gap-1.5">
-                  <span className="text-[10px] font-bold mt-0.5" style={{ color: "#F97066" }}>→</span>
+                  <span className="text-[10px] font-bold mt-0.5" style={{ color: "#E06A33" }}>→</span>
                   <span className="text-[10px] leading-relaxed" style={{ color: mutedColor }}>{bullet}</span>
                 </li>
               ))}
@@ -657,13 +657,13 @@ function CarouselMobilePreview({
       <div className="flex items-center gap-3">
         <button onClick={onPrev} disabled={currentIndex === 0}
           className="h-8 w-8 rounded-full border flex items-center justify-center transition-colors disabled:opacity-30"
-          style={{ borderColor: "#E5DDD5", color: "#7A5C50" }}>
+          style={{ borderColor: "#C2B5A3", color: "#8B7261" }}>
           <ChevronLeft className="h-4 w-4" />
         </button>
-        <span className="text-xs" style={{ color: "#8A7060" }}>{currentIndex + 1} of {slides.length}</span>
+        <span className="text-xs" style={{ color: "#8B7261" }}>{currentIndex + 1} of {slides.length}</span>
         <button onClick={onNext} disabled={currentIndex === slides.length - 1}
           className="h-8 w-8 rounded-full border flex items-center justify-center transition-colors disabled:opacity-30"
-          style={{ borderColor: "#E5DDD5", color: "#7A5C50" }}>
+          style={{ borderColor: "#C2B5A3", color: "#8B7261" }}>
           <ChevronRight className="h-4 w-4" />
         </button>
       </div>
@@ -741,7 +741,7 @@ function ContentOpportunityHero({
   }, [])
 
   const formatColor = (fmt: string) => {
-    if (fmt === "Reel") return { bg: "#FEF0EA", text: "#D4432A" }
+    if (fmt === "Reel") return { bg: "#EDE6DC", text: "#C45A26" }
     if (fmt === "Carousel") return { bg: "#F0F4FF", text: "#5B6AC4" }
     return { bg: "#F0FDF4", text: "#16A34A" }
   }
@@ -751,7 +751,7 @@ function ContentOpportunityHero({
   return (
     <div className="rounded-2xl p-6 space-y-5"
       style={{
-        background: "linear-gradient(135deg, #FFF7F0 0%, #FFF0EF 50%, #FFF5F0 100%)",
+        background: "linear-gradient(135deg, #FFFFFF 0%, #EDE6DC 50%, #FFFFFF 100%)",
         border: "1px solid #F5D0C8",
         boxShadow: "0 2px 12px rgba(249,112,102,0.10)",
       }}>
@@ -759,20 +759,20 @@ function ContentOpportunityHero({
         <div>
           <div className="flex items-center gap-2 mb-1">
             <div className="h-6 w-6 rounded-lg flex items-center justify-center"
-              style={{ backgroundColor: "#F97066" }}>
+              style={{ backgroundColor: "#E06A33" }}>
               <Sparkles className="h-3.5 w-3.5 text-white" />
             </div>
-            <h2 className="text-base font-bold" style={{ color: "#2D1810" }}>Your Content Opportunity</h2>
+            <h2 className="text-base font-bold" style={{ color: "#2D2D2D" }}>Your Content Opportunity</h2>
           </div>
           {!loading && result && (
-            <p className="text-xs" style={{ color: "#A07060" }}>Personalised for {brand.niche}</p>
+            <p className="text-xs" style={{ color: "#8B7261" }}>Personalised for {brand.niche}</p>
           )}
         </div>
         {(result || error) && !loading && (
           <button
             onClick={() => fetchOpportunity(true)}
             className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border transition-colors hover:bg-white/60"
-            style={{ borderColor: "#F5D0C8", color: "#C05040" }}>
+            style={{ borderColor: "#F5D0C8", color: "#C45A26" }}>
             <RefreshCw className="h-3 w-3" />
             Refresh
           </button>
@@ -781,12 +781,12 @@ function ContentOpportunityHero({
 
       {!hasSocials && !loading && !result && !error && (
         <div className="py-3">
-          <p className="text-sm" style={{ color: "#7A5C50" }}>
+          <p className="text-sm" style={{ color: "#8B7261" }}>
             Connect your social accounts on the{" "}
-            <a href="/dashboard" className="font-semibold underline" style={{ color: "#F97066" }}>Dashboard</a>
+            <a href="/dashboard" className="font-semibold underline" style={{ color: "#E06A33" }}>Dashboard</a>
             {" "}to unlock personalised content opportunities.
           </p>
-          <button onClick={() => fetchOpportunity(true)} className="mt-3 text-xs underline" style={{ color: "#A07060" }}>
+          <button onClick={() => fetchOpportunity(true)} className="mt-3 text-xs underline" style={{ color: "#8B7261" }}>
             Continue without social accounts →
           </button>
         </div>
@@ -820,7 +820,7 @@ function ContentOpportunityHero({
 
       {result && !loading && (
         <div className="space-y-5">
-          <p className="text-sm leading-relaxed" style={{ color: "#5A3828" }}>
+          <p className="text-sm leading-relaxed" style={{ color: "#5A5A5A" }}>
             {result.audienceInsights}
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -839,15 +839,15 @@ function ContentOpportunityHero({
                         onClick={() => onSaveInsight(opp.angle, "opportunity")}
                         title="Save to brief insights"
                         className="h-5 w-5 flex items-center justify-center rounded-full transition-colors hover:bg-white/80 shrink-0"
-                        style={{ color: "#F97066" }}>
+                        style={{ color: "#E06A33" }}>
                         <Bookmark className="h-3 w-3" />
                       </button>
                     )}
                   </div>
-                  <p className="text-sm font-semibold leading-snug" style={{ color: "#2D1810" }}>
+                  <p className="text-sm font-semibold leading-snug" style={{ color: "#2D2D2D" }}>
                     {opp.angle}
                   </p>
-                  <p className="text-[11px] leading-relaxed" style={{ color: "#8A7060" }}>
+                  <p className="text-[11px] leading-relaxed" style={{ color: "#8B7261" }}>
                     {opp.why}
                   </p>
                 </div>
@@ -859,8 +859,8 @@ function ContentOpportunityHero({
               <button key={i}
                 onClick={() => onSaveInsight?.(gap, "opportunity")}
                 className="inline-flex items-center gap-1 text-xs px-3 py-1 rounded-full font-medium transition-all hover:opacity-80 group"
-                style={{ backgroundColor: "#FDE8E5", color: "#C05040", border: "1px solid #F5C4BC" }}>
-                <span style={{ color: "#F97066" }}>✦</span>
+                style={{ backgroundColor: "#EDE6DC", color: "#C45A26", border: "1px solid #F5C4BC" }}>
+                <span style={{ color: "#E06A33" }}>✦</span>
                 {gap}
                 {onSaveInsight && <Bookmark className="h-2.5 w-2.5 ml-0.5 opacity-0 group-hover:opacity-100 transition-opacity" />}
               </button>
@@ -885,28 +885,28 @@ function ProfileAnalysisDisplay({ result }: { result: ProfileAnalysis }) {
         ].map(({ label, value, span }) => value ? (
           <div key={label}
             className={cn("rounded-xl border p-3 space-y-1", span === 2 ? "col-span-2" : "")}
-            style={{ borderColor: "#E5DDD5", backgroundColor: "#FAFAF5" }}>
-            <span className="text-[10px] font-bold uppercase tracking-wide" style={{ color: "#A07060" }}>{label}</span>
-            <p className="text-xs leading-relaxed" style={{ color: "#2D1810" }}>
+            style={{ borderColor: "#C2B5A3", backgroundColor: "#EDE6DC" }}>
+            <span className="text-[10px] font-bold uppercase tracking-wide" style={{ color: "#8B7261" }}>{label}</span>
+            <p className="text-xs leading-relaxed" style={{ color: "#2D2D2D" }}>
               {value.length > 100 ? value.substring(0, 100) + "…" : value}
             </p>
           </div>
         ) : null)}
       </div>
       {result.hookStyles?.length > 0 && (
-        <div className="rounded-xl border p-3 space-y-2" style={{ borderColor: "#E5DDD5" }}>
-          <span className="text-[10px] font-bold uppercase tracking-wide" style={{ color: "#A07060" }}>Hook Styles</span>
+        <div className="rounded-xl border p-3 space-y-2" style={{ borderColor: "#C2B5A3" }}>
+          <span className="text-[10px] font-bold uppercase tracking-wide" style={{ color: "#8B7261" }}>Hook Styles</span>
           <div className="flex flex-wrap gap-1.5">
             {result.hookStyles.map((h, i) => (
               <span key={i} className="text-[10px] px-2 py-0.5 rounded-full font-medium"
-                style={{ backgroundColor: "#FEF0EA", color: "#D4432A" }}>{h}</span>
+                style={{ backgroundColor: "#EDE6DC", color: "#C45A26" }}>{h}</span>
             ))}
           </div>
         </div>
       )}
       {result.topicClusters?.length > 0 && (
-        <div className="rounded-xl border p-3 space-y-2" style={{ borderColor: "#E5DDD5" }}>
-          <span className="text-[10px] font-bold uppercase tracking-wide" style={{ color: "#A07060" }}>Topic Clusters</span>
+        <div className="rounded-xl border p-3 space-y-2" style={{ borderColor: "#C2B5A3" }}>
+          <span className="text-[10px] font-bold uppercase tracking-wide" style={{ color: "#8B7261" }}>Topic Clusters</span>
           <div className="flex flex-wrap gap-1.5">
             {result.topicClusters.map((t, i) => (
               <span key={i} className="text-[10px] px-2 py-0.5 rounded-full"
@@ -916,19 +916,19 @@ function ProfileAnalysisDisplay({ result }: { result: ProfileAnalysis }) {
         </div>
       )}
       {result.whatToSteal?.length > 0 && (
-        <div className="rounded-xl border p-3 space-y-1.5" style={{ borderColor: "#E5DDD5" }}>
-          <span className="text-[10px] font-bold uppercase tracking-wide" style={{ color: "#A07060" }}>What To Steal</span>
+        <div className="rounded-xl border p-3 space-y-1.5" style={{ borderColor: "#C2B5A3" }}>
+          <span className="text-[10px] font-bold uppercase tracking-wide" style={{ color: "#8B7261" }}>What To Steal</span>
           {result.whatToSteal.map((idea, i) => (
-            <div key={i} className="flex items-start gap-1.5 text-xs" style={{ color: "#2D1810" }}>
-              <span className="mt-0.5 shrink-0" style={{ color: "#F97066" }}>→</span>
+            <div key={i} className="flex items-start gap-1.5 text-xs" style={{ color: "#2D2D2D" }}>
+              <span className="mt-0.5 shrink-0" style={{ color: "#E06A33" }}>→</span>
               <span>{idea}</span>
             </div>
           ))}
         </div>
       )}
       {result.gaps?.length > 0 && (
-        <div className="rounded-xl border p-3 space-y-2" style={{ borderColor: "#E5DDD5" }}>
-          <span className="text-[10px] font-bold uppercase tracking-wide" style={{ color: "#A07060" }}>Gaps to Own</span>
+        <div className="rounded-xl border p-3 space-y-2" style={{ borderColor: "#C2B5A3" }}>
+          <span className="text-[10px] font-bold uppercase tracking-wide" style={{ color: "#8B7261" }}>Gaps to Own</span>
           <div className="flex flex-wrap gap-1.5">
             {result.gaps.map((g, i) => (
               <span key={i} className="text-[10px] px-2 py-0.5 rounded-full"
@@ -1007,12 +1007,12 @@ function DualColumnAnalyser({ socialAccounts }: { socialAccounts: Record<string,
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
       {/* Left: Social Profile */}
       <div className="rounded-2xl border bg-white p-5 space-y-3"
-        style={{ borderColor: "#E5DDD5", boxShadow: "0 1px 4px rgba(45,24,16,0.06)" }}>
+        style={{ borderColor: "#C2B5A3", boxShadow: "0 1px 4px rgba(45,24,16,0.06)" }}>
         <div className="flex items-center gap-2">
-          <div className="h-6 w-6 rounded-lg flex items-center justify-center" style={{ backgroundColor: "#FEF0EA" }}>
-            <Globe className="h-3.5 w-3.5" style={{ color: "#D4432A" }} />
+          <div className="h-6 w-6 rounded-lg flex items-center justify-center" style={{ backgroundColor: "#EDE6DC" }}>
+            <Globe className="h-3.5 w-3.5" style={{ color: "#C45A26" }} />
           </div>
-          <span className="text-sm font-semibold" style={{ color: "#2D1810" }}>Social Profile Analyser</span>
+          <span className="text-sm font-semibold" style={{ color: "#2D2D2D" }}>Social Profile Analyser</span>
         </div>
 
         {connectedPlatforms.length > 0 && (
@@ -1020,7 +1020,7 @@ function DualColumnAnalyser({ socialAccounts }: { socialAccounts: Record<string,
             value={selectedPlatform}
             onChange={(e) => setSelectedPlatform(e.target.value)}
             className="w-full text-sm rounded-xl border px-3 h-9"
-            style={{ borderColor: "#E5DDD5", color: "#2D1810" }}>
+            style={{ borderColor: "#C2B5A3", color: "#2D2D2D" }}>
             <option value="">Select a connected account…</option>
             {connectedPlatforms.map((p) => (
               <option key={p} value={p}>
@@ -1037,10 +1037,10 @@ function DualColumnAnalyser({ socialAccounts }: { socialAccounts: Record<string,
             onKeyDown={(e) => e.key === "Enter" && !leftLoading && analyse(leftUrl, "left")}
             placeholder={connectedPlatforms.length > 0 ? "Or paste a competitor URL…" : "Paste an Instagram, TikTok, or profile URL…"}
             className="flex-1 text-sm h-9"
-            style={{ borderColor: "#E5DDD5" }}
+            style={{ borderColor: "#C2B5A3" }}
           />
           <Button onClick={() => analyse(leftUrl, "left")} disabled={leftLoading || !leftUrl.trim()} size="sm"
-            className="shrink-0 gap-1.5" style={{ backgroundColor: "#F97066", color: "white" }}>
+            className="shrink-0 gap-1.5" style={{ backgroundColor: "#E06A33", color: "white" }}>
             {leftLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
             {leftLoading ? "Analysing…" : "Analyse"}
           </Button>
@@ -1061,14 +1061,14 @@ function DualColumnAnalyser({ socialAccounts }: { socialAccounts: Record<string,
             <ProfileAnalysisDisplay result={leftResult} />
             <button
               onClick={() => { setLeftResult(null); setLeftUrl(""); localStorage.removeItem(LS_PROFILE_LEFT_KEY) }}
-              className="mt-2 text-[10px] underline" style={{ color: "#C4B5A5" }}>
+              className="mt-2 text-[10px] underline" style={{ color: "#C2B5A3" }}>
               Clear
             </button>
           </div>
         )}
 
         {!leftResult && !leftLoading && !leftError && (
-          <p className="text-xs" style={{ color: "#C4B5A5" }}>
+          <p className="text-xs" style={{ color: "#C2B5A3" }}>
             Select a connected account or paste any profile URL for content strategy analysis.
           </p>
         )}
@@ -1076,12 +1076,12 @@ function DualColumnAnalyser({ socialAccounts }: { socialAccounts: Record<string,
 
       {/* Right: Website / URL */}
       <div className="rounded-2xl border bg-white p-5 space-y-3"
-        style={{ borderColor: "#E5DDD5", boxShadow: "0 1px 4px rgba(45,24,16,0.06)" }}>
+        style={{ borderColor: "#C2B5A3", boxShadow: "0 1px 4px rgba(45,24,16,0.06)" }}>
         <div className="flex items-center gap-2">
-          <div className="h-6 w-6 rounded-lg flex items-center justify-center" style={{ backgroundColor: "#FEF0EA" }}>
-            <Search className="h-3.5 w-3.5" style={{ color: "#D4432A" }} />
+          <div className="h-6 w-6 rounded-lg flex items-center justify-center" style={{ backgroundColor: "#EDE6DC" }}>
+            <Search className="h-3.5 w-3.5" style={{ color: "#C45A26" }} />
           </div>
-          <span className="text-sm font-semibold" style={{ color: "#2D1810" }}>Website / URL Analyser</span>
+          <span className="text-sm font-semibold" style={{ color: "#2D2D2D" }}>Website / URL Analyser</span>
         </div>
 
         <div className="flex gap-2">
@@ -1091,10 +1091,10 @@ function DualColumnAnalyser({ socialAccounts }: { socialAccounts: Record<string,
             onKeyDown={(e) => e.key === "Enter" && !rightLoading && analyse(rightUrl, "right")}
             placeholder="Paste any website, blog, or landing page URL…"
             className="flex-1 text-sm h-9"
-            style={{ borderColor: "#E5DDD5" }}
+            style={{ borderColor: "#C2B5A3" }}
           />
           <Button onClick={() => analyse(rightUrl, "right")} disabled={rightLoading || !rightUrl.trim()} size="sm"
-            className="shrink-0 gap-1.5" style={{ backgroundColor: "#F97066", color: "white" }}>
+            className="shrink-0 gap-1.5" style={{ backgroundColor: "#E06A33", color: "white" }}>
             {rightLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
             {rightLoading ? "Analysing…" : "Analyse"}
           </Button>
@@ -1115,14 +1115,14 @@ function DualColumnAnalyser({ socialAccounts }: { socialAccounts: Record<string,
             <ProfileAnalysisDisplay result={rightResult} />
             <button
               onClick={() => { setRightResult(null); setRightUrl(""); localStorage.removeItem(LS_PROFILE_RIGHT_KEY) }}
-              className="mt-2 text-[10px] underline" style={{ color: "#C4B5A5" }}>
+              className="mt-2 text-[10px] underline" style={{ color: "#C2B5A3" }}>
               Clear
             </button>
           </div>
         )}
 
         {!rightResult && !rightLoading && !rightError && (
-          <p className="text-xs" style={{ color: "#C4B5A5" }}>
+          <p className="text-xs" style={{ color: "#C2B5A3" }}>
             Paste any website or URL to extract content strategy intelligence — great for competitor research.
           </p>
         )}
@@ -1222,18 +1222,18 @@ function NicheResearch({ opportunityResult, onSaveInsight }: {
 
   return (
     <div className="rounded-2xl border bg-white p-5 space-y-4"
-      style={{ borderColor: "#E5DDD5", boxShadow: "0 1px 4px rgba(45,24,16,0.06)" }}>
+      style={{ borderColor: "#C2B5A3", boxShadow: "0 1px 4px rgba(45,24,16,0.06)" }}>
       <div className="flex items-center gap-2">
-        <div className="h-6 w-6 rounded-lg flex items-center justify-center" style={{ backgroundColor: "#FEF0EA" }}>
-          <Search className="h-3.5 w-3.5" style={{ color: "#D4432A" }} />
+        <div className="h-6 w-6 rounded-lg flex items-center justify-center" style={{ backgroundColor: "#EDE6DC" }}>
+          <Search className="h-3.5 w-3.5" style={{ color: "#C45A26" }} />
         </div>
-        <span className="text-sm font-semibold" style={{ color: "#2D1810" }}>Niche Research</span>
+        <span className="text-sm font-semibold" style={{ color: "#2D2D2D" }}>Niche Research</span>
       </div>
 
       {/* Smart pills */}
       {allPills.length > 0 && (
         <div className="space-y-2">
-          <p className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: "#A07060" }}>
+          <p className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: "#8B7261" }}>
             {autoTopics.length > 0 ? "From your content opportunity — click to research:" : "Your research topics:"}
           </p>
           <div className="flex flex-wrap gap-1.5">
@@ -1243,8 +1243,8 @@ function NicheResearch({ opportunityResult, onSaveInsight }: {
                 className={cn(
                   "text-xs px-3 py-1 rounded-full border font-medium transition-all",
                   selectedTopic === topic
-                    ? "border-[#F97066] bg-[#F97066] text-white"
-                    : "border-[#F5C4BC] bg-[#FEF0EA] text-[#C05040] hover:bg-[#FDDBD8]"
+                    ? "border-[#E06A33] bg-[#E06A33] text-white"
+                    : "border-[#F5C4BC] bg-[#EDE6DC] text-[#C45A26] hover:bg-[#EDE6DC]"
                 )}>
                 {topic.length > 44 ? topic.substring(0, 44) + "…" : topic}
               </button>
@@ -1273,14 +1273,14 @@ function NicheResearch({ opportunityResult, onSaveInsight }: {
           onKeyDown={(e) => e.key === "Enter" && !loading && addCustomTopic()}
           placeholder={allPills.length > 0 ? "＋ Add your own topic…" : "Enter a niche or topic (e.g. plant-based fitness)"}
           className="flex-1 text-sm h-9"
-          style={{ borderColor: "#E5DDD5" }}
+          style={{ borderColor: "#C2B5A3" }}
         />
         <Button
           onClick={addCustomTopic}
           disabled={loading || !customInput.trim()}
           size="sm"
           className="shrink-0 gap-1.5"
-          style={{ backgroundColor: "#F97066", color: "white" }}>
+          style={{ backgroundColor: "#E06A33", color: "white" }}>
           {loading && selectedTopic === customInput.trim()
             ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
             : <Sparkles className="h-3.5 w-3.5" />}
@@ -1292,12 +1292,12 @@ function NicheResearch({ opportunityResult, onSaveInsight }: {
 
       {/* "Showing results for" label */}
       {selectedTopic && (loading || currentResult) && (
-        <p className="text-xs" style={{ color: "#8A7060" }}>
+        <p className="text-xs" style={{ color: "#8B7261" }}>
           {loading ? "Researching " : "Showing results for "}
-          <span className="font-semibold" style={{ color: "#2D1810" }}>
+          <span className="font-semibold" style={{ color: "#2D2D2D" }}>
             {selectedTopic.length > 60 ? selectedTopic.substring(0, 60) + "…" : selectedTopic}
           </span>
-          {loading && <Loader2 className="inline h-3 w-3 animate-spin ml-1" style={{ color: "#F97066" }} />}
+          {loading && <Loader2 className="inline h-3 w-3 animate-spin ml-1" style={{ color: "#E06A33" }} />}
         </p>
       )}
 
@@ -1317,23 +1317,23 @@ function NicheResearch({ opportunityResult, onSaveInsight }: {
         <div className="overflow-x-auto -mx-5 px-5">
           <div className="grid grid-cols-5 gap-3 min-w-[900px]">
             {categories.map(({ key, label, items }) => (
-              <div key={key} className="rounded-xl border bg-[#FAFAF5] p-4 space-y-3"
-                style={{ borderColor: "#E5DDD5" }}>
-                <div className="flex items-center gap-1.5 pb-1 border-b" style={{ borderColor: "#F0EAE3" }}>
+              <div key={key} className="rounded-xl border bg-[#EDE6DC] p-4 space-y-3"
+                style={{ borderColor: "#C2B5A3" }}>
+                <div className="flex items-center gap-1.5 pb-1 border-b" style={{ borderColor: "#EDE6DC" }}>
                   <span className="text-base leading-none">{NICHE_CATEGORY_ICONS[key]}</span>
-                  <span className="text-xs font-bold leading-tight" style={{ color: "#2D1810" }}>{label}</span>
+                  <span className="text-xs font-bold leading-tight" style={{ color: "#2D2D2D" }}>{label}</span>
                 </div>
                 <ul className="space-y-2">
                   {items.slice(0, 5).map((item, i) => (
                     <li key={i} className="flex items-start gap-1.5 group">
-                      <span className="text-[10px] font-bold mt-0.5 shrink-0" style={{ color: "#F97066" }}>→</span>
-                      <span className="text-[11px] leading-relaxed flex-1" style={{ color: "#5A3828" }}>{item}</span>
+                      <span className="text-[10px] font-bold mt-0.5 shrink-0" style={{ color: "#E06A33" }}>→</span>
+                      <span className="text-[11px] leading-relaxed flex-1" style={{ color: "#5A5A5A" }}>{item}</span>
                       {onSaveInsight && (key === "angles" || key === "pain" || key === "trending" || key === "gaps") && (
                         <button
                           onClick={() => onSaveInsight(item, "niche")}
                           title="Save to brief insights"
                           className="opacity-0 group-hover:opacity-100 transition-opacity shrink-0 mt-0.5"
-                          style={{ color: "#F97066" }}>
+                          style={{ color: "#E06A33" }}>
                           <Bookmark className="h-2.5 w-2.5" />
                         </button>
                       )}
@@ -1347,7 +1347,7 @@ function NicheResearch({ opportunityResult, onSaveInsight }: {
       )}
 
       {!selectedTopic && allPills.length === 0 && !loading && (
-        <p className="text-xs" style={{ color: "#C4B5A5" }}>
+        <p className="text-xs" style={{ color: "#C2B5A3" }}>
           Enter any niche and Claude will analyse content angles, audience needs, trending topics, and gaps.
         </p>
       )}
@@ -1561,26 +1561,26 @@ function PillarsStrip({ brand, initialPillars, onPillarsChange }: {
   if (savedPillars.length === 0 && generated.length === 0 && !loading) {
     return (
       <div className="rounded-2xl border bg-white p-6 space-y-5"
-        style={{ borderColor: "#E5DDD5", boxShadow: "0 1px 4px rgba(45,24,16,0.06)" }}>
+        style={{ borderColor: "#C2B5A3", boxShadow: "0 1px 4px rgba(45,24,16,0.06)" }}>
         <div className="flex items-center gap-2">
-          <div className="h-7 w-7 rounded-lg flex items-center justify-center" style={{ backgroundColor: "#FEF0EA" }}>
-            <Layers className="h-4 w-4" style={{ color: "#D4432A" }} />
+          <div className="h-7 w-7 rounded-lg flex items-center justify-center" style={{ backgroundColor: "#EDE6DC" }}>
+            <Layers className="h-4 w-4" style={{ color: "#C45A26" }} />
           </div>
-          <span className="text-sm font-semibold" style={{ color: "#2D1810" }}>Content Pillars</span>
+          <span className="text-sm font-semibold" style={{ color: "#2D2D2D" }}>Content Pillars</span>
         </div>
 
         <div className="space-y-2 max-w-lg">
-          <p className="text-sm font-medium" style={{ color: "#5A3828" }}>
+          <p className="text-sm font-medium" style={{ color: "#5A5A5A" }}>
             Your pillars are creative lenses — distinct angles that shape every piece of content you create.
           </p>
-          <p className="text-xs" style={{ color: "#A07060" }}>
+          <p className="text-xs" style={{ color: "#8B7261" }}>
             Each pillar has its own voice, format preference, and weekly posting rhythm. Once generated, they'll guide all your AI-assisted content.
           </p>
         </div>
 
         {/* DMI Archetype hint pills */}
         <div className="space-y-2">
-          <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: "#A07060" }}>
+          <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: "#8B7261" }}>
             Suggested starting points — your pillars will be built around these archetypes:
           </p>
           <div className="flex flex-wrap gap-2">
@@ -1598,7 +1598,7 @@ function PillarsStrip({ brand, initialPillars, onPillarsChange }: {
           </div>
         </div>
 
-        {error && <p className="text-xs rounded-lg px-3 py-2" style={{ color: "#ef4444", backgroundColor: "#FFF0F0" }}>{error}</p>}
+        {error && <p className="text-xs rounded-lg px-3 py-2" style={{ color: "#ef4444", backgroundColor: "#EDE6DC" }}>{error}</p>}
 
         <div className="flex gap-2 max-w-xl">
           <Input
@@ -1607,11 +1607,11 @@ function PillarsStrip({ brand, initialPillars, onPillarsChange }: {
             onChange={(e) => setNiche(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && !loading && generate()}
             className="flex-1 text-sm"
-            style={{ borderColor: "#E5DDD5" }}
+            style={{ borderColor: "#C2B5A3" }}
           />
           <Button onClick={() => generate()} disabled={loading || !niche.trim()}
             className="gap-1.5 shrink-0 font-semibold"
-            style={{ backgroundColor: "#F97066", color: "white" }}>
+            style={{ backgroundColor: "#E06A33", color: "white" }}>
             <Sparkles className="h-4 w-4" />
             Generate My Pillars
           </Button>
@@ -1625,13 +1625,13 @@ function PillarsStrip({ brand, initialPillars, onPillarsChange }: {
   if (loading) {
     return (
       <div className="rounded-2xl border bg-white p-6 space-y-5"
-        style={{ borderColor: "#E5DDD5", boxShadow: "0 1px 4px rgba(45,24,16,0.06)" }}>
+        style={{ borderColor: "#C2B5A3", boxShadow: "0 1px 4px rgba(45,24,16,0.06)" }}>
         <div className="flex items-center gap-2">
-          <div className="h-7 w-7 rounded-lg flex items-center justify-center" style={{ backgroundColor: "#FEF0EA" }}>
-            <Loader2 className="h-4 w-4 animate-spin" style={{ color: "#D4432A" }} />
+          <div className="h-7 w-7 rounded-lg flex items-center justify-center" style={{ backgroundColor: "#EDE6DC" }}>
+            <Loader2 className="h-4 w-4 animate-spin" style={{ color: "#C45A26" }} />
           </div>
-          <span className="text-sm font-semibold" style={{ color: "#2D1810" }}>Generating pillars…</span>
-          <span className="text-xs" style={{ color: "#A07060" }}>Claude is crafting 5 creative lenses for your brand</span>
+          <span className="text-sm font-semibold" style={{ color: "#2D2D2D" }}>Generating pillars…</span>
+          <span className="text-xs" style={{ color: "#8B7261" }}>Claude is crafting 5 creative lenses for your brand</span>
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
           {[...Array(5)].map((_, i) => (
@@ -1647,37 +1647,37 @@ function PillarsStrip({ brand, initialPillars, onPillarsChange }: {
   if (editedPillars.length > 0) {
     return (
       <div className="rounded-2xl border bg-white p-6 space-y-5"
-        style={{ borderColor: "#E5DDD5", boxShadow: "0 1px 4px rgba(45,24,16,0.06)" }}>
+        style={{ borderColor: "#C2B5A3", boxShadow: "0 1px 4px rgba(45,24,16,0.06)" }}>
         <div className="flex items-center justify-between gap-2 flex-wrap">
           <div className="flex items-center gap-2">
-            <div className="h-7 w-7 rounded-lg flex items-center justify-center" style={{ backgroundColor: "#FEF0EA" }}>
-              <Sparkles className="h-4 w-4" style={{ color: "#D4432A" }} />
+            <div className="h-7 w-7 rounded-lg flex items-center justify-center" style={{ backgroundColor: "#EDE6DC" }}>
+              <Sparkles className="h-4 w-4" style={{ color: "#C45A26" }} />
             </div>
-            <span className="text-sm font-semibold" style={{ color: "#2D1810" }}>Review & edit your pillars</span>
-            <span className="text-xs" style={{ color: "#A07060" }}>All fields are editable — make them yours</span>
+            <span className="text-sm font-semibold" style={{ color: "#2D2D2D" }}>Review & edit your pillars</span>
+            <span className="text-xs" style={{ color: "#8B7261" }}>All fields are editable — make them yours</span>
           </div>
           <div className="flex items-center gap-2">
             <Button size="sm" variant="outline" onClick={() => generate()}
-              className="gap-1.5 h-8 text-xs" style={{ borderColor: "#E5DDD5", color: "#7A5C50" }}>
+              className="gap-1.5 h-8 text-xs" style={{ borderColor: "#C2B5A3", color: "#8B7261" }}>
               <RefreshCw className="h-3 w-3" />
               Regenerate
             </Button>
             {editedPillars.length < 6 && (
               <Button size="sm" variant="outline" onClick={addEmptyPillar}
-                className="gap-1.5 h-8 text-xs" style={{ borderColor: "#E5DDD5", color: "#7A5C50" }}>
+                className="gap-1.5 h-8 text-xs" style={{ borderColor: "#C2B5A3", color: "#8B7261" }}>
                 <Plus className="h-3 w-3" />
                 Add Pillar
               </Button>
             )}
             {brand?.id ? (
               <Button size="sm" onClick={saveAllPillars} disabled={saving}
-                className="gap-1.5 h-8 text-xs font-semibold" style={{ backgroundColor: "#F97066", color: "white" }}>
+                className="gap-1.5 h-8 text-xs font-semibold" style={{ backgroundColor: "#E06A33", color: "white" }}>
                 {saving ? <Loader2 className="h-3 w-3 animate-spin" /> : <Save className="h-3 w-3" />}
                 {saving ? "Saving…" : "Save All Pillars"}
               </Button>
             ) : (
-              <span className="text-xs" style={{ color: "#8A7060" }}>
-                <a href="/brands/new" className="underline" style={{ color: "#F97066" }}>Create a brand</a> to save
+              <span className="text-xs" style={{ color: "#8B7261" }}>
+                <a href="/brands/new" className="underline" style={{ color: "#E06A33" }}>Create a brand</a> to save
               </span>
             )}
           </div>
@@ -1730,7 +1730,7 @@ function PillarsStrip({ brand, initialPillars, onPillarsChange }: {
                     value={pillar.perspective || pillar.description}
                     onChange={(e) => updateField(i, "perspective", e.target.value)}
                     className="w-full text-xs leading-relaxed bg-white/70 border rounded-lg px-2.5 py-1.5 resize-none focus:outline-none"
-                    style={{ borderColor: pastel.border, color: "#5A3828" }}
+                    style={{ borderColor: pastel.border, color: "#5A5A5A" }}
                     rows={2}
                     placeholder="The specific POV or raw angle for this pillar…"
                     aria-label="Pillar perspective"
@@ -1744,7 +1744,7 @@ function PillarsStrip({ brand, initialPillars, onPillarsChange }: {
                     value={pillar.voice_direction}
                     onChange={(e) => updateField(i, "voice_direction", e.target.value)}
                     className="w-full text-xs leading-relaxed bg-white/70 border rounded-lg px-2.5 py-1.5 resize-none focus:outline-none"
-                    style={{ borderColor: pastel.border, color: "#5A3828" }}
+                    style={{ borderColor: pastel.border, color: "#5A5A5A" }}
                     rows={2}
                     placeholder="Tone and style direction…"
                     aria-label="Voice direction"
@@ -1759,7 +1759,7 @@ function PillarsStrip({ brand, initialPillars, onPillarsChange }: {
                       value={pillar.format_preference}
                       onChange={(e) => updateField(i, "format_preference", e.target.value)}
                       className="w-full text-xs rounded-lg border px-2 h-7"
-                      style={{ borderColor: pastel.border, color: "#2D1810", backgroundColor: "rgba(255,255,255,0.7)" }}>
+                      style={{ borderColor: pastel.border, color: "#2D2D2D", backgroundColor: "rgba(255,255,255,0.7)" }}>
                       {["any", "post", "carousel", "reel"].map((f) => (
                         <option key={f} value={f}>{f.charAt(0).toUpperCase() + f.slice(1)}</option>
                       ))}
@@ -1771,7 +1771,7 @@ function PillarsStrip({ brand, initialPillars, onPillarsChange }: {
                       value={pillar.weekly_quota}
                       onChange={(e) => updateField(i, "weekly_quota", Number(e.target.value))}
                       className="w-full text-xs rounded-lg border px-2 h-7"
-                      style={{ borderColor: pastel.border, color: "#2D1810", backgroundColor: "rgba(255,255,255,0.7)" }}>
+                      style={{ borderColor: pastel.border, color: "#2D2D2D", backgroundColor: "rgba(255,255,255,0.7)" }}>
                       {[1, 2, 3, 4, 5].map((n) => <option key={n} value={n}>{n}×</option>)}
                     </select>
                   </div>
@@ -1792,17 +1792,17 @@ function PillarsStrip({ brand, initialPillars, onPillarsChange }: {
 
   return (
     <div className="rounded-2xl border bg-white p-6 space-y-5"
-      style={{ borderColor: "#E5DDD5", boxShadow: "0 1px 4px rgba(45,24,16,0.06)" }}>
+      style={{ borderColor: "#C2B5A3", boxShadow: "0 1px 4px rgba(45,24,16,0.06)" }}>
 
       {/* Header */}
       <div className="flex items-center justify-between gap-2 flex-wrap">
         <div className="flex items-center gap-2">
-          <div className="h-7 w-7 rounded-lg flex items-center justify-center" style={{ backgroundColor: "#FEF0EA" }}>
-            <Layers className="h-4 w-4" style={{ color: "#D4432A" }} />
+          <div className="h-7 w-7 rounded-lg flex items-center justify-center" style={{ backgroundColor: "#EDE6DC" }}>
+            <Layers className="h-4 w-4" style={{ color: "#C45A26" }} />
           </div>
-          <span className="text-sm font-semibold" style={{ color: "#2D1810" }}>Content Pillars</span>
+          <span className="text-sm font-semibold" style={{ color: "#2D2D2D" }}>Content Pillars</span>
           <span className="text-xs px-2 py-0.5 rounded-full font-medium"
-            style={{ backgroundColor: "#F5F0EA", color: "#7A5C50" }}>
+            style={{ backgroundColor: "#F5F0EA", color: "#8B7261" }}>
             {savedPillars.length} active
           </span>
         </div>
@@ -1815,13 +1815,13 @@ function PillarsStrip({ brand, initialPillars, onPillarsChange }: {
                 postIdeas: [], voice_direction: "", format_preference: "any", weekly_quota: 2,
               }])
             }}
-              className="gap-1.5 h-8 text-xs" style={{ borderColor: "#E5DDD5", color: "#7A5C50" }}>
+              className="gap-1.5 h-8 text-xs" style={{ borderColor: "#C2B5A3", color: "#8B7261" }}>
               <Plus className="h-3 w-3" />
               Add Pillar
             </Button>
           )}
           <Button size="sm" variant="outline" onClick={() => setRegenWarning((v) => !v)}
-            className="gap-1.5 h-8 text-xs" style={{ borderColor: "#E5DDD5", color: "#7A5C50" }}>
+            className="gap-1.5 h-8 text-xs" style={{ borderColor: "#C2B5A3", color: "#8B7261" }}>
             <RefreshCw className="h-3 w-3" />
             Regenerate All
           </Button>
@@ -1848,12 +1848,12 @@ function PillarsStrip({ brand, initialPillars, onPillarsChange }: {
               generate(regenNiche)
             }}
               disabled={!regenNiche.trim() || loading}
-              className="gap-1.5 h-8 text-xs font-semibold" style={{ backgroundColor: "#F97066", color: "white" }}>
+              className="gap-1.5 h-8 text-xs font-semibold" style={{ backgroundColor: "#E06A33", color: "white" }}>
               <Sparkles className="h-3 w-3" />
               Confirm &amp; Regenerate
             </Button>
             <Button size="sm" variant="outline" onClick={() => setRegenWarning(false)}
-              className="h-8 text-xs" style={{ borderColor: "#E5DDD5", color: "#7A5C50" }}>
+              className="h-8 text-xs" style={{ borderColor: "#C2B5A3", color: "#8B7261" }}>
               Cancel
             </Button>
           </div>
@@ -1896,7 +1896,7 @@ function PillarsStrip({ brand, initialPillars, onPillarsChange }: {
                         )}
                         {pillar.weekly_quota && (
                           <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full"
-                            style={{ backgroundColor: "rgba(255,255,255,0.6)", color: "#7A5C50", border: "1px solid #E5DDD5" }}>
+                            style={{ backgroundColor: "rgba(255,255,255,0.6)", color: "#8B7261", border: "1px solid #C2B5A3" }}>
                             {pillar.weekly_quota}×/wk
                           </span>
                         )}
@@ -1918,12 +1918,12 @@ function PillarsStrip({ brand, initialPillars, onPillarsChange }: {
                 </div>
 
                 {pillar.description && !isEditing && (
-                  <p className="text-xs leading-snug" style={{ color: "#6A4830" }}>
+                  <p className="text-xs leading-snug" style={{ color: "#5A5A5A" }}>
                     {pillar.description}
                   </p>
                 )}
                 {pillar.voice_direction && !isEditing && (
-                  <p className="text-[10px] leading-snug italic" style={{ color: "#A07060" }}>
+                  <p className="text-[10px] leading-snug italic" style={{ color: "#8B7261" }}>
                     {pillar.voice_direction}
                   </p>
                 )}
@@ -1933,50 +1933,50 @@ function PillarsStrip({ brand, initialPillars, onPillarsChange }: {
               {isEditing && (
                 <div className="p-4 space-y-3 border-t bg-white" style={{ borderColor: pastel.border }}>
                   <div className="space-y-1">
-                    <span className="text-[9px] font-bold uppercase tracking-wide" style={{ color: "#A07060" }}>Name &amp; Emoji</span>
+                    <span className="text-[9px] font-bold uppercase tracking-wide" style={{ color: "#8B7261" }}>Name &amp; Emoji</span>
                     <div className="flex gap-2">
                       <input
                         defaultValue={pillar.emoji || "📌"}
                         className="text-xl w-9 border rounded-lg text-center outline-none"
-                        style={{ borderColor: "#E5DDD5" }}
+                        style={{ borderColor: "#C2B5A3" }}
                         maxLength={2}
                         onBlur={(e) => updateSavedPillar(pillar.id, { emoji: e.target.value })}
                       />
                       <input
                         defaultValue={pillar.name}
-                        className="flex-1 text-sm border rounded-lg px-3 py-1.5 outline-none focus:border-[#F97066]"
-                        style={{ borderColor: "#E5DDD5", color: "#2D1810" }}
+                        className="flex-1 text-sm border rounded-lg px-3 py-1.5 outline-none focus:border-[#E06A33]"
+                        style={{ borderColor: "#C2B5A3", color: "#2D2D2D" }}
                         onBlur={(e) => updateSavedPillar(pillar.id, { name: e.target.value })}
                       />
                     </div>
                   </div>
                   <div className="space-y-1">
-                    <span className="text-[9px] font-bold uppercase tracking-wide" style={{ color: "#A07060" }}>Angle / Perspective</span>
+                    <span className="text-[9px] font-bold uppercase tracking-wide" style={{ color: "#8B7261" }}>Angle / Perspective</span>
                     <textarea
                       defaultValue={pillar.description ?? ""}
-                      className="w-full text-xs border rounded-lg px-2.5 py-1.5 resize-none outline-none focus:border-[#F97066]"
-                      style={{ borderColor: "#E5DDD5", color: "#5A3828" }}
+                      className="w-full text-xs border rounded-lg px-2.5 py-1.5 resize-none outline-none focus:border-[#E06A33]"
+                      style={{ borderColor: "#C2B5A3", color: "#5A5A5A" }}
                       rows={2}
                       onBlur={(e) => updateSavedPillar(pillar.id, { description: e.target.value })}
                     />
                   </div>
                   <div className="space-y-1">
-                    <span className="text-[9px] font-bold uppercase tracking-wide" style={{ color: "#A07060" }}>Voice Direction</span>
+                    <span className="text-[9px] font-bold uppercase tracking-wide" style={{ color: "#8B7261" }}>Voice Direction</span>
                     <textarea
                       defaultValue={pillar.voice_direction ?? ""}
-                      className="w-full text-xs border rounded-lg px-2.5 py-1.5 resize-none outline-none focus:border-[#F97066]"
-                      style={{ borderColor: "#E5DDD5", color: "#5A3828" }}
+                      className="w-full text-xs border rounded-lg px-2.5 py-1.5 resize-none outline-none focus:border-[#E06A33]"
+                      style={{ borderColor: "#C2B5A3", color: "#5A5A5A" }}
                       rows={2}
                       onBlur={(e) => updateSavedPillar(pillar.id, { voice_direction: e.target.value })}
                     />
                   </div>
                   <div className="flex gap-2">
                     <div className="flex-1 space-y-1">
-                      <span className="text-[9px] font-bold uppercase tracking-wide" style={{ color: "#A07060" }}>Format</span>
+                      <span className="text-[9px] font-bold uppercase tracking-wide" style={{ color: "#8B7261" }}>Format</span>
                       <select
                         defaultValue={pillar.format_preference ?? "any"}
                         className="w-full text-xs border rounded-lg px-2 h-7 outline-none"
-                        style={{ borderColor: "#E5DDD5", color: "#2D1810" }}
+                        style={{ borderColor: "#C2B5A3", color: "#2D2D2D" }}
                         onChange={(e) => updateSavedPillar(pillar.id, { format_preference: e.target.value as ContentPillar["format_preference"] })}>
                         {["any", "post", "carousel", "reel"].map((f) => (
                           <option key={f} value={f}>{f.charAt(0).toUpperCase() + f.slice(1)}</option>
@@ -1984,18 +1984,18 @@ function PillarsStrip({ brand, initialPillars, onPillarsChange }: {
                       </select>
                     </div>
                     <div className="w-20 space-y-1">
-                      <span className="text-[9px] font-bold uppercase tracking-wide" style={{ color: "#A07060" }}>Posts/wk</span>
+                      <span className="text-[9px] font-bold uppercase tracking-wide" style={{ color: "#8B7261" }}>Posts/wk</span>
                       <select
                         defaultValue={pillar.weekly_quota ?? 2}
                         className="w-full text-xs border rounded-lg px-2 h-7 outline-none"
-                        style={{ borderColor: "#E5DDD5", color: "#2D1810" }}
+                        style={{ borderColor: "#C2B5A3", color: "#2D2D2D" }}
                         onChange={(e) => updateSavedPillar(pillar.id, { weekly_quota: Number(e.target.value) })}>
                         {[1, 2, 3, 4, 5].map((n) => <option key={n} value={n}>{n}×</option>)}
                       </select>
                     </div>
                   </div>
                   <Button size="sm" onClick={() => setEditingPillarId(null)}
-                    className="w-full h-7 text-xs" style={{ backgroundColor: "#F97066", color: "white" }}>
+                    className="w-full h-7 text-xs" style={{ backgroundColor: "#E06A33", color: "white" }}>
                     Done
                   </Button>
                 </div>
@@ -2007,8 +2007,8 @@ function PillarsStrip({ brand, initialPillars, onPillarsChange }: {
 
       {/* Weekly rotation preview */}
       {savedPillars.length > 0 && (
-        <div className="space-y-2 pt-2 border-t" style={{ borderColor: "#F0EAE3" }}>
-          <p className="text-[10px] font-bold uppercase tracking-wide" style={{ color: "#A07060" }}>
+        <div className="space-y-2 pt-2 border-t" style={{ borderColor: "#EDE6DC" }}>
+          <p className="text-[10px] font-bold uppercase tracking-wide" style={{ color: "#8B7261" }}>
             Weekly Posting Rotation
           </p>
           <div className="flex gap-1.5 flex-wrap">
@@ -2017,17 +2017,17 @@ function PillarsStrip({ brand, initialPillars, onPillarsChange }: {
               const pastel = pillarIdx >= 0 ? PILLAR_PASTELS[pillarIdx % PILLAR_PASTELS.length] : null
               return (
                 <div key={i} className="flex flex-col items-center gap-0.5">
-                  <span className="text-[9px] font-bold" style={{ color: "#A07060" }}>{day}</span>
+                  <span className="text-[9px] font-bold" style={{ color: "#8B7261" }}>{day}</span>
                   <div className="px-2 py-1 rounded-lg border text-[9px] font-medium text-center min-w-[48px]"
                     style={{
                       backgroundColor: pastel?.bg ?? "#F5F0EA",
-                      borderColor: pastel?.border ?? "#E5DDD5",
-                      color: pastel?.text ?? "#7A5C50",
+                      borderColor: pastel?.border ?? "#C2B5A3",
+                      color: pastel?.text ?? "#8B7261",
                     }}>
                     {pillar ? `${pillar.emoji || "📌"}` : "·"}
                   </div>
                   {pillar && (
-                    <span className="text-[8px] text-center max-w-[52px] leading-tight" style={{ color: "#A07060" }}>
+                    <span className="text-[8px] text-center max-w-[52px] leading-tight" style={{ color: "#8B7261" }}>
                       {pillar.name.length > 8 ? pillar.name.slice(0, 8) + "…" : pillar.name}
                     </span>
                   )}
@@ -2074,7 +2074,7 @@ function useSavedInsights(userId: string) {
 const FORMAT_COLORS: Record<string, { bg: string; text: string }> = {
   post: { bg: "#F0FDF4", text: "#16A34A" },
   carousel: { bg: "#F0F4FF", text: "#5B6AC4" },
-  reel: { bg: "#FEF0EA", text: "#D4432A" },
+  reel: { bg: "#EDE6DC", text: "#C45A26" },
 }
 
 function IdeasBank({
@@ -2106,21 +2106,21 @@ function IdeasBank({
   const totalCount = ideas.length
 
   return (
-    <div className="rounded-2xl border bg-white overflow-hidden" style={{ borderColor: "#E5DDD5", boxShadow: "0 1px 4px rgba(45,24,16,0.06)" }}>
+    <div className="rounded-2xl border bg-white overflow-hidden" style={{ borderColor: "#C2B5A3", boxShadow: "0 1px 4px rgba(45,24,16,0.06)" }}>
       {/* Header */}
       <button
         onClick={() => setOpen((v) => !v)}
-        className="w-full flex items-center justify-between px-5 py-4 hover:bg-[#FAFAF5] transition-colors"
+        className="w-full flex items-center justify-between px-5 py-4 hover:bg-[#EDE6DC] transition-colors"
       >
         <div className="flex items-center gap-2.5">
-          <div className="h-7 w-7 rounded-lg flex items-center justify-center" style={{ backgroundColor: "#FEF0EA" }}>
-            <Bookmark className="h-3.5 w-3.5" style={{ color: "#D4432A" }} />
+          <div className="h-7 w-7 rounded-lg flex items-center justify-center" style={{ backgroundColor: "#EDE6DC" }}>
+            <Bookmark className="h-3.5 w-3.5" style={{ color: "#C45A26" }} />
           </div>
-          <span className="text-sm font-semibold" style={{ color: "#2D1810" }}>
+          <span className="text-sm font-semibold" style={{ color: "#2D2D2D" }}>
             Ideas Bank
           </span>
           {totalCount > 0 && (
-            <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={{ backgroundColor: "#FEF0EA", color: "#D4432A" }}>
+            <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={{ backgroundColor: "#EDE6DC", color: "#C45A26" }}>
               {totalCount}
             </span>
           )}
@@ -2131,20 +2131,20 @@ function IdeasBank({
             className="p-1 rounded-lg hover:bg-[#F5F0EA] transition-colors"
             title="Refresh ideas"
           >
-            <RefreshCw className="h-3.5 w-3.5" style={{ color: "#8A7060" }} />
+            <RefreshCw className="h-3.5 w-3.5" style={{ color: "#8B7261" }} />
           </button>
-          {open ? <ChevronUp className="h-4 w-4" style={{ color: "#8A7060" }} /> : <ChevronDown className="h-4 w-4" style={{ color: "#8A7060" }} />}
+          {open ? <ChevronUp className="h-4 w-4" style={{ color: "#8B7261" }} /> : <ChevronDown className="h-4 w-4" style={{ color: "#8B7261" }} />}
         </div>
       </button>
 
       {/* Content */}
       {open && (
-        <div className="border-t px-5 py-4 space-y-4" style={{ borderColor: "#E5DDD5" }}>
+        <div className="border-t px-5 py-4 space-y-4" style={{ borderColor: "#C2B5A3" }}>
           {ideas.length === 0 ? (
             <div className="text-center py-8 space-y-2">
-              <Bookmark className="h-8 w-8 mx-auto" style={{ color: "#C4B5A5" }} />
-              <p className="text-sm" style={{ color: "#8A7060" }}>No saved ideas yet</p>
-              <p className="text-xs" style={{ color: "#C4B5A5" }}>Generate content above and save your favourites</p>
+              <Bookmark className="h-8 w-8 mx-auto" style={{ color: "#C2B5A3" }} />
+              <p className="text-sm" style={{ color: "#8B7261" }}>No saved ideas yet</p>
+              <p className="text-xs" style={{ color: "#C2B5A3" }}>Generate content above and save your favourites</p>
             </div>
           ) : (
             Object.entries(grouped).map(([pillarId, pillarIdeas]) => {
@@ -2154,10 +2154,10 @@ function IdeasBank({
                 <div key={pillarId} className="space-y-2">
                   <div className="flex items-center gap-2">
                     <span className="text-sm">{pillar?.emoji || "💡"}</span>
-                    <span className="text-xs font-bold uppercase tracking-wide" style={{ color: "#8A7060" }}>
+                    <span className="text-xs font-bold uppercase tracking-wide" style={{ color: "#8B7261" }}>
                       {pillar?.name || "Unsorted"}
                     </span>
-                    <div className="flex-1 h-px" style={{ backgroundColor: "#E5DDD5" }} />
+                    <div className="flex-1 h-px" style={{ backgroundColor: "#C2B5A3" }} />
                   </div>
                   {pillarIdeas.map((idea) => {
                     const fmt = FORMAT_COLORS[idea.format] || FORMAT_COLORS.post
@@ -2165,24 +2165,24 @@ function IdeasBank({
                       <div
                         key={idea.id}
                         className="rounded-xl border p-3 space-y-2 group"
-                        style={{ borderColor: "#E5DDD5", backgroundColor: "#FAFAF5" }}
+                        style={{ borderColor: "#C2B5A3", backgroundColor: "#EDE6DC" }}
                       >
                         <div className="flex items-start justify-between gap-2">
                           <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ backgroundColor: fmt.bg, color: fmt.text }}>
                             {idea.format}
                           </span>
-                          <span className="text-[10px]" style={{ color: "#C4B5A5" }}>
+                          <span className="text-[10px]" style={{ color: "#C2B5A3" }}>
                             {new Date(idea.created_at).toLocaleDateString("en-AU", { day: "numeric", month: "short" })}
                           </span>
                         </div>
-                        <p className="text-xs font-medium leading-snug line-clamp-2" style={{ color: "#2D1810" }}>
+                        <p className="text-xs font-medium leading-snug line-clamp-2" style={{ color: "#2D2D2D" }}>
                           {idea.hook || idea.title || "Untitled idea"}
                         </p>
                         <div className="flex gap-2 pt-1">
                           <button
                             onClick={() => onLoad(idea)}
                             className="flex-1 text-xs py-1.5 rounded-lg font-medium transition-all hover:-translate-y-0.5"
-                            style={{ backgroundColor: "#F97066", color: "white" }}
+                            style={{ backgroundColor: "#E06A33", color: "white" }}
                           >
                             Load
                           </button>
@@ -2198,7 +2198,7 @@ function IdeasBank({
                               <button
                                 onClick={() => setConfirmDelete(null)}
                                 className="text-xs px-2 py-1.5 rounded-lg"
-                                style={{ backgroundColor: "#F5F0EA", color: "#7A5C50" }}
+                                style={{ backgroundColor: "#F5F0EA", color: "#8B7261" }}
                               >
                                 Cancel
                               </button>
@@ -2209,7 +2209,7 @@ function IdeasBank({
                               className="p-1.5 rounded-lg transition-colors hover:bg-[#FEE2E2]"
                               title="Delete idea"
                             >
-                              <Trash2 className="h-3.5 w-3.5" style={{ color: "#C4B5A5" }} />
+                              <Trash2 className="h-3.5 w-3.5" style={{ color: "#C2B5A3" }} />
                             </button>
                           )}
                         </div>
@@ -2676,7 +2676,7 @@ function GenerationStrip({
   const fmtColor = (fmt: string) => {
     if (fmt === "Post") return { bg: "#F0FDF4", text: "#16A34A", border: "#BBF7D0" }
     if (fmt === "Carousel") return { bg: "#F0F4FF", text: "#5B6AC4", border: "#C7D2FE" }
-    return { bg: "#FEF0EA", text: "#D4432A", border: "#F5C4BC" }
+    return { bg: "#EDE6DC", text: "#C45A26", border: "#F5C4BC" }
   }
 
   // ── RENDER ────────────────────────────────────────────────────────────────
@@ -2687,21 +2687,21 @@ function GenerationStrip({
       {/* ── STEP 1: Pick Your Pillar ── */}
       <div className="space-y-3">
         <div className="flex items-center gap-2">
-          <div className="h-6 w-6 rounded-full flex items-center justify-center text-white text-xs font-bold" style={{ backgroundColor: "#F97066" }}>1</div>
-          <span className="text-sm font-semibold" style={{ color: "#2D1810" }}>Pick your pillar</span>
+          <div className="h-6 w-6 rounded-full flex items-center justify-center text-white text-xs font-bold" style={{ backgroundColor: "#E06A33" }}>1</div>
+          <span className="text-sm font-semibold" style={{ color: "#2D2D2D" }}>Pick your pillar</span>
         </div>
 
         {pillars.length === 0 ? (
-          <div className="rounded-2xl border border-dashed p-8 text-center space-y-2" style={{ borderColor: "#E5DDD5" }}>
-            <Layers className="h-8 w-8 mx-auto" style={{ color: "#C4B5A5" }} />
-            <p className="text-sm font-medium" style={{ color: "#8A7060" }}>Generate your content pillars above first</p>
-            <p className="text-xs" style={{ color: "#C4B5A5" }}>They'll appear here as selectable cards</p>
+          <div className="rounded-2xl border border-dashed p-8 text-center space-y-2" style={{ borderColor: "#C2B5A3" }}>
+            <Layers className="h-8 w-8 mx-auto" style={{ color: "#C2B5A3" }} />
+            <p className="text-sm font-medium" style={{ color: "#8B7261" }}>Generate your content pillars above first</p>
+            <p className="text-xs" style={{ color: "#C2B5A3" }}>They'll appear here as selectable cards</p>
           </div>
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
             {pillars.map((pillar) => {
               const isSelected = selectedPillar?.id === pillar.id
-              const pillarColor = pillar.color || "#F97066"
+              const pillarColor = pillar.color || "#E06A33"
               const fmtPref = pillar.format_preference
               return (
                 <button key={pillar.id}
@@ -2714,12 +2714,12 @@ function GenerationStrip({
                     isSelected ? "shadow-md" : "hover:shadow-sm hover:-translate-y-0.5"
                   )}
                   style={{
-                    borderColor: isSelected ? "#F97066" : "#E5DDD5",
-                    backgroundColor: isSelected ? "#FEF6F4" : "white",
+                    borderColor: isSelected ? "#E06A33" : "#C2B5A3",
+                    backgroundColor: isSelected ? "#EDE6DC" : "white",
                   }}>
                   <div className="text-2xl leading-none">{pillar.emoji || "📌"}</div>
                   <div>
-                    <p className="text-xs font-bold leading-tight" style={{ color: "#2D1810" }}>{pillar.name}</p>
+                    <p className="text-xs font-bold leading-tight" style={{ color: "#2D2D2D" }}>{pillar.name}</p>
                     {fmtPref && fmtPref !== "any" && (
                       <span className="inline-block mt-1 text-[9px] font-bold px-1.5 py-0.5 rounded-full"
                         style={{ ...fmtColor(fmtPref.charAt(0).toUpperCase() + fmtPref.slice(1)) }}>
@@ -2728,12 +2728,12 @@ function GenerationStrip({
                     )}
                   </div>
                   {pillar.voice_direction && (
-                    <p className="text-[10px] leading-snug line-clamp-2" style={{ color: "#8A7060" }}>
+                    <p className="text-[10px] leading-snug line-clamp-2" style={{ color: "#8B7261" }}>
                       {pillar.voice_direction}
                     </p>
                   )}
                   {isSelected && (
-                    <div className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: "#F97066" }} />
+                    <div className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: "#E06A33" }} />
                   )}
                 </button>
               )
@@ -2749,28 +2749,28 @@ function GenerationStrip({
       )}>
         <div className="flex items-center gap-2">
           <div className="h-6 w-6 rounded-full flex items-center justify-center text-white text-xs font-bold"
-            style={{ backgroundColor: step2Ready ? "#F97066" : "#C4B5A5" }}>2</div>
-          <span className="text-sm font-semibold" style={{ color: step2Ready ? "#2D1810" : "#A07060" }}>
+            style={{ backgroundColor: step2Ready ? "#E06A33" : "#C2B5A3" }}>2</div>
+          <span className="text-sm font-semibold" style={{ color: step2Ready ? "#2D2D2D" : "#8B7261" }}>
             {selectedPillar ? `Brief for ${selectedPillar.emoji || ""} ${selectedPillar.name}` : "Write your brief"}
           </span>
         </div>
 
         {step2Ready && (
-          <div className="rounded-2xl border bg-white p-5 space-y-5" style={{ borderColor: "#E5DDD5", boxShadow: "0 1px 4px rgba(45,24,16,0.06)" }}>
+          <div className="rounded-2xl border bg-white p-5 space-y-5" style={{ borderColor: "#C2B5A3", boxShadow: "0 1px 4px rgba(45,24,16,0.06)" }}>
             {/* Field 1: Topic */}
             <div className="space-y-2">
-              <label className="text-xs font-semibold" style={{ color: "#2D1810" }}>Topic / Angle <span style={{ color: "#F97066" }}>*</span></label>
+              <label className="text-xs font-semibold" style={{ color: "#2D2D2D" }}>Topic / Angle <span style={{ color: "#E06A33" }}>*</span></label>
               <input
                 value={topic}
                 onChange={(e) => setTopic(e.target.value)}
                 placeholder="e.g. The morning routine nobody talks about"
-                className="w-full text-sm rounded-xl border px-4 py-3 outline-none transition-colors focus:border-[#F97066]"
-                style={{ borderColor: "#E5DDD5", color: "#2D1810" }}
+                className="w-full text-sm rounded-xl border px-4 py-3 outline-none transition-colors focus:border-[#E06A33]"
+                style={{ borderColor: "#C2B5A3", color: "#2D2D2D" }}
               />
               {/* Saved insights pills */}
               {savedInsights.length > 0 && (
                 <div className="space-y-1.5">
-                  <p className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: "#A07060" }}>
+                  <p className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: "#8B7261" }}>
                     Your saved insights — click to use:
                   </p>
                   <div className="flex gap-1.5 flex-wrap">
@@ -2780,10 +2780,10 @@ function GenerationStrip({
                         className={cn(
                           "text-xs px-3 py-1 rounded-full border font-medium transition-all hover:-translate-y-0.5",
                           topic === insight.text
-                            ? "border-[#F97066] bg-[#FEF0EA] text-[#C05040]"
-                            : "border-[#E5DDD5] bg-[#FAFAF5] text-[#7A5C50] hover:border-[#F97066]/50"
+                            ? "border-[#E06A33] bg-[#EDE6DC] text-[#C45A26]"
+                            : "border-[#C2B5A3] bg-[#EDE6DC] text-[#8B7261] hover:border-[#E06A33]/50"
                         )}>
-                        <BookmarkCheck className="h-2.5 w-2.5 inline mr-1" style={{ color: "#F97066" }} />
+                        <BookmarkCheck className="h-2.5 w-2.5 inline mr-1" style={{ color: "#E06A33" }} />
                         {insight.text.length > 40 ? insight.text.substring(0, 40) + "…" : insight.text}
                       </button>
                     ))}
@@ -2795,14 +2795,14 @@ function GenerationStrip({
             {/* Field 2: Key message */}
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <label className="text-xs font-semibold" style={{ color: "#2D1810" }}>
-                  Key message <span className="font-normal" style={{ color: "#A07060" }}>(optional)</span>
+                <label className="text-xs font-semibold" style={{ color: "#2D2D2D" }}>
+                  Key message <span className="font-normal" style={{ color: "#8B7261" }}>(optional)</span>
                 </label>
                 <button
                   onClick={handleSuggestKeyMessage}
                   disabled={!topic.trim() || suggestingKeyMessage}
-                  className="flex items-center gap-1 text-xs px-2.5 py-1 rounded-lg border transition-all disabled:opacity-40 hover:bg-[#FEF0EA]"
-                  style={{ borderColor: "#F5C4BC", color: "#C05040" }}>
+                  className="flex items-center gap-1 text-xs px-2.5 py-1 rounded-lg border transition-all disabled:opacity-40 hover:bg-[#EDE6DC]"
+                  style={{ borderColor: "#F5C4BC", color: "#C45A26" }}>
                   {suggestingKeyMessage
                     ? <Loader2 className="h-3 w-3 animate-spin" />
                     : <Zap className="h-3 w-3" />}
@@ -2813,8 +2813,8 @@ function GenerationStrip({
                 value={keyMessage}
                 onChange={(e) => setKeyMessage(e.target.value)}
                 placeholder="What's the one thing you want them to take away?"
-                className="w-full text-sm rounded-xl border px-4 py-3 outline-none transition-colors focus:border-[#F97066]"
-                style={{ borderColor: "#E5DDD5", color: "#2D1810" }}
+                className="w-full text-sm rounded-xl border px-4 py-3 outline-none transition-colors focus:border-[#E06A33]"
+                style={{ borderColor: "#C2B5A3", color: "#2D2D2D" }}
               />
             </div>
 
@@ -2828,7 +2828,7 @@ function GenerationStrip({
                   ? "hover:-translate-y-0.5 hover:shadow-md"
                   : "opacity-50 cursor-not-allowed"
               )}
-              style={{ backgroundColor: "#F97066", color: "white" }}>
+              style={{ backgroundColor: "#E06A33", color: "white" }}>
               {generatingHooks
                 ? <><Loader2 className="h-4 w-4 animate-spin" /> Generating ideas…</>
                 : <><Sparkles className="h-4 w-4" /> Generate Ideas</>}
@@ -2841,8 +2841,8 @@ function GenerationStrip({
       {step3Ready && (
         <div className="space-y-4 transition-all duration-300 ease-in-out animate-in fade-in slide-in-from-bottom-2">
           <div className="flex items-center gap-2">
-            <div className="h-6 w-6 rounded-full flex items-center justify-center text-white text-xs font-bold" style={{ backgroundColor: "#F97066" }}>3</div>
-            <span className="text-sm font-semibold" style={{ color: "#2D1810" }}>Pick your hook</span>
+            <div className="h-6 w-6 rounded-full flex items-center justify-center text-white text-xs font-bold" style={{ backgroundColor: "#E06A33" }}>3</div>
+            <span className="text-sm font-semibold" style={{ color: "#2D2D2D" }}>Pick your hook</span>
           </div>
 
           <div className="space-y-3">
@@ -2865,18 +2865,18 @@ function GenerationStrip({
                 className={cn(
                   "w-full text-left text-sm px-4 py-3.5 rounded-xl border-2 transition-all duration-200",
                   selectedHookIdx === i
-                    ? "border-[#F97066] bg-[#FEF6F4]"
-                    : "border-[#E5DDD5] bg-white hover:border-[#F97066]/40 hover:bg-[#FEFCF8]"
+                    ? "border-[#E06A33] bg-[#EDE6DC]"
+                    : "border-[#C2B5A3] bg-white hover:border-[#E06A33]/40 hover:bg-[#FFFFFF]"
                 )}
-                style={{ color: "#2D1810" }}>
+                style={{ color: "#2D2D2D" }}>
                 <div className="flex items-start gap-3">
                   <span className="h-5 w-5 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0 mt-0.5"
-                    style={{ backgroundColor: selectedHookIdx === i ? "#F97066" : "#F5F0EA", color: selectedHookIdx === i ? "white" : "#8A7060" }}>
+                    style={{ backgroundColor: selectedHookIdx === i ? "#E06A33" : "#F5F0EA", color: selectedHookIdx === i ? "white" : "#8B7261" }}>
                     {i + 1}
                   </span>
                   <span className="flex-1 leading-relaxed">{hook}</span>
                   {selectedHookIdx === i && (
-                    <Check className="h-4 w-4 shrink-0 mt-0.5" style={{ color: "#F97066" }} />
+                    <Check className="h-4 w-4 shrink-0 mt-0.5" style={{ color: "#E06A33" }} />
                   )}
                 </div>
               </button>
@@ -2884,7 +2884,7 @@ function GenerationStrip({
 
             {/* Format picker */}
             <div className="pt-2 space-y-2">
-              <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: "#8A7060" }}>Develop as:</p>
+              <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: "#8B7261" }}>Develop as:</p>
               <div className="flex gap-2">
                 {(["Post", "Carousel", "Reel"] as const).map((fmt) => {
                   const { bg, text, border } = fmtColor(fmt)
@@ -2897,17 +2897,17 @@ function GenerationStrip({
                         "flex-1 flex flex-col items-center gap-1 py-3 rounded-xl border-2 transition-all duration-200 relative",
                         isSelected ? "shadow-sm" : "hover:shadow-sm"
                       )}
-                      style={{ borderColor: isSelected ? "#F97066" : border, backgroundColor: isSelected ? "#FEF6F4" : bg }}>
+                      style={{ borderColor: isSelected ? "#E06A33" : border, backgroundColor: isSelected ? "#EDE6DC" : bg }}>
                       {isRec && (
                         <span className="absolute -top-2 left-1/2 -translate-x-1/2 text-[9px] font-bold px-2 py-0.5 rounded-full"
-                          style={{ backgroundColor: "#F97066", color: "white" }}>
+                          style={{ backgroundColor: "#E06A33", color: "white" }}>
                           Recommended
                         </span>
                       )}
-                      {fmt === "Post" && <Type className="h-4 w-4" style={{ color: isSelected ? "#F97066" : text }} />}
-                      {fmt === "Carousel" && <LayoutGrid className="h-4 w-4" style={{ color: isSelected ? "#F97066" : text }} />}
-                      {fmt === "Reel" && <Film className="h-4 w-4" style={{ color: isSelected ? "#F97066" : text }} />}
-                      <span className="text-xs font-semibold" style={{ color: isSelected ? "#F97066" : text }}>{fmt}</span>
+                      {fmt === "Post" && <Type className="h-4 w-4" style={{ color: isSelected ? "#E06A33" : text }} />}
+                      {fmt === "Carousel" && <LayoutGrid className="h-4 w-4" style={{ color: isSelected ? "#E06A33" : text }} />}
+                      {fmt === "Reel" && <Film className="h-4 w-4" style={{ color: isSelected ? "#E06A33" : text }} />}
+                      <span className="text-xs font-semibold" style={{ color: isSelected ? "#E06A33" : text }}>{fmt}</span>
                     </button>
                   )
                 })}
@@ -2922,12 +2922,12 @@ function GenerationStrip({
         <div className="space-y-4 transition-all duration-300 ease-in-out animate-in fade-in slide-in-from-bottom-2">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <div className="h-6 w-6 rounded-full flex items-center justify-center text-white text-xs font-bold" style={{ backgroundColor: "#F97066" }}>4</div>
-              <span className="text-sm font-semibold" style={{ color: "#2D1810" }}>Develop your {selectedFormat}</span>
+              <div className="h-6 w-6 rounded-full flex items-center justify-center text-white text-xs font-bold" style={{ backgroundColor: "#E06A33" }}>4</div>
+              <span className="text-sm font-semibold" style={{ color: "#2D2D2D" }}>Develop your {selectedFormat}</span>
             </div>
             <button
               onClick={() => { setSelectedHookIdx(null); setSelectedFormat(null); setCaption(""); setHashtags(null); setSlides([]); setReelScript(null) }}
-              className="flex items-center gap-1 text-xs" style={{ color: "#A07060" }}>
+              className="flex items-center gap-1 text-xs" style={{ color: "#8B7261" }}>
               <ArrowLeft className="h-3 w-3" /> Back
             </button>
           </div>
@@ -2938,9 +2938,9 @@ function GenerationStrip({
               <div className="xl:col-span-3 space-y-5">
                 {/* Selected hook display */}
                 {selectedHookIdx !== null && (
-                  <div className="rounded-xl border px-4 py-3" style={{ borderColor: "#F5C4BC", backgroundColor: "#FEF6F4" }}>
-                    <p className="text-[10px] font-bold uppercase tracking-wide mb-1" style={{ color: "#A07060" }}>Your hook</p>
-                    <p className="text-sm font-medium" style={{ color: "#2D1810" }}>{hooks[selectedHookIdx]}</p>
+                  <div className="rounded-xl border px-4 py-3" style={{ borderColor: "#F5C4BC", backgroundColor: "#EDE6DC" }}>
+                    <p className="text-[10px] font-bold uppercase tracking-wide mb-1" style={{ color: "#8B7261" }}>Your hook</p>
+                    <p className="text-sm font-medium" style={{ color: "#2D2D2D" }}>{hooks[selectedHookIdx]}</p>
                   </div>
                 )}
 
@@ -2951,29 +2951,29 @@ function GenerationStrip({
                       onClick={handleGenerateCaption}
                       disabled={generatingCaption}
                       className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all hover:-translate-y-0.5"
-                      style={{ backgroundColor: "#F97066", color: "white" }}>
+                      style={{ backgroundColor: "#E06A33", color: "white" }}>
                       {generatingCaption ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
                       {generatingCaption ? "Writing…" : "Generate Caption"}
                     </button>
                     {(caption || generatingCaption) && (
-                      <div className="rounded-xl border space-y-2 p-4" style={{ borderColor: "#E5DDD5" }}>
+                      <div className="rounded-xl border space-y-2 p-4" style={{ borderColor: "#C2B5A3" }}>
                         {generatingCaption ? (
-                          <div className="flex items-center gap-2 text-xs" style={{ color: "#8A7060" }}>
-                            <Loader2 className="h-3.5 w-3.5 animate-spin" style={{ color: "#F97066" }} />
+                          <div className="flex items-center gap-2 text-xs" style={{ color: "#8B7261" }}>
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" style={{ color: "#E06A33" }} />
                             Writing your caption…
                           </div>
                         ) : (
                           <>
                             <div className="flex items-center justify-between">
-                              <span className="text-xs font-semibold" style={{ color: "#8A7060" }}>CAPTION</span>
+                              <span className="text-xs font-semibold" style={{ color: "#8B7261" }}>CAPTION</span>
                               <CopyButton text={caption} />
                             </div>
                             <textarea
                               value={caption}
                               onChange={(e) => setCaption(e.target.value)}
                               rows={6}
-                              className="w-full text-sm rounded-lg border px-3 py-2 resize-none outline-none focus:border-[#F97066]"
-                              style={{ borderColor: "#E5DDD5", color: "#2D1810" }}
+                              className="w-full text-sm rounded-lg border px-3 py-2 resize-none outline-none focus:border-[#E06A33]"
+                              style={{ borderColor: "#C2B5A3", color: "#2D2D2D" }}
                             />
                           </>
                         )}
@@ -2989,7 +2989,7 @@ function GenerationStrip({
                       onClick={handleGenerateHashtags}
                       disabled={generatingHashtags}
                       className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all hover:-translate-y-0.5"
-                      style={{ backgroundColor: "#F97066", color: "white" }}>
+                      style={{ backgroundColor: "#E06A33", color: "white" }}>
                       {generatingHashtags ? <Loader2 className="h-4 w-4 animate-spin" /> : <Hash className="h-4 w-4" />}
                       {generatingHashtags ? "Generating…" : "Generate Hashtags"}
                     </button>
@@ -2997,14 +2997,14 @@ function GenerationStrip({
                       <div className="space-y-3">
                         {(["niche", "broad", "engagement"] as const).map((grp) => {
                           const colors = grp === "niche"
-                            ? { bg: "#FEF0EA", text: "#D4432A" }
+                            ? { bg: "#EDE6DC", text: "#C45A26" }
                             : grp === "broad"
                             ? { bg: "#F0F4FF", text: "#5B6AC4" }
                             : { bg: "#F0FDF4", text: "#16A34A" }
                           return (
-                            <div key={grp} className="rounded-xl border p-3 space-y-2" style={{ borderColor: "#E5DDD5" }}>
+                            <div key={grp} className="rounded-xl border p-3 space-y-2" style={{ borderColor: "#C2B5A3" }}>
                               <div className="flex items-center justify-between">
-                                <span className="text-xs font-semibold capitalize" style={{ color: "#2D1810" }}>{grp}</span>
+                                <span className="text-xs font-semibold capitalize" style={{ color: "#2D2D2D" }}>{grp}</span>
                                 <CopyButton text={activeHashtags[grp].join(" ")} />
                               </div>
                               <div className="flex flex-wrap gap-1.5">
@@ -3043,13 +3043,13 @@ function GenerationStrip({
                   <div className="space-y-4">
                     <div className="grid grid-cols-2 gap-3">
                       <div className="rounded-xl border border-dashed p-4 flex flex-col items-center gap-2 text-center"
-                        style={{ borderColor: "#E5DDD5" }}>
-                        <ImageIcon className="h-5 w-5" style={{ color: "#C4B5A5" }} />
-                        <p className="text-xs font-medium" style={{ color: "#8A7060" }}>Upload Image/Video</p>
-                        <input type="file" accept=".jpg,.jpeg,.png,.webp,.mp4" className="w-full text-xs" style={{ color: "#8A7060" }} />
+                        style={{ borderColor: "#C2B5A3" }}>
+                        <ImageIcon className="h-5 w-5" style={{ color: "#C2B5A3" }} />
+                        <p className="text-xs font-medium" style={{ color: "#8B7261" }}>Upload Image/Video</p>
+                        <input type="file" accept=".jpg,.jpeg,.png,.webp,.mp4" className="w-full text-xs" style={{ color: "#8B7261" }} />
                       </div>
-                      <div className="rounded-xl border p-4 space-y-2" style={{ borderColor: "#E5DDD5" }}>
-                        <p className="text-xs font-medium" style={{ color: "#8A7060" }}>Generate Image</p>
+                      <div className="rounded-xl border p-4 space-y-2" style={{ borderColor: "#C2B5A3" }}>
+                        <p className="text-xs font-medium" style={{ color: "#8B7261" }}>Generate Image</p>
                         <ImagePanel
                           label="Image"
                           prompt={postImagePrompt}
@@ -3069,11 +3069,11 @@ function GenerationStrip({
                     {postImageUrl && postImageLoaded && (
                       <div className="space-y-2">
                         <div className="flex items-center justify-between">
-                          <p className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: "#A07060" }}>Alt text</p>
+                          <p className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: "#8B7261" }}>Alt text</p>
                           <button
                             onClick={() => { setAltTextInput(postImagePrompt); handleGenerateAltText() }}
                             disabled={generatingAltText || !postImagePrompt}
-                            className="text-[10px] underline" style={{ color: "#F97066" }}>
+                            className="text-[10px] underline" style={{ color: "#E06A33" }}>
                             Auto-generate
                           </button>
                         </div>
@@ -3081,12 +3081,12 @@ function GenerationStrip({
                           value={altText || altTextInput}
                           onChange={(e) => { setAltText(e.target.value); setAltTextInput(e.target.value) }}
                           placeholder="Describe the image for accessibility…"
-                          className="w-full text-xs rounded-lg border px-3 py-2 outline-none focus:border-[#F97066]"
-                          style={{ borderColor: "#E5DDD5", color: "#2D1810" }}
+                          className="w-full text-xs rounded-lg border px-3 py-2 outline-none focus:border-[#E06A33]"
+                          style={{ borderColor: "#C2B5A3", color: "#2D2D2D" }}
                         />
                       </div>
                     )}
-                    <p className="text-[10px]" style={{ color: "#C4B5A5" }}>Images powered by Pollinations.ai — free, ~5–10s per image.</p>
+                    <p className="text-[10px]" style={{ color: "#C2B5A3" }}>Images powered by Pollinations.ai — free, ~5–10s per image.</p>
                   </div>
                 </SectionCard>
 
@@ -3094,13 +3094,13 @@ function GenerationStrip({
                   <div className="flex gap-3">
                     <button onClick={handleSavePost} disabled={savingToPlanner}
                       className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl border-2 text-sm font-medium transition-all hover:-translate-y-0.5"
-                      style={{ borderColor: "#F97066", color: "#D4432A", backgroundColor: "white" }}>
+                      style={{ borderColor: "#E06A33", color: "#C45A26", backgroundColor: "white" }}>
                       {savingToPlanner ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
                       Save to Planner
                     </button>
                     <button onClick={handleSaveIdea} disabled={savingIdea || !!savedIdeaId}
                       className="flex items-center gap-2 px-4 py-3 rounded-xl border-2 text-sm font-medium transition-all hover:-translate-y-0.5"
-                      style={{ borderColor: savedIdeaId ? "#BBF7D0" : "#E5DDD5", color: savedIdeaId ? "#16A34A" : "#7A5C50", backgroundColor: savedIdeaId ? "#F0FDF4" : "white" }}>
+                      style={{ borderColor: savedIdeaId ? "#BBF7D0" : "#C2B5A3", color: savedIdeaId ? "#16A34A" : "#8B7261", backgroundColor: savedIdeaId ? "#F0FDF4" : "white" }}>
                       {savingIdea ? <Loader2 className="h-4 w-4 animate-spin" /> : savedIdeaId ? <Check className="h-4 w-4" /> : <Bookmark className="h-4 w-4" />}
                       {savedIdeaId ? "Saved" : "Save Idea"}
                     </button>
@@ -3111,7 +3111,7 @@ function GenerationStrip({
               {/* Live preview — hidden on mobile to avoid crowding */}
               <div className="xl:col-span-2 hidden xl:block">
                 <div className="sticky top-6 space-y-3">
-                  <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: "#8A7060" }}>Live Preview</p>
+                  <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: "#8B7261" }}>Live Preview</p>
                   <InstagramPreview
                     brandName={brand.name}
                     caption={caption}
@@ -3130,7 +3130,7 @@ function GenerationStrip({
               <SectionCard title="Carousel Setup" icon={<LayoutGrid className="h-3.5 w-3.5" />}>
                 <div className="flex items-center gap-3 flex-wrap">
                   <div className="flex items-center gap-2">
-                    <span className="text-xs" style={{ color: "#8A7060" }}>Slides:</span>
+                    <span className="text-xs" style={{ color: "#8B7261" }}>Slides:</span>
                     <div className="flex gap-1">
                       {[3,4,5,6,7,8,9,10].map((n) => (
                         <button key={n}
@@ -3139,7 +3139,7 @@ function GenerationStrip({
                             "h-7 w-7 rounded-lg text-xs font-medium transition-all",
                             slideCount === n ? "text-white" : "hover:bg-[#F5F0EA]"
                           )}
-                          style={{ backgroundColor: slideCount === n ? "#F97066" : "transparent", color: slideCount === n ? "white" : "#7A5C50", border: slideCount === n ? "none" : "1px solid #E5DDD5" }}>
+                          style={{ backgroundColor: slideCount === n ? "#E06A33" : "transparent", color: slideCount === n ? "white" : "#8B7261", border: slideCount === n ? "none" : "1px solid #C2B5A3" }}>
                           {n}
                         </button>
                       ))}
@@ -3148,7 +3148,7 @@ function GenerationStrip({
                   <div className="flex gap-2 ml-auto flex-wrap">
                     <button onClick={handleGenerateCarousel} disabled={generatingCarousel}
                       className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all hover:-translate-y-0.5"
-                      style={{ backgroundColor: "#F97066", color: "white" }}>
+                      style={{ backgroundColor: "#E06A33", color: "white" }}>
                       {generatingCarousel ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
                       {generatingCarousel ? "Generating…" : "Generate Carousel"}
                     </button>
@@ -3156,7 +3156,7 @@ function GenerationStrip({
                       <>
                         <button onClick={handleExportOutline}
                           className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm border transition-all hover:bg-[#F5F0EA]"
-                          style={{ borderColor: "#E5DDD5", color: "#7A5C50" }}>
+                          style={{ borderColor: "#C2B5A3", color: "#8B7261" }}>
                           <Download className="h-3.5 w-3.5" /> Export
                         </button>
                         <CanvaButton
@@ -3168,13 +3168,13 @@ function GenerationStrip({
                         />
                         <button onClick={handleSaveCarousel} disabled={savingToPlanner}
                           className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm border transition-all hover:-translate-y-0.5"
-                          style={{ borderColor: "#F97066", color: "#D4432A" }}>
+                          style={{ borderColor: "#E06A33", color: "#C45A26" }}>
                           {savingToPlanner ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
                           Save
                         </button>
                         <button onClick={handleSaveIdea} disabled={savingIdea || !!savedIdeaId}
                           className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm border transition-all hover:-translate-y-0.5"
-                          style={{ borderColor: savedIdeaId ? "#BBF7D0" : "#E5DDD5", color: savedIdeaId ? "#16A34A" : "#7A5C50", backgroundColor: savedIdeaId ? "#F0FDF4" : "transparent" }}>
+                          style={{ borderColor: savedIdeaId ? "#BBF7D0" : "#C2B5A3", color: savedIdeaId ? "#16A34A" : "#8B7261", backgroundColor: savedIdeaId ? "#F0FDF4" : "transparent" }}>
                           {savingIdea ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : savedIdeaId ? <Check className="h-3.5 w-3.5" /> : <Bookmark className="h-3.5 w-3.5" />}
                           {savedIdeaId ? "Saved" : "Save Idea"}
                         </button>
@@ -3199,37 +3199,37 @@ function GenerationStrip({
                   generating={!coverImageLoaded && !!coverImageUrl && !coverImageError}
                   aspectRatio="aspect-video"
                 />
-                <p className="text-[10px]" style={{ color: "#C4B5A5" }}>Powered by Pollinations.ai — free.</p>
+                <p className="text-[10px]" style={{ color: "#C2B5A3" }}>Powered by Pollinations.ai — free.</p>
               </SectionCard>
 
               {slides.length > 0 && (
                 <div className="grid grid-cols-1 xl:grid-cols-5 gap-6">
                   <div className="xl:col-span-3 space-y-3">
-                    <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: "#8A7060" }}>Slide Cards — click to preview, arrows to reorder</p>
+                    <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: "#8B7261" }}>Slide Cards — click to preview, arrows to reorder</p>
                     {slides.map((slide, idx) => (
                       <div key={slide.id}
-                        className={cn("rounded-2xl border p-4 space-y-3 cursor-pointer transition-all", previewSlideIdx === idx ? "border-[#F97066]" : "border-[#E5DDD5]")}
-                        style={{ backgroundColor: previewSlideIdx === idx ? "#FEFCF8" : "white" }}
+                        className={cn("rounded-2xl border p-4 space-y-3 cursor-pointer transition-all", previewSlideIdx === idx ? "border-[#E06A33]" : "border-[#C2B5A3]")}
+                        style={{ backgroundColor: previewSlideIdx === idx ? "#FFFFFF" : "white" }}
                         onClick={() => setPreviewSlideIdx(idx)}>
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
                             <span className="text-xs font-bold px-2 py-0.5 rounded-full"
-                              style={{ backgroundColor: slide.type === "cover" ? "#FEF0EA" : slide.type === "cta" ? "#FEF0EA" : "#F5F0EA", color: slide.type !== "content" ? "#D4432A" : "#7A5C50" }}>
+                              style={{ backgroundColor: slide.type === "cover" ? "#EDE6DC" : slide.type === "cta" ? "#EDE6DC" : "#F5F0EA", color: slide.type !== "content" ? "#C45A26" : "#8B7261" }}>
                               {idx + 1}
                             </span>
                             <span className="text-[10px] font-medium capitalize px-2 py-0.5 rounded-full"
-                              style={{ backgroundColor: "#F0EAE3", color: "#7A5C50" }}>{slide.type}</span>
+                              style={{ backgroundColor: "#EDE6DC", color: "#8B7261" }}>{slide.type}</span>
                           </div>
                           <div className="flex gap-1">
                             <button onClick={(e) => { e.stopPropagation(); moveSlide(idx, -1) }} disabled={idx === 0}
                               className="h-6 w-6 rounded border flex items-center justify-center disabled:opacity-30 hover:bg-[#F5F0EA]"
-                              style={{ borderColor: "#E5DDD5" }}>
-                              <ChevronUp className="h-3 w-3" style={{ color: "#7A5C50" }} />
+                              style={{ borderColor: "#C2B5A3" }}>
+                              <ChevronUp className="h-3 w-3" style={{ color: "#8B7261" }} />
                             </button>
                             <button onClick={(e) => { e.stopPropagation(); moveSlide(idx, 1) }} disabled={idx === slides.length - 1}
                               className="h-6 w-6 rounded border flex items-center justify-center disabled:opacity-30 hover:bg-[#F5F0EA]"
-                              style={{ borderColor: "#E5DDD5" }}>
-                              <ChevronDown className="h-3 w-3" style={{ color: "#7A5C50" }} />
+                              style={{ borderColor: "#C2B5A3" }}>
+                              <ChevronDown className="h-3 w-3" style={{ color: "#8B7261" }} />
                             </button>
                           </div>
                         </div>
@@ -3238,7 +3238,7 @@ function GenerationStrip({
                           onChange={(e) => updateSlideField(idx, "title", e.target.value)}
                           onClick={(e) => e.stopPropagation()}
                           className="w-full text-sm font-semibold bg-transparent border-none outline-none focus:bg-[#F5F0EA] rounded px-1 py-0.5"
-                          style={{ color: "#2D1810" }}
+                          style={{ color: "#2D2D2D" }}
                           placeholder="Slide title…"
                         />
                         {slide.type === "cover" && slide.hook !== undefined && (
@@ -3247,7 +3247,7 @@ function GenerationStrip({
                             onChange={(e) => updateSlideField(idx, "hook", e.target.value)}
                             onClick={(e) => e.stopPropagation()}
                             className="w-full text-xs bg-transparent border-none outline-none focus:bg-[#F5F0EA] rounded px-1 py-0.5"
-                            style={{ color: "#8A7060" }}
+                            style={{ color: "#8B7261" }}
                             placeholder="Hook subtitle…"
                           />
                         )}
@@ -3255,7 +3255,7 @@ function GenerationStrip({
                           <ul className="space-y-1">
                             {slide.bullets.map((b, bi) => (
                               <li key={bi} className="flex items-start gap-1.5">
-                                <span className="text-[10px] font-bold mt-0.5" style={{ color: "#F97066" }}>•</span>
+                                <span className="text-[10px] font-bold mt-0.5" style={{ color: "#E06A33" }}>•</span>
                                 <input
                                   value={b}
                                   onChange={(e) => {
@@ -3265,7 +3265,7 @@ function GenerationStrip({
                                   }}
                                   onClick={(e) => e.stopPropagation()}
                                   className="flex-1 text-xs bg-transparent border-none outline-none focus:bg-[#F5F0EA] rounded px-1 py-0.5"
-                                  style={{ color: "#5A3828" }}
+                                  style={{ color: "#5A5A5A" }}
                                 />
                               </li>
                             ))}
@@ -3277,7 +3277,7 @@ function GenerationStrip({
                             onChange={(e) => updateSlideField(idx, "cta", e.target.value)}
                             onClick={(e) => e.stopPropagation()}
                             className="w-full text-xs bg-transparent border-none outline-none focus:bg-[#F5F0EA] rounded px-1 py-0.5"
-                            style={{ color: "#8A7060" }}
+                            style={{ color: "#8B7261" }}
                             placeholder="CTA text…"
                           />
                         )}
@@ -3286,7 +3286,7 @@ function GenerationStrip({
                   </div>
                   <div className="xl:col-span-2 hidden xl:block">
                     <div className="sticky top-6">
-                      <p className="text-xs font-semibold uppercase tracking-wide mb-3" style={{ color: "#8A7060" }}>Mobile Preview</p>
+                      <p className="text-xs font-semibold uppercase tracking-wide mb-3" style={{ color: "#8B7261" }}>Mobile Preview</p>
                       <CarouselMobilePreview
                         slides={slides}
                         currentIndex={previewSlideIdx}
@@ -3308,16 +3308,16 @@ function GenerationStrip({
               <SectionCard title="Reel Setup" icon={<Film className="h-3.5 w-3.5" />}>
                 <div className="flex items-center gap-3 flex-wrap">
                   <div className="flex items-center gap-2">
-                    <span className="text-xs" style={{ color: "#8A7060" }}>Duration:</span>
+                    <span className="text-xs" style={{ color: "#8B7261" }}>Duration:</span>
                     <div className="flex gap-1">
                       {(["15s", "30s", "60s", "90s"] as const).map((d) => (
                         <button key={d}
                           onClick={() => setReelDuration(d)}
                           className="px-3 py-1.5 rounded-lg text-xs font-medium transition-all"
                           style={{
-                            backgroundColor: reelDuration === d ? "#F97066" : "transparent",
-                            color: reelDuration === d ? "white" : "#7A5C50",
-                            border: reelDuration === d ? "none" : "1px solid #E5DDD5",
+                            backgroundColor: reelDuration === d ? "#E06A33" : "transparent",
+                            color: reelDuration === d ? "white" : "#8B7261",
+                            border: reelDuration === d ? "none" : "1px solid #C2B5A3",
                           }}>
                           {d}
                         </button>
@@ -3326,7 +3326,7 @@ function GenerationStrip({
                   </div>
                   <button onClick={handleGenerateReel} disabled={generatingReel}
                     className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium ml-auto transition-all hover:-translate-y-0.5"
-                    style={{ backgroundColor: "#F97066", color: "white" }}>
+                    style={{ backgroundColor: "#E06A33", color: "white" }}>
                     {generatingReel ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mic2 className="h-4 w-4" />}
                     {generatingReel ? "Writing Script…" : "Generate Script"}
                   </button>
@@ -3337,23 +3337,23 @@ function GenerationStrip({
                 <div className="space-y-4">
                   {/* Hook + Audio */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="rounded-2xl border bg-white p-4 space-y-2" style={{ borderColor: "#E5DDD5" }}>
-                      <p className="text-[10px] font-bold uppercase tracking-wide" style={{ color: "#A07060" }}>Hook (first 3s)</p>
-                      <p className="text-sm font-semibold leading-snug" style={{ color: "#2D1810" }}>{reelScript.hook}</p>
+                    <div className="rounded-2xl border bg-white p-4 space-y-2" style={{ borderColor: "#C2B5A3" }}>
+                      <p className="text-[10px] font-bold uppercase tracking-wide" style={{ color: "#8B7261" }}>Hook (first 3s)</p>
+                      <p className="text-sm font-semibold leading-snug" style={{ color: "#2D2D2D" }}>{reelScript.hook}</p>
                     </div>
-                    <div className="rounded-2xl border bg-white p-4 space-y-2" style={{ borderColor: "#E5DDD5" }}>
+                    <div className="rounded-2xl border bg-white p-4 space-y-2" style={{ borderColor: "#C2B5A3" }}>
                       <div className="flex items-center gap-1.5">
-                        <Music className="h-3.5 w-3.5" style={{ color: "#F97066" }} />
-                        <p className="text-[10px] font-bold uppercase tracking-wide" style={{ color: "#A07060" }}>Audio Mood</p>
+                        <Music className="h-3.5 w-3.5" style={{ color: "#E06A33" }} />
+                        <p className="text-[10px] font-bold uppercase tracking-wide" style={{ color: "#8B7261" }}>Audio Mood</p>
                       </div>
-                      <p className="text-xs leading-relaxed" style={{ color: "#5A3828" }}>{reelScript.audioMood}</p>
+                      <p className="text-xs leading-relaxed" style={{ color: "#5A5A5A" }}>{reelScript.audioMood}</p>
                     </div>
                   </div>
 
                   {/* Scene timeline */}
-                  <div className="rounded-2xl border bg-white p-5 space-y-4" style={{ borderColor: "#E5DDD5" }}>
+                  <div className="rounded-2xl border bg-white p-5 space-y-4" style={{ borderColor: "#C2B5A3" }}>
                     <div className="flex items-center justify-between">
-                      <p className="text-xs font-bold uppercase tracking-wide" style={{ color: "#2D1810" }}>Scene Breakdown</p>
+                      <p className="text-xs font-bold uppercase tracking-wide" style={{ color: "#2D2D2D" }}>Scene Breakdown</p>
                       <CopyButton
                         label="Copy Script"
                         text={[
@@ -3372,25 +3372,25 @@ function GenerationStrip({
                       {reelScript.scenes?.map((scene, i) => (
                         <div key={i} className="flex gap-3">
                           <span className="shrink-0 text-[10px] font-bold px-2 py-1 rounded-lg h-fit"
-                            style={{ backgroundColor: "#FEF0EA", color: "#D4432A" }}>
+                            style={{ backgroundColor: "#EDE6DC", color: "#C45A26" }}>
                             {scene.timestamp}
                           </span>
-                          <p className="text-sm leading-relaxed" style={{ color: "#2D1810" }}>{scene.description}</p>
+                          <p className="text-sm leading-relaxed" style={{ color: "#2D2D2D" }}>{scene.description}</p>
                         </div>
                       ))}
                     </div>
                   </div>
 
                   {/* Voiceover */}
-                  <div className="rounded-2xl border bg-white p-5 space-y-3" style={{ borderColor: "#E5DDD5" }}>
+                  <div className="rounded-2xl border bg-white p-5 space-y-3" style={{ borderColor: "#C2B5A3" }}>
                     <div className="flex items-center justify-between">
-                      <p className="text-xs font-bold uppercase tracking-wide" style={{ color: "#2D1810" }}>Voiceover Script</p>
+                      <p className="text-xs font-bold uppercase tracking-wide" style={{ color: "#2D2D2D" }}>Voiceover Script</p>
                       <CopyButton text={reelScript.voiceover} />
                     </div>
-                    <p className="text-sm leading-relaxed" style={{ color: "#5A3828" }}>{reelScript.voiceover}</p>
-                    <div className="rounded-lg px-3 py-2" style={{ backgroundColor: "#FEF0EA" }}>
-                      <p className="text-[10px] font-bold" style={{ color: "#D4432A" }}>CTA</p>
-                      <p className="text-xs mt-0.5" style={{ color: "#5A3828" }}>{reelScript.cta}</p>
+                    <p className="text-sm leading-relaxed" style={{ color: "#5A5A5A" }}>{reelScript.voiceover}</p>
+                    <div className="rounded-lg px-3 py-2" style={{ backgroundColor: "#EDE6DC" }}>
+                      <p className="text-[10px] font-bold" style={{ color: "#C45A26" }}>CTA</p>
+                      <p className="text-xs mt-0.5" style={{ color: "#5A5A5A" }}>{reelScript.cta}</p>
                     </div>
                   </div>
 
@@ -3399,23 +3399,23 @@ function GenerationStrip({
                     <div className="space-y-3">
                       <button onClick={handleGenerateReelCaption} disabled={generatingReelCaption}
                         className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all hover:-translate-y-0.5"
-                        style={{ backgroundColor: "#F97066", color: "white" }}>
+                        style={{ backgroundColor: "#E06A33", color: "white" }}>
                         {generatingReelCaption ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
                         {generatingReelCaption ? "Generating…" : "Generate Caption & Hashtags"}
                       </button>
                       {reelCaption && (
                         <div className="space-y-4">
-                          <div className="rounded-xl border p-4 space-y-2" style={{ borderColor: "#E5DDD5" }}>
+                          <div className="rounded-xl border p-4 space-y-2" style={{ borderColor: "#C2B5A3" }}>
                             <div className="flex items-center justify-between">
-                              <span className="text-xs font-semibold" style={{ color: "#8A7060" }}>CAPTION</span>
+                              <span className="text-xs font-semibold" style={{ color: "#8B7261" }}>CAPTION</span>
                               <CopyButton text={reelCaption.caption} />
                             </div>
-                            <p className="text-sm leading-relaxed" style={{ color: "#2D1810" }}>{reelCaption.caption}</p>
+                            <p className="text-sm leading-relaxed" style={{ color: "#2D2D2D" }}>{reelCaption.caption}</p>
                           </div>
                           {reelCaptionHashtags && (
                             <div className="space-y-2">
                               {(["niche", "broad", "engagement"] as const).map((grp) => {
-                                const colors = grp === "niche" ? { bg: "#FEF0EA", text: "#D4432A" } : grp === "broad" ? { bg: "#F0F4FF", text: "#5B6AC4" } : { bg: "#F0FDF4", text: "#16A34A" }
+                                const colors = grp === "niche" ? { bg: "#EDE6DC", text: "#C45A26" } : grp === "broad" ? { bg: "#F0F4FF", text: "#5B6AC4" } : { bg: "#F0FDF4", text: "#16A34A" }
                                 return (
                                   <div key={grp} className="flex flex-wrap gap-1.5">
                                     {reelCaptionHashtags[grp].map((tag) => (
@@ -3443,13 +3443,13 @@ function GenerationStrip({
                   <div className="flex gap-3 flex-wrap">
                     <button onClick={handleSaveReel} disabled={savingToPlanner}
                       className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl border-2 text-sm font-medium transition-all hover:-translate-y-0.5"
-                      style={{ borderColor: "#F97066", color: "#D4432A", backgroundColor: "white" }}>
+                      style={{ borderColor: "#E06A33", color: "#C45A26", backgroundColor: "white" }}>
                       {savingToPlanner ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
                       Save Script to Planner
                     </button>
                     <button onClick={handleSaveIdea} disabled={savingIdea || !!savedIdeaId}
                       className="flex items-center gap-2 px-4 py-3 rounded-xl border-2 text-sm font-medium transition-all hover:-translate-y-0.5"
-                      style={{ borderColor: savedIdeaId ? "#BBF7D0" : "#E5DDD5", color: savedIdeaId ? "#16A34A" : "#7A5C50", backgroundColor: savedIdeaId ? "#F0FDF4" : "white" }}>
+                      style={{ borderColor: savedIdeaId ? "#BBF7D0" : "#C2B5A3", color: savedIdeaId ? "#16A34A" : "#8B7261", backgroundColor: savedIdeaId ? "#F0FDF4" : "white" }}>
                       {savingIdea ? <Loader2 className="h-4 w-4 animate-spin" /> : savedIdeaId ? <Check className="h-4 w-4" /> : <Bookmark className="h-4 w-4" />}
                       {savedIdeaId ? "Saved" : "Save Idea"}
                     </button>
@@ -3560,7 +3560,7 @@ function PhonePreview({
 }) {
   const isVertical = format === "reel" || format === "story"
   const aspectClass = isVertical ? "aspect-[9/16]" : "aspect-square"
-  const pillarColor = pillar?.color ?? "#F97066"
+  const pillarColor = pillar?.color ?? "#E06A33"
   const platformLabel = STUDIO_PLATFORMS.find((p) => p.key === platform)?.label ?? "Instagram"
   const formatMeta = STUDIO_FORMATS.find((f) => f.key === format)!
   const tagsLine = hashtags.length
@@ -3576,17 +3576,17 @@ function PhonePreview({
         className="rounded-[2rem] overflow-hidden bg-white mx-auto"
         style={{
           maxWidth: isVertical ? 260 : 320,
-          border: "4px solid #2D1810",
+          border: "4px solid #2D2D2D",
           boxShadow: "0 8px 24px rgba(45,24,16,0.18)",
         }}
       >
         {/* Top bar */}
         <div
           className="px-3 py-2 flex items-center justify-between text-[10px] font-medium"
-          style={{ backgroundColor: "#FEFCF8", borderBottom: "1px solid #E5DDD5", color: "#2D1810" }}
+          style={{ backgroundColor: "#FFFFFF", borderBottom: "1px solid #C2B5A3", color: "#2D2D2D" }}
         >
           <span>{platformLabel}</span>
-          <span style={{ color: "#8A7060" }}>{formatMeta.label} · {formatMeta.aspect}</span>
+          <span style={{ color: "#8B7261" }}>{formatMeta.label} · {formatMeta.aspect}</span>
         </div>
 
         {/* Visual area */}
@@ -3595,7 +3595,7 @@ function PhonePreview({
           style={{
             background: imageUrl
               ? "#FAFAF5"
-              : `linear-gradient(135deg, ${pillarColor}1F 0%, ${pillarColor}0A 60%, #FAFAF5 100%)`,
+              : `linear-gradient(135deg, ${pillarColor}1F 0%, ${pillarColor}0A 60%, #EDE6DC 100%)`,
           }}
         >
           {imageUrl && (
@@ -3616,7 +3616,7 @@ function PhonePreview({
           {pillar && (
             <div
               className="absolute top-3 left-3 inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-[10px] font-medium"
-              style={{ backgroundColor: "rgba(255,255,255,0.92)", color: "#2D1810" }}
+              style={{ backgroundColor: "rgba(255,255,255,0.92)", color: "#2D2D2D" }}
             >
               <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: pillar.color }} />
               {pillar.name}
@@ -3639,7 +3639,7 @@ function PhonePreview({
                   isVertical ? "text-lg" : "text-base"
                 )}
                 style={{
-                  color: imageUrl ? "#FFFFFF" : "#2D1810",
+                  color: imageUrl ? "#FFFFFF" : "#2D2D2D",
                   textShadow: imageUrl ? "0 1px 8px rgba(0,0,0,0.6)" : undefined,
                 }}
               >
@@ -3648,7 +3648,7 @@ function PhonePreview({
             ) : !imageUrl ? (
               <div className="flex flex-col items-center gap-2 opacity-60">
                 <ImageIcon className="h-10 w-10" style={{ color: pillarColor }} />
-                <p className="text-xs" style={{ color: "#8A7060" }}>
+                <p className="text-xs" style={{ color: "#8B7261" }}>
                   Your {formatMeta.label.toLowerCase()} preview
                 </p>
               </div>
@@ -3673,7 +3673,7 @@ function PhonePreview({
                 <div
                   key={i}
                   className="h-1.5 w-1.5 rounded-full"
-                  style={{ backgroundColor: i === 0 ? "#2D1810" : "rgba(45,24,16,0.3)" }}
+                  style={{ backgroundColor: i === 0 ? "#2D2D2D" : "rgba(45,24,16,0.3)" }}
                 />
               ))}
             </div>
@@ -3682,9 +3682,9 @@ function PhonePreview({
 
         {/* Caption strip (only for post/carousel — story/reel hide caption in preview) */}
         {!isVertical && (caption || tagsLine) && (
-          <div className="px-3 py-2.5 space-y-1" style={{ borderTop: "1px solid #E5DDD5" }}>
+          <div className="px-3 py-2.5 space-y-1" style={{ borderTop: "1px solid #C2B5A3" }}>
             {caption && (
-              <p className="text-[11px] leading-snug" style={{ color: "#2D1810" }}>
+              <p className="text-[11px] leading-snug" style={{ color: "#2D2D2D" }}>
                 <span className="font-semibold">{handle}</span>{" "}
                 {caption.length > 90 ? caption.substring(0, 90) + "…" : caption}
               </p>
@@ -3699,14 +3699,14 @@ function PhonePreview({
       </div>
 
       {/* Format tips */}
-      <div className="rounded-2xl bg-white p-3 space-y-1.5" style={{ border: "1px solid #E5DDD5" }}>
-        <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: "#8A7060" }}>
+      <div className="rounded-2xl bg-white p-3 space-y-1.5" style={{ border: "1px solid #C2B5A3" }}>
+        <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: "#8B7261" }}>
           {formatMeta.label} tips
         </p>
         <ul className="space-y-1">
           {FORMAT_TIPS[format].map((tip, i) => (
-            <li key={i} className="text-[11px] leading-snug flex gap-1.5" style={{ color: "#5A3825" }}>
-              <span style={{ color: "#F97066" }}>•</span>
+            <li key={i} className="text-[11px] leading-snug flex gap-1.5" style={{ color: "#5A5A5A" }}>
+              <span style={{ color: "#E06A33" }}>•</span>
               <span>{tip}</span>
             </li>
           ))}
@@ -3742,8 +3742,8 @@ function StudioPill({
       )}
       style={
         active
-          ? { backgroundColor: "#F97066", color: "white", borderColor: "#F97066" }
-          : { backgroundColor: "white", color: "#5A3825", borderColor: "#E5DDD5" }
+          ? { backgroundColor: "#E06A33", color: "white", borderColor: "#E06A33" }
+          : { backgroundColor: "white", color: "#5A5A5A", borderColor: "#C2B5A3" }
       }
     >
       {children}
@@ -4047,16 +4047,16 @@ function StudioTab({
   if (!brand) {
     return (
       <div className="flex flex-col items-center justify-center py-16 gap-4">
-        <div className="h-16 w-16 rounded-2xl flex items-center justify-center" style={{ backgroundColor: "#FEF0EA" }}>
-          <Sparkles className="h-8 w-8" style={{ color: "#F97066" }} />
+        <div className="h-16 w-16 rounded-2xl flex items-center justify-center" style={{ backgroundColor: "#EDE6DC" }}>
+          <Sparkles className="h-8 w-8" style={{ color: "#E06A33" }} />
         </div>
         <div className="text-center">
-          <h2 className="text-lg font-semibold" style={{ color: "#2D1810" }}>No brand set up yet</h2>
-          <p className="text-sm mt-1" style={{ color: "#8A7060" }}>
+          <h2 className="text-lg font-semibold" style={{ color: "#2D2D2D" }}>No brand set up yet</h2>
+          <p className="text-sm mt-1" style={{ color: "#8B7261" }}>
             Create a brand profile so the AI can generate content tailored to your niche and tone.
           </p>
         </div>
-        <Button asChild style={{ backgroundColor: "#F97066", color: "white" }}>
+        <Button asChild style={{ backgroundColor: "#E06A33", color: "white" }}>
           <a href="/settings">Set up your brand →</a>
         </Button>
       </div>
@@ -4173,20 +4173,20 @@ function StudioTab({
                   className="rounded-2xl border p-3 text-left transition-all min-h-[88px]"
                   style={
                     active
-                      ? { borderColor: "#F97066", backgroundColor: "#FEF0EA", boxShadow: "0 0 0 2px rgba(249,112,102,0.25)" }
-                      : { borderColor: "#E5DDD5", backgroundColor: "white" }
+                      ? { borderColor: "#E06A33", backgroundColor: "#EDE6DC", boxShadow: "0 0 0 2px rgba(249,112,102,0.25)" }
+                      : { borderColor: "#C2B5A3", backgroundColor: "white" }
                   }
                 >
                   <div
                     className="h-8 w-8 rounded-lg flex items-center justify-center mb-2"
-                    style={{ backgroundColor: active ? "white" : "#FAFAF5", color: active ? "#D4432A" : "#8A7060" }}
+                    style={{ backgroundColor: active ? "white" : "#EDE6DC", color: active ? "#C45A26" : "#8B7261" }}
                   >
                     {f.icon}
                   </div>
-                  <p className="text-sm font-semibold" style={{ color: "#2D1810" }}>
+                  <p className="text-sm font-semibold" style={{ color: "#2D2D2D" }}>
                     {f.label}
                   </p>
-                  <p className="text-[11px]" style={{ color: "#8A7060" }}>
+                  <p className="text-[11px]" style={{ color: "#8B7261" }}>
                     {f.aspect} · {f.desc}
                   </p>
                 </button>
@@ -4216,7 +4216,7 @@ function StudioTab({
         <div>
           <SectionLabel label="Pillar" icon={<Layers className="h-3 w-3" />} />
           {pillars.length === 0 ? (
-            <p className="text-xs italic" style={{ color: "#8A7060" }}>
+            <p className="text-xs italic" style={{ color: "#8B7261" }}>
               No pillars yet. Add some in the Pillars tab to ground the AI in your themes.
             </p>
           ) : (
@@ -4231,8 +4231,8 @@ function StudioTab({
                     className="rounded-2xl px-3.5 py-2 text-sm font-medium border min-h-[44px] inline-flex items-center gap-2 transition-all"
                     style={
                       active
-                        ? { borderColor: p.color, backgroundColor: p.color + "1A", color: "#2D1810" }
-                        : { borderColor: "#E5DDD5", backgroundColor: "white", color: "#5A3825" }
+                        ? { borderColor: p.color, backgroundColor: p.color + "1A", color: "#2D2D2D" }
+                        : { borderColor: "#C2B5A3", backgroundColor: "white", color: "#5A5A5A" }
                     }
                   >
                     <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: p.color }} />
@@ -4254,7 +4254,7 @@ function StudioTab({
             placeholder="What's this post about? Be specific. e.g. 'how I doubled my engagement after switching from polished content to behind-the-scenes'"
             rows={3}
             className="text-sm resize-none"
-            style={{ borderColor: "#E5DDD5", backgroundColor: "white" }}
+            style={{ borderColor: "#C2B5A3", backgroundColor: "white" }}
           />
         </div>
 
@@ -4344,7 +4344,7 @@ function StudioTab({
           onClick={handleGenerateHooks}
           disabled={!ready || loadingHooks}
           className="w-full gap-2 font-medium min-h-[48px] hidden lg:inline-flex"
-          style={{ backgroundColor: "#F97066", color: "white" }}
+          style={{ backgroundColor: "#E06A33", color: "white" }}
         >
           {loadingHooks ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
           {hooks ? "Regenerate Hooks" : pillars.length > 0 && !pillarId ? "Pick a pillar first" : "Generate Hooks"}
@@ -4363,21 +4363,21 @@ function StudioTab({
                     className="rounded-2xl border p-3 transition-all flex items-start gap-3"
                     style={
                       active
-                        ? { borderColor: "#F97066", backgroundColor: "#FEF0EA", boxShadow: "0 0 0 2px rgba(249,112,102,0.25)" }
-                        : { borderColor: "#E5DDD5", backgroundColor: "white" }
+                        ? { borderColor: "#E06A33", backgroundColor: "#EDE6DC", boxShadow: "0 0 0 2px rgba(249,112,102,0.25)" }
+                        : { borderColor: "#C2B5A3", backgroundColor: "white" }
                     }
                   >
                     <button
                       type="button"
                       onClick={() => setSelectedHook(h)}
                       className="flex-1 text-left text-sm leading-snug"
-                      style={{ color: "#2D1810" }}
+                      style={{ color: "#2D2D2D" }}
                     >
                       <span
                         className="inline-flex items-center justify-center h-5 w-5 rounded-full text-[10px] font-bold mr-2 align-text-bottom"
                         style={{
-                          backgroundColor: active ? "#F97066" : "#FEF0EA",
-                          color: active ? "white" : "#D4432A",
+                          backgroundColor: active ? "#E06A33" : "#EDE6DC",
+                          color: active ? "white" : "#C45A26",
                         }}
                       >
                         {i + 1}
@@ -4395,7 +4395,7 @@ function StudioTab({
                 onClick={handleGenerateCaption}
                 disabled={loadingCaption}
                 className="w-full gap-2 font-medium min-h-[48px]"
-                style={{ backgroundColor: "#F97066", color: "white" }}
+                style={{ backgroundColor: "#E06A33", color: "white" }}
               >
                 {loadingCaption ? <Loader2 className="h-4 w-4 animate-spin" /> : <ChevronRight className="h-4 w-4" />}
                 Generate Caption →
@@ -4417,7 +4417,7 @@ function StudioTab({
               placeholder={loadingCaption ? "Writing your caption…" : "Tap 'Generate Caption' or write your own here."}
               rows={8}
               className="text-sm leading-relaxed"
-              style={{ borderColor: "#E5DDD5", backgroundColor: "white" }}
+              style={{ borderColor: "#C2B5A3", backgroundColor: "white" }}
             />
             {hashtags.length > 0 && (
               <div className="flex flex-wrap gap-1.5">
@@ -4517,7 +4517,7 @@ function StudioTab({
         {(caption || selectedHook) && (
           <div
             className="rounded-2xl border p-4 space-y-3"
-            style={{ borderColor: "#E5DDD5", backgroundColor: "white" }}
+            style={{ borderColor: "#C2B5A3", backgroundColor: "white" }}
           >
             <SectionLabel label="Schedule" icon={<Calendar className="h-3 w-3" />} />
             <div className="flex flex-col sm:flex-row gap-2">
@@ -4526,19 +4526,19 @@ function StudioTab({
                 value={scheduledDate}
                 onChange={(e) => setScheduledDate(e.target.value)}
                 className="sm:flex-1 min-h-[44px]"
-                style={{ borderColor: "#E5DDD5" }}
+                style={{ borderColor: "#C2B5A3" }}
               />
               <Button
                 onClick={handleSaveToPlanner}
                 disabled={saving}
                 className="gap-2 min-h-[44px]"
-                style={{ backgroundColor: "#F97066", color: "white" }}
+                style={{ backgroundColor: "#E06A33", color: "white" }}
               >
                 {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
                 {scheduledDate ? "Save to Planner" : "Save to Ideas"}
               </Button>
             </div>
-            <p className="text-[11px]" style={{ color: "#8A7060" }}>
+            <p className="text-[11px]" style={{ color: "#8B7261" }}>
               {scheduledDate
                 ? "Marked as scheduled. You'll see it in the Planner tab on that date."
                 : "Saved with no date stays in the Ideas Bank for later."}
@@ -4567,7 +4567,7 @@ function StudioTab({
         style={{
           bottom: "60px", // above mobile bottom nav (60px)
           backgroundColor: "rgba(250,250,245,0.96)",
-          borderTop: "1px solid #E5DDD5",
+          borderTop: "1px solid #C2B5A3",
           paddingBottom: "max(12px, env(safe-area-inset-bottom))",
           backdropFilter: "blur(8px)",
         }}
@@ -4576,7 +4576,7 @@ function StudioTab({
           variant="outline"
           onClick={() => setShowPreviewSheet(true)}
           className="gap-2 shrink-0 min-h-[44px]"
-          style={{ borderColor: "#E5DDD5", color: "#5A3825", backgroundColor: "white" }}
+          style={{ borderColor: "#C2B5A3", color: "#5A5A5A", backgroundColor: "white" }}
         >
           <Eye className="h-4 w-4" />
           Preview
@@ -4585,7 +4585,7 @@ function StudioTab({
           onClick={handleGenerateHooks}
           disabled={!ready || loadingHooks}
           className="flex-1 gap-2 min-h-[44px]"
-          style={{ backgroundColor: "#F97066", color: "white" }}
+          style={{ backgroundColor: "#E06A33", color: "white" }}
         >
           {loadingHooks ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
           {hooks ? "Regenerate" : "Generate Hooks"}
@@ -4600,14 +4600,14 @@ function StudioTab({
           onClick={() => setShowPreviewSheet(false)}
         >
           <div
-            className="rounded-t-3xl bg-[#FAFAF5] max-h-[85vh] overflow-y-auto px-4 py-5"
+            className="rounded-t-3xl bg-[#EDE6DC] max-h-[85vh] overflow-y-auto px-4 py-5"
             onClick={(e) => e.stopPropagation()}
             style={{ paddingBottom: "max(20px, env(safe-area-inset-bottom))" }}
           >
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
-                <Smartphone className="h-4 w-4" style={{ color: "#F97066" }} />
-                <h3 className="text-sm font-semibold" style={{ color: "#2D1810" }}>
+                <Smartphone className="h-4 w-4" style={{ color: "#E06A33" }} />
+                <h3 className="text-sm font-semibold" style={{ color: "#2D2D2D" }}>
                   Preview
                 </h3>
               </div>
@@ -4616,7 +4616,7 @@ function StudioTab({
                 onClick={() => setShowPreviewSheet(false)}
                 className="h-10 w-10 rounded-xl flex items-center justify-center hover:bg-[#F5F0EA]"
               >
-                <X className="h-5 w-5" style={{ color: "#5A3825" }} />
+                <X className="h-5 w-5" style={{ color: "#5A5A5A" }} />
               </button>
             </div>
             <PhonePreview
@@ -4777,21 +4777,21 @@ function ResearchTab({
               className="rounded-2xl border p-3 text-left transition-all min-h-[72px] flex items-start gap-3"
               style={
                 active
-                  ? { borderColor: "#F97066", backgroundColor: "#FEF0EA", boxShadow: "0 0 0 2px rgba(249,112,102,0.25)" }
-                  : { borderColor: "#E5DDD5", backgroundColor: "white" }
+                  ? { borderColor: "#E06A33", backgroundColor: "#EDE6DC", boxShadow: "0 0 0 2px rgba(249,112,102,0.25)" }
+                  : { borderColor: "#C2B5A3", backgroundColor: "white" }
               }
             >
               <div
                 className="h-8 w-8 rounded-lg flex items-center justify-center shrink-0"
-                style={{ backgroundColor: active ? "white" : "#FAFAF5", color: active ? "#D4432A" : "#8A7060" }}
+                style={{ backgroundColor: active ? "white" : "#EDE6DC", color: active ? "#C45A26" : "#8B7261" }}
               >
                 {m.icon}
               </div>
               <div>
-                <p className="text-sm font-semibold" style={{ color: "#2D1810" }}>
+                <p className="text-sm font-semibold" style={{ color: "#2D2D2D" }}>
                   {m.label}
                 </p>
-                <p className="text-[11px]" style={{ color: "#8A7060" }}>
+                <p className="text-[11px]" style={{ color: "#8B7261" }}>
                   {m.desc}
                 </p>
               </div>
@@ -4802,14 +4802,14 @@ function ResearchTab({
 
       {/* Mode-specific inputs */}
       {mode === "competitor" && (
-        <div className="rounded-2xl border bg-white p-4 space-y-3" style={{ borderColor: "#E5DDD5" }}>
+        <div className="rounded-2xl border bg-white p-4 space-y-3" style={{ borderColor: "#C2B5A3" }}>
           <SectionLabel label="Competitor profile" icon={<Target className="h-3 w-3" />} />
           <div className="flex flex-col sm:flex-row gap-2">
             <select
               value={competitorPlatform}
               onChange={(e) => setCompetitorPlatform(e.target.value as StudioPlatform)}
               className="rounded-xl border px-3 py-2 text-sm min-h-[44px] bg-white"
-              style={{ borderColor: "#E5DDD5", color: "#2D1810" }}
+              style={{ borderColor: "#C2B5A3", color: "#2D2D2D" }}
             >
               {STUDIO_PLATFORMS.map((p) => (
                 <option key={p.key} value={p.key}>{p.label}</option>
@@ -4820,13 +4820,13 @@ function ResearchTab({
               onChange={(e) => setCompetitorHandle(e.target.value)}
               placeholder="@theirhandle"
               className="flex-1 min-h-[44px]"
-              style={{ borderColor: "#E5DDD5" }}
+              style={{ borderColor: "#C2B5A3" }}
             />
             <Button
               onClick={runCompetitor}
               disabled={loading}
               className="gap-2 min-h-[44px]"
-              style={{ backgroundColor: "#F97066", color: "white" }}
+              style={{ backgroundColor: "#E06A33", color: "white" }}
             >
               {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
               Analyse
@@ -4836,7 +4836,7 @@ function ResearchTab({
       )}
 
       {mode === "niche" && (
-        <div className="rounded-2xl border bg-white p-4 space-y-3" style={{ borderColor: "#E5DDD5" }}>
+        <div className="rounded-2xl border bg-white p-4 space-y-3" style={{ borderColor: "#C2B5A3" }}>
           <SectionLabel label="Niche keyword" icon={<TrendingUp className="h-3 w-3" />} />
           <div className="flex flex-col sm:flex-row gap-2">
             <Input
@@ -4844,13 +4844,13 @@ function ResearchTab({
               onChange={(e) => setNicheKeyword(e.target.value)}
               placeholder="e.g. 'wellness for busy professionals'"
               className="flex-1 min-h-[44px]"
-              style={{ borderColor: "#E5DDD5" }}
+              style={{ borderColor: "#C2B5A3" }}
             />
             <Button
               onClick={runNiche}
               disabled={loading}
               className="gap-2 min-h-[44px]"
-              style={{ backgroundColor: "#F97066", color: "white" }}
+              style={{ backgroundColor: "#E06A33", color: "white" }}
             >
               {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
               Find trends
@@ -4860,11 +4860,11 @@ function ResearchTab({
       )}
 
       {mode === "audit" && (
-        <div className="rounded-2xl border bg-white p-4 space-y-3" style={{ borderColor: "#E5DDD5" }}>
+        <div className="rounded-2xl border bg-white p-4 space-y-3" style={{ borderColor: "#C2B5A3" }}>
           <SectionLabel label="Audit your brand" icon={<Users className="h-3 w-3" />} />
           {brand ? (
             <>
-              <p className="text-sm" style={{ color: "#5A3825" }}>
+              <p className="text-sm" style={{ color: "#5A5A5A" }}>
                 Uses <strong>{brand.name}</strong>'s niche
                 {brand.niche ? ` ("${brand.niche}")` : ""}
                 {Object.keys(socialAccounts).length > 0
@@ -4875,14 +4875,14 @@ function ResearchTab({
                 onClick={runAudit}
                 disabled={loading}
                 className="gap-2 min-h-[44px]"
-                style={{ backgroundColor: "#F97066", color: "white" }}
+                style={{ backgroundColor: "#E06A33", color: "white" }}
               >
                 {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
                 Run audit
               </Button>
             </>
           ) : (
-            <p className="text-sm italic" style={{ color: "#8A7060" }}>
+            <p className="text-sm italic" style={{ color: "#8B7261" }}>
               Set up a brand first to run the audit.
             </p>
           )}
@@ -4906,7 +4906,7 @@ function ResearchTab({
 function ResultBlock({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div className="space-y-2">
-      <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: "#8A7060" }}>
+      <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: "#8B7261" }}>
         {title}
       </p>
       <div>{children}</div>
@@ -4916,19 +4916,19 @@ function ResultBlock({ title, children }: { title: string; children: React.React
 
 function CompetitorResultCard({ result }: { result: ProfileAnalysis }) {
   return (
-    <div className="rounded-2xl border bg-white p-5 space-y-4" style={{ borderColor: "#E5DDD5" }}>
-      <h3 className="text-base font-semibold" style={{ color: "#2D1810" }}>Competitor breakdown</h3>
+    <div className="rounded-2xl border bg-white p-5 space-y-4" style={{ borderColor: "#C2B5A3" }}>
+      <h3 className="text-base font-semibold" style={{ color: "#2D2D2D" }}>Competitor breakdown</h3>
       <ResultBlock title="Content strategy">
-        <p className="text-sm leading-relaxed" style={{ color: "#5A3825" }}>{result.contentStrategy}</p>
+        <p className="text-sm leading-relaxed" style={{ color: "#5A5A5A" }}>{result.contentStrategy}</p>
       </ResultBlock>
       <ResultBlock title="Posting patterns">
-        <p className="text-sm leading-relaxed" style={{ color: "#5A3825" }}>{result.postingPatterns}</p>
+        <p className="text-sm leading-relaxed" style={{ color: "#5A5A5A" }}>{result.postingPatterns}</p>
       </ResultBlock>
       <ResultBlock title="Hook styles to steal">
         <ul className="space-y-1">
           {result.hookStyles.map((h, i) => (
-            <li key={i} className="text-sm flex gap-2" style={{ color: "#5A3825" }}>
-              <span style={{ color: "#F97066" }}>→</span>
+            <li key={i} className="text-sm flex gap-2" style={{ color: "#5A5A5A" }}>
+              <span style={{ color: "#E06A33" }}>→</span>
               <span>{h}</span>
             </li>
           ))}
@@ -4937,20 +4937,20 @@ function CompetitorResultCard({ result }: { result: ProfileAnalysis }) {
       <ResultBlock title="Topic clusters">
         <div className="flex flex-wrap gap-1.5">
           {result.topicClusters.map((t, i) => (
-            <span key={i} className="text-xs px-2.5 py-1 rounded-full" style={{ backgroundColor: "#FEF0EA", color: "#D4432A" }}>
+            <span key={i} className="text-xs px-2.5 py-1 rounded-full" style={{ backgroundColor: "#EDE6DC", color: "#C45A26" }}>
               {t}
             </span>
           ))}
         </div>
       </ResultBlock>
       <ResultBlock title="Tone & voice">
-        <p className="text-sm leading-relaxed" style={{ color: "#5A3825" }}>{result.toneAndVoice}</p>
+        <p className="text-sm leading-relaxed" style={{ color: "#5A5A5A" }}>{result.toneAndVoice}</p>
       </ResultBlock>
       <ResultBlock title="Gaps you can fill">
         <ul className="space-y-1">
           {result.gaps.map((g, i) => (
-            <li key={i} className="text-sm flex gap-2" style={{ color: "#5A3825" }}>
-              <Lightbulb className="h-3.5 w-3.5 mt-0.5 shrink-0" style={{ color: "#F97066" }} />
+            <li key={i} className="text-sm flex gap-2" style={{ color: "#5A5A5A" }}>
+              <Lightbulb className="h-3.5 w-3.5 mt-0.5 shrink-0" style={{ color: "#E06A33" }} />
               <span>{g}</span>
             </li>
           ))}
@@ -4962,14 +4962,14 @@ function CompetitorResultCard({ result }: { result: ProfileAnalysis }) {
 
 function NicheResultCard({ result }: { result: NicheResearchResult }) {
   return (
-    <div className="rounded-2xl border bg-white p-5 space-y-4" style={{ borderColor: "#E5DDD5" }}>
-      <h3 className="text-base font-semibold" style={{ color: "#2D1810" }}>Niche trends</h3>
+    <div className="rounded-2xl border bg-white p-5 space-y-4" style={{ borderColor: "#C2B5A3" }}>
+      <h3 className="text-base font-semibold" style={{ color: "#2D2D2D" }}>Niche trends</h3>
       <ResultBlock title="Content angles">
         <div className="space-y-2">
           {result.contentAngles.map((a, i) => (
-            <div key={i} className="rounded-xl p-3" style={{ backgroundColor: "#FAFAF5" }}>
-              <p className="text-sm font-medium" style={{ color: "#2D1810" }}>{a.angle}</p>
-              <p className="text-xs mt-1" style={{ color: "#8A7060" }}>{a.rationale}</p>
+            <div key={i} className="rounded-xl p-3" style={{ backgroundColor: "#EDE6DC" }}>
+              <p className="text-sm font-medium" style={{ color: "#2D2D2D" }}>{a.angle}</p>
+              <p className="text-xs mt-1" style={{ color: "#8B7261" }}>{a.rationale}</p>
             </div>
           ))}
         </div>
@@ -4977,8 +4977,8 @@ function NicheResultCard({ result }: { result: NicheResearchResult }) {
       <ResultBlock title="Pain points">
         <ul className="space-y-1">
           {result.painPoints.map((p, i) => (
-            <li key={i} className="text-sm flex gap-2" style={{ color: "#5A3825" }}>
-              <span style={{ color: "#F97066" }}>•</span>
+            <li key={i} className="text-sm flex gap-2" style={{ color: "#5A5A5A" }}>
+              <span style={{ color: "#E06A33" }}>•</span>
               <span>{p}</span>
             </li>
           ))}
@@ -4997,8 +4997,8 @@ function NicheResultCard({ result }: { result: NicheResearchResult }) {
         <div className="space-y-1.5">
           {result.postingFormats.map((f, i) => (
             <div key={i} className="flex items-center justify-between gap-2 text-sm">
-              <span style={{ color: "#2D1810" }} className="font-medium">{f.format}</span>
-              <span className="text-xs" style={{ color: "#8A7060" }}>{f.reasoning}</span>
+              <span style={{ color: "#2D2D2D" }} className="font-medium">{f.format}</span>
+              <span className="text-xs" style={{ color: "#8B7261" }}>{f.reasoning}</span>
             </div>
           ))}
         </div>
@@ -5006,8 +5006,8 @@ function NicheResultCard({ result }: { result: NicheResearchResult }) {
       <ResultBlock title="Content gaps">
         <ul className="space-y-1">
           {result.contentGaps.map((g, i) => (
-            <li key={i} className="text-sm flex gap-2" style={{ color: "#5A3825" }}>
-              <Lightbulb className="h-3.5 w-3.5 mt-0.5 shrink-0" style={{ color: "#F97066" }} />
+            <li key={i} className="text-sm flex gap-2" style={{ color: "#5A5A5A" }}>
+              <Lightbulb className="h-3.5 w-3.5 mt-0.5 shrink-0" style={{ color: "#E06A33" }} />
               <span>{g}</span>
             </li>
           ))}
@@ -5019,13 +5019,13 @@ function NicheResultCard({ result }: { result: NicheResearchResult }) {
 
 function AuditResultCard({ result }: { result: ContentOpportunity }) {
   return (
-    <div className="rounded-2xl border bg-white p-5 space-y-4" style={{ borderColor: "#E5DDD5" }}>
-      <h3 className="text-base font-semibold" style={{ color: "#2D1810" }}>Your brand audit</h3>
+    <div className="rounded-2xl border bg-white p-5 space-y-4" style={{ borderColor: "#C2B5A3" }}>
+      <h3 className="text-base font-semibold" style={{ color: "#2D2D2D" }}>Your brand audit</h3>
       <ResultBlock title="Content gaps">
         <ul className="space-y-1">
           {result.contentGaps.map((g, i) => (
-            <li key={i} className="text-sm flex gap-2" style={{ color: "#5A3825" }}>
-              <span style={{ color: "#F97066" }}>•</span>
+            <li key={i} className="text-sm flex gap-2" style={{ color: "#5A5A5A" }}>
+              <span style={{ color: "#E06A33" }}>•</span>
               <span>{g}</span>
             </li>
           ))}
@@ -5034,28 +5034,28 @@ function AuditResultCard({ result }: { result: ContentOpportunity }) {
       <ResultBlock title="Top opportunities">
         <div className="space-y-2">
           {result.topOpportunities.map((o, i) => (
-            <div key={i} className="rounded-xl p-3" style={{ backgroundColor: "#FAFAF5" }}>
+            <div key={i} className="rounded-xl p-3" style={{ backgroundColor: "#EDE6DC" }}>
               <div className="flex items-start justify-between gap-2">
-                <p className="text-sm font-medium" style={{ color: "#2D1810" }}>{o.angle}</p>
+                <p className="text-sm font-medium" style={{ color: "#2D2D2D" }}>{o.angle}</p>
                 <span
                   className="text-[10px] px-2 py-0.5 rounded-full font-medium shrink-0"
-                  style={{ backgroundColor: FORMAT_COLORS[o.format.toLowerCase()]?.bg ?? "#FAFAF5", color: FORMAT_COLORS[o.format.toLowerCase()]?.text ?? "#5A3825" }}
+                  style={{ backgroundColor: FORMAT_COLORS[o.format.toLowerCase()]?.bg ?? "#EDE6DC", color: FORMAT_COLORS[o.format.toLowerCase()]?.text ?? "#5A5A5A" }}
                 >
                   {o.format}
                 </span>
               </div>
-              <p className="text-xs mt-1" style={{ color: "#8A7060" }}>{o.why}</p>
+              <p className="text-xs mt-1" style={{ color: "#8B7261" }}>{o.why}</p>
             </div>
           ))}
         </div>
       </ResultBlock>
       <ResultBlock title="Audience insights">
-        <p className="text-sm leading-relaxed" style={{ color: "#5A3825" }}>{result.audienceInsights}</p>
+        <p className="text-sm leading-relaxed" style={{ color: "#5A5A5A" }}>{result.audienceInsights}</p>
       </ResultBlock>
       <ResultBlock title="Suggested pillars">
         <div className="flex flex-wrap gap-1.5">
           {result.suggestedPillars.map((p, i) => (
-            <span key={i} className="text-xs px-2.5 py-1 rounded-full" style={{ backgroundColor: "#FEF0EA", color: "#D4432A" }}>
+            <span key={i} className="text-xs px-2.5 py-1 rounded-full" style={{ backgroundColor: "#EDE6DC", color: "#C45A26" }}>
               {p}
             </span>
           ))}
@@ -5156,8 +5156,8 @@ export function ContentCreatorClient({
               <TabsTrigger
                 key={t.key}
                 value={t.key}
-                className="rounded-2xl px-4 py-2.5 text-sm font-medium min-h-[44px] gap-1.5 border data-[state=inactive]:bg-white data-[state=active]:bg-[#F97066] data-[state=active]:text-white data-[state=inactive]:text-[#5A3825] data-[state=active]:shadow-sm whitespace-nowrap"
-                style={{ borderColor: activeTab === t.key ? "#F97066" : "#E5DDD5" }}
+                className="rounded-2xl px-4 py-2.5 text-sm font-medium min-h-[44px] gap-1.5 border data-[state=inactive]:bg-white data-[state=active]:bg-[#E06A33] data-[state=active]:text-white data-[state=inactive]:text-[#5A5A5A] data-[state=active]:shadow-sm whitespace-nowrap"
+                style={{ borderColor: activeTab === t.key ? "#E06A33" : "#C2B5A3" }}
               >
                 {t.icon}
                 {t.label}
@@ -5192,8 +5192,8 @@ export function ContentCreatorClient({
               defaultOpen
             />
           ) : (
-            <div className="rounded-2xl border bg-white p-8 text-center" style={{ borderColor: "#E5DDD5" }}>
-              <p className="text-sm" style={{ color: "#8A7060" }}>
+            <div className="rounded-2xl border bg-white p-8 text-center" style={{ borderColor: "#C2B5A3" }}>
+              <p className="text-sm" style={{ color: "#8B7261" }}>
                 Set up a brand first to save and revisit ideas.
               </p>
             </div>

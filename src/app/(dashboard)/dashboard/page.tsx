@@ -71,13 +71,13 @@ export default async function DashboardPage() {
   const platformsConnectedCount = Object.keys(socialAccounts).length
 
   return (
-    <div className="flex flex-col min-h-full" style={{ backgroundColor: "#FAFAF5" }}>
+    <div className="flex flex-col min-h-full" style={{ backgroundColor: "#EDE6DC" }}>
       {/* Warm custom page header — looser and more personal than the generic Header */}
-      <div className="px-4 pt-6 pb-5 md:px-8 md:pt-8 md:pb-6" style={{ borderBottom: "1px solid #E8E0D5" }}>
-        <h1 className="text-2xl md:text-4xl font-semibold leading-tight" style={{ color: "#2D1810" }}>
+      <div className="px-4 pt-6 pb-5 md:px-8 md:pt-8 md:pb-6" style={{ borderBottom: "1px solid #C2B5A3" }}>
+        <h1 className="text-2xl md:text-4xl font-semibold leading-tight" style={{ color: "#2D2D2D" }}>
           Good to see you, {firstName} 👋
         </h1>
-        <p className="mt-1.5 text-base" style={{ color: "#8A7060" }}>
+        <p className="mt-1.5 text-base" style={{ color: "#8B7261" }}>
           Here&apos;s your creative brand hub
         </p>
       </div>
@@ -111,7 +111,7 @@ export default async function DashboardPage() {
                     variant="outline"
                     size="sm"
                     className="rounded-xl"
-                    style={{ borderColor: "#E8D8D0", color: "#7A5C50" }}
+                    style={{ borderColor: "#E8D8D0", color: "#8B7261" }}
                   >
                     Edit Brand
                   </Button>
@@ -323,8 +323,8 @@ function SectionHeader({
   return (
     <div className="flex items-end justify-between mb-5">
       <div>
-        <h2 className="text-lg font-semibold" style={{ color: "#2D1810" }}>{title}</h2>
-        <p className="text-sm mt-0.5" style={{ color: "#8A7060" }}>{subtitle}</p>
+        <h2 className="text-lg font-semibold" style={{ color: "#2D2D2D" }}>{title}</h2>
+        <p className="text-sm mt-0.5" style={{ color: "#8B7261" }}>{subtitle}</p>
       </div>
       {action}
     </div>
@@ -335,24 +335,24 @@ function EmptyBrandState() {
   return (
     <div
       className="flex flex-col items-center justify-center py-16 rounded-3xl border-2 border-dashed text-center"
-      style={{ borderColor: "#E8D8D0", backgroundColor: "#FFF8F4" }}
+      style={{ borderColor: "#E8D8D0", backgroundColor: "#FFFFFF" }}
     >
       <div
         className="w-14 h-14 rounded-2xl flex items-center justify-center mb-5 text-2xl"
-        style={{ backgroundColor: "#FEE8E4" }}
+        style={{ backgroundColor: "#EDE6DC" }}
       >
         ✨
       </div>
-      <h3 className="text-base font-semibold mb-1.5" style={{ color: "#2D1810" }}>
+      <h3 className="text-base font-semibold mb-1.5" style={{ color: "#2D2D2D" }}>
         Set up your brand profile
       </h3>
-      <p className="text-sm max-w-sm mb-6" style={{ color: "#8A7060" }}>
+      <p className="text-sm max-w-sm mb-6" style={{ color: "#8B7261" }}>
         Define your brand identity — niche, audience, tone, and colors — to unlock all content planning tools.
       </p>
       <Link href="/settings">
         <Button
           className="rounded-xl font-medium hover:opacity-90"
-          style={{ backgroundColor: "#F97066", color: "white" }}
+          style={{ backgroundColor: "#E06A33", color: "white" }}
         >
           Set up your brand →
         </Button>
@@ -373,7 +373,7 @@ function BrandProfileCard({ brand }: { brand: Brand }) {
       <div
         className="h-1.5 rounded-full mb-5"
         style={{
-          background: `linear-gradient(to right, ${brand.primary_color ?? "#F97066"}, ${brand.secondary_color ?? "#E8956D"})`,
+          background: `linear-gradient(to right, ${brand.primary_color ?? "#E06A33"}, ${brand.secondary_color ?? "#C45A26"})`,
         }}
       />
 
@@ -390,7 +390,7 @@ function BrandProfileCard({ brand }: { brand: Brand }) {
         ) : (
           <div
             className="w-14 h-14 rounded-2xl flex items-center justify-center text-white text-lg font-bold flex-shrink-0 shadow-sm"
-            style={{ backgroundColor: brand.primary_color || "#F97066" }}
+            style={{ backgroundColor: brand.primary_color || "#E06A33" }}
           >
             {initials}
           </div>
@@ -401,7 +401,7 @@ function BrandProfileCard({ brand }: { brand: Brand }) {
           <div className="flex items-center gap-2.5 flex-wrap">
             <h3
               className="text-xl md:text-3xl font-semibold leading-tight"
-              style={{ color: "#2D1810" }}
+              style={{ color: "#2D2D2D" }}
             >
               {brand.name}
             </h3>
@@ -414,8 +414,8 @@ function BrandProfileCard({ brand }: { brand: Brand }) {
           </div>
 
           {/* Tone of voice */}
-          <p className="text-sm mt-1.5" style={{ color: "#8A7060" }}>
-            <span className="font-medium" style={{ color: "#6A5048" }}>Tone: </span>
+          <p className="text-sm mt-1.5" style={{ color: "#8B7261" }}>
+            <span className="font-medium" style={{ color: "#5A5A5A" }}>Tone: </span>
             {brand.tone_of_voice ?? "Not specified"}
           </p>
         </div>
@@ -424,15 +424,15 @@ function BrandProfileCard({ brand }: { brand: Brand }) {
       {/* Target audience */}
       <div
         className="mt-5 pt-4 flex items-start gap-4"
-        style={{ borderTop: "1px solid #F0E8E0" }}
+        style={{ borderTop: "1px solid #EDE6DC" }}
       >
         <p
           className="text-[10px] font-semibold uppercase tracking-widest shrink-0 mt-0.5 w-28"
-          style={{ color: "#A89080" }}
+          style={{ color: "#C2B5A3" }}
         >
           Target Audience
         </p>
-        <p className="text-sm font-medium leading-snug whitespace-pre-line" style={{ color: "#4A3428" }}>
+        <p className="text-sm font-medium leading-snug whitespace-pre-line" style={{ color: "#2D2D2D" }}>
           {(brand.target_audience ?? "Not specified").replace(/\* /g, "• ").replace(/\*/g, "")}
         </p>
       </div>
@@ -553,12 +553,12 @@ function PlatformStats({ accounts }: { accounts: Record<string, SocialAccount> }
 
 // Distinct warm pastel backgrounds cycling per pillar index
 const PILLAR_PALETTES = [
-  { bg: "#FEE8E4", text: "#B03020", dot: "#F97066" }, // coral
+  { bg: "#EDE6DC", text: "#C45A26", dot: "#E06A33" }, // coral
   { bg: "#E4F0E8", text: "#2D6040", dot: "#4CAF70" }, // sage
   { bg: "#FEF3DC", text: "#8B5E10", dot: "#F0A020" }, // amber
   { bg: "#EEE8F8", text: "#5040A0", dot: "#9070E0" }, // lavender
-  { bg: "#FEF0E0", text: "#C05820", dot: "#E88040" }, // peach
-  { bg: "#FDEAEF", text: "#B03050", dot: "#E05070" }, // rose
+  { bg: "#EDE6DC", text: "#C45A26", dot: "#E06A33" }, // peach
+  { bg: "#EDE6DC", text: "#B03050", dot: "#E05070" }, // rose
 ]
 
 function ContentPillarsSummary({
@@ -570,7 +570,7 @@ function ContentPillarsSummary({
 }) {
   if (!hasBrand) {
     return (
-      <p className="text-sm" style={{ color: "#8A7060" }}>
+      <p className="text-sm" style={{ color: "#8B7261" }}>
         Create your brand first to start building content pillars.
       </p>
     )
@@ -578,12 +578,12 @@ function ContentPillarsSummary({
 
   if (!pillars || pillars.length === 0) {
     return (
-      <p className="text-sm" style={{ color: "#8A7060" }}>
+      <p className="text-sm" style={{ color: "#8B7261" }}>
         No pillars saved yet —{" "}
         <Link
           href="/content-creator"
           className="hover:underline transition-colors"
-          style={{ color: "#F97066" }}
+          style={{ color: "#E06A33" }}
         >
           go to Content Creator to generate some
         </Link>
@@ -616,10 +616,10 @@ function ContentPillarsSummary({
       {pillars.length < 6 && (
         <Link href="/content-pillars" className="block">
           <div
-            className="p-4 rounded-2xl border-2 border-dashed flex items-center justify-center gap-2 min-h-[56px] transition-all hover:border-[#F97066]"
+            className="p-4 rounded-2xl border-2 border-dashed flex items-center justify-center gap-2 min-h-[56px] transition-all hover:border-[#E06A33]"
             style={{ borderColor: "#E8D8D0" }}
           >
-            <span className="text-sm" style={{ color: "#A08070" }}>+ Add pillar</span>
+            <span className="text-sm" style={{ color: "#8B7261" }}>+ Add pillar</span>
           </div>
         </Link>
       )}
