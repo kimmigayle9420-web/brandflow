@@ -2525,16 +2525,20 @@ function GenerationStrip({
     setSavingToPlanner(true)
     try {
       const { data: { user } } = await supabase.auth.getUser()
+      const selectedHook = selectedHookIdx !== null ? hooks[selectedHookIdx] : null
       const allHashtags = activeHashtags ? [...activeHashtags.niche, ...activeHashtags.broad, ...activeHashtags.engagement].join(" ") : ""
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { error } = await (supabase.from("posts") as any).insert({
-        brand_id: brand.id, user_id: user!.id, platform: "instagram", format: "static",
-        caption_draft: caption, hashtags: allHashtags || null,
+      const { error } = await (supabase.from("ideas") as any).insert({
+        brand_id: brand.id, user_id: user!.id, format: "post",
+        title: topic.substring(0, 120) || "Untitled post",
+        hook: selectedHook || null,
+        caption, hashtags: allHashtags || null,
         media_url: postImageUrl || null,
         pillar_id: selectedPillar?.id ?? null, status: "draft",
       })
       if (error) throw new Error(error.message)
-      toast({ title: "Saved to planner!", description: "Post added as draft." })
+      onIdeaSaved?.()
+      toast({ title: "Saved to Ideas Bank!", description: "Post added as draft — find it in the Content Planner." })
     } catch (err) { showError(err) }
     setSavingToPlanner(false)
   }
@@ -2545,13 +2549,15 @@ function GenerationStrip({
     try {
       const { data: { user } } = await supabase.auth.getUser()
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { error } = await (supabase.from("posts") as any).insert({
-        brand_id: brand.id, user_id: user!.id, platform: "instagram", format: "carousel",
-        caption_draft: topic, notes: JSON.stringify({ slides }),
+      const { error } = await (supabase.from("ideas") as any).insert({
+        brand_id: brand.id, user_id: user!.id, format: "carousel",
+        title: topic.substring(0, 120) || "Untitled carousel",
+        slides: slides as unknown as Record<string, unknown>[],
         pillar_id: selectedPillar?.id ?? null, status: "draft",
       })
       if (error) throw new Error(error.message)
-      toast({ title: "Carousel saved to planner!" })
+      onIdeaSaved?.()
+      toast({ title: "Carousel saved!", description: "Find it in the Content Planner Ideas Bank." })
     } catch (err) { showError(err) }
     setSavingToPlanner(false)
   }
@@ -2562,13 +2568,16 @@ function GenerationStrip({
     try {
       const { data: { user } } = await supabase.auth.getUser()
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { error } = await (supabase.from("posts") as any).insert({
-        brand_id: brand.id, user_id: user!.id, platform: "instagram", format: "reel",
-        caption_draft: topic, notes: JSON.stringify(reelScript),
+      const { error } = await (supabase.from("ideas") as any).insert({
+        brand_id: brand.id, user_id: user!.id, format: "reel",
+        title: topic.substring(0, 120) || "Untitled reel",
+        script: reelScript as unknown as Record<string, unknown>,
+        caption: reelCaption?.caption || null,
         pillar_id: selectedPillar?.id ?? null, status: "draft",
       })
       if (error) throw new Error(error.message)
-      toast({ title: "Reel script saved to planner!" })
+      onIdeaSaved?.()
+      toast({ title: "Reel script saved!", description: "Find it in the Content Planner Ideas Bank." })
     } catch (err) { showError(err) }
     setSavingToPlanner(false)
   }
