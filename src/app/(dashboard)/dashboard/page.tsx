@@ -45,6 +45,28 @@ export default async function DashboardPage() {
     pillars = data ?? []
   }
 
+  // Fetch idea stats for the primary brand
+  let ideasSavedCount = 0
+  let postsScheduledCount = 0
+  if (primaryBrand) {
+    const [savedRes, scheduledRes] = await Promise.all([
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (supabase.from("ideas") as any)
+        .select("id", { count: "exact", head: true })
+        .eq("brand_id", primaryBrand.id)
+        .eq("status", "idea"),
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (supabase.from("ideas") as any)
+        .select("id", { count: "exact", head: true })
+        .eq("brand_id", primaryBrand.id)
+        .eq("status", "scheduled"),
+    ])
+    ideasSavedCount = savedRes.count ?? 0
+    postsScheduledCount = scheduledRes.count ?? 0
+  }
+  const pillarsActiveCount = pillars?.length ?? 0
+  const platformsConnectedCount = Object.keys(socialAccounts).length
+
   return (
     <div className="flex flex-col min-h-full" style={{ backgroundColor: "#FAFAF5" }}>
       {/* Warm custom page header — looser and more personal than the generic Header */}
@@ -58,6 +80,21 @@ export default async function DashboardPage() {
       </div>
 
       <div className="flex-1 w-full max-w-5xl px-4 py-6 md:px-8 md:py-10 space-y-10 md:space-y-12">
+
+        {/* ─── Section 0: Platform Stats ────────────────────────────── */}
+        <section>
+          <SectionHeader
+            title="Platform Stats"
+            subtitle="A quick pulse on your content + connected platforms"
+          />
+          <PlatformStats
+            postsScheduled={postsScheduledCount}
+            ideasSaved={ideasSavedCount}
+            pillarsActive={pillarsActiveCount}
+            platformsConnected={platformsConnectedCount}
+            socialAccounts={socialAccounts}
+          />
+        </section>
 
         {/* ─── Section 1: Brand Profile ───────────────────────────── */}
         <section>
@@ -121,6 +158,127 @@ export default async function DashboardPage() {
 }
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
+
+const PLATFORM_META: Record<string, { label: string; emoji: string; bg: string }> = {
+  instagram: { label: "Instagram", emoji: "📸", bg: "linear-gradient(135deg, #F97066 0%, #E0A050 100%)" },
+  tiktok:    { label: "TikTok",    emoji: "🎵", bg: "linear-gradient(135deg, #2D1810 0%, #4A3428 100%)" },
+  youtube:   { label: "YouTube",   emoji: "▶️", bg: "linear-gradient(135deg, #E05050 0%, #C03030 100%)" },
+  twitter:   { label: "X",         emoji: "𝕏",  bg: "linear-gradient(135deg, #4A3428 0%, #2D1810 100%)" },
+  pinterest: { label: "Pinterest", emoji: "📌", bg: "linear-gradient(135deg, #E05070 0%, #C03050 100%)" },
+  facebook:  { label: "Facebook",  emoji: "👥", bg: "linear-gradient(135deg, #5070D0 0%, #3050A0 100%)" },
+  linkedin:  { label: "LinkedIn",  emoji: "💼", bg: "linear-gradient(135deg, #3050A0 0%, #1D3D80 100%)" },
+}
+
+function StatCard({
+  label, value, hint,
+}: {
+  label: string
+  value: number | string
+  hint?: string
+}) {
+  return (
+    <div
+      className="rounded-2xl p-4 flex flex-col gap-1"
+      style={{ backgroundColor: "#FFFFFF", boxShadow: "0 2px 12px rgba(180, 100, 60, 0.07)", border: "1px solid #F0E8E0" }}
+    >
+      <p className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: "#A89080" }}>
+        {label}
+      </p>
+      <p className="text-3xl font-bold leading-none" style={{ color: "#F97066" }}>
+        {value}
+      </p>
+      {hint && (
+        <p className="text-[11px]" style={{ color: "#8A7060" }}>{hint}</p>
+      )}
+    </div>
+  )
+}
+
+function PlatformStats({
+  postsScheduled,
+  ideasSaved,
+  pillarsActive,
+  platformsConnected,
+  socialAccounts,
+}: {
+  postsScheduled: number
+  ideasSaved: number
+  pillarsActive: number
+  platformsConnected: number
+  socialAccounts: Record<string, string>
+}) {
+  const platformEntries = Object.entries(socialAccounts).filter(([, h]) => !!h)
+
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <StatCard
+          label="Posts Scheduled"
+          value={postsScheduled}
+          hint={postsScheduled === 0 ? "Plan your first post" : "In your planner"}
+        />
+        <StatCard
+          label="Ideas Saved"
+          value={ideasSaved}
+          hint={ideasSaved === 0 ? "Save ideas as you go" : "In your ideas bank"}
+        />
+        <StatCard
+          label="Pillars Active"
+          value={pillarsActive}
+          hint={pillarsActive === 0 ? "Define 3–6 themes" : `of 6 themes`}
+        />
+        <StatCard
+          label="Platforms"
+          value={platformsConnected}
+          hint={platformsConnected === 0 ? "Connect a profile" : "Connected"}
+        />
+      </div>
+
+      {platformEntries.length > 0 ? (
+        <div
+          className="rounded-3xl p-5"
+          style={{ backgroundColor: "#FFFFFF", boxShadow: "0 4px 24px rgba(180, 100, 60, 0.09)" }}
+        >
+          <p className="text-[10px] font-semibold uppercase tracking-widest mb-3" style={{ color: "#A89080" }}>
+            Connected Profiles
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+            {platformEntries.map(([id, handle]) => {
+              const meta = PLATFORM_META[id] ?? { label: id, emoji: "🔗", bg: "linear-gradient(135deg, #8A7060 0%, #5A3828 100%)" }
+              return (
+                <div
+                  key={id}
+                  className="flex items-center gap-3 p-3 rounded-2xl"
+                  style={{ backgroundColor: "#FAFAF5", border: "1px solid #F0E8E0" }}
+                >
+                  <div
+                    className="w-10 h-10 rounded-xl flex items-center justify-center text-base shrink-0"
+                    style={{ background: meta.bg, color: "white" }}
+                  >
+                    {meta.emoji}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-xs font-semibold" style={{ color: "#2D1810" }}>{meta.label}</p>
+                    <p className="text-xs truncate" style={{ color: "#8A7060" }}>{handle}</p>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      ) : (
+        <div
+          className="rounded-3xl p-5"
+          style={{ backgroundColor: "#FFF8F4", border: "1px dashed #E8D8D0" }}
+        >
+          <p className="text-sm" style={{ color: "#8A7060" }}>
+            No platforms connected yet — connect Instagram, TikTok or YouTube below to see per-platform stats here.
+          </p>
+        </div>
+      )}
+    </div>
+  )
+}
 
 function SectionHeader({
   title,

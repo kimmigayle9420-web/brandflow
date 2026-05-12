@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect, useCallback, useRef } from "react"
+import { useSearchParams } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -3543,7 +3544,8 @@ function PhonePreview({
   caption,
   hashtags,
   brandName,
-  imageUrl,
+  topic,
+  videoScript,
 }: {
   format: StudioFormat
   platform: StudioPlatform
@@ -3553,6 +3555,8 @@ function PhonePreview({
   hashtags: string[]
   brandName: string | null
   imageUrl: string | null
+  topic?: string
+  videoScript?: string
 }) {
   const isVertical = format === "reel" || format === "story"
   const aspectClass = isVertical ? "aspect-[9/16]" : "aspect-square"
@@ -3563,6 +3567,8 @@ function PhonePreview({
     ? hashtags.map((h) => (h.startsWith("#") ? h : `#${h}`)).join(" ")
     : ""
   const handle = brandName ? brandName.toLowerCase().replace(/\s+/g, "_") : "your_brand"
+  // Show hook → topic (as a fallback) → nothing
+  const previewText = hook || (topic?.trim() ? topic.trim() : null)
 
   return (
     <div className="space-y-3">
@@ -3626,7 +3632,7 @@ function PhonePreview({
           )}
 
           <div className="absolute inset-0 flex items-center justify-center p-5">
-            {hook ? (
+            {previewText ? (
               <p
                 className={cn(
                   "text-center font-bold leading-tight",
@@ -3637,7 +3643,7 @@ function PhonePreview({
                   textShadow: imageUrl ? "0 1px 8px rgba(0,0,0,0.6)" : undefined,
                 }}
               >
-                {hook}
+                {previewText.length > 140 ? previewText.substring(0, 140) + "…" : previewText}
               </p>
             ) : !imageUrl ? (
               <div className="flex flex-col items-center gap-2 opacity-60">
@@ -3648,6 +3654,18 @@ function PhonePreview({
               </div>
             ) : null}
           </div>
+
+          {/* Video script chip overlay (Reel/Story) */}
+          {isVertical && videoScript && videoScript.trim() && (
+            <div
+              className="absolute bottom-10 left-3 right-3 rounded-lg px-2 py-1.5"
+              style={{ backgroundColor: "rgba(45,24,16,0.7)", color: "white", maxHeight: "30%", overflow: "hidden" }}
+            >
+              <p className="text-[9px] font-mono leading-tight line-clamp-3 whitespace-pre-line">
+                {videoScript.slice(0, 110)}
+              </p>
+            </div>
+          )}
 
           {format === "carousel" && (
             <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1">
@@ -3753,6 +3771,9 @@ function StudioTab({
   const supabase = createClient()
   const { toast } = useToast()
 
+  const searchParams = useSearchParams()
+  const urlPillar = searchParams?.get("pillar") ?? null
+
   const [format, setFormat] = useState<StudioFormat>("post")
   const [platform, setPlatform] = useState<StudioPlatform>("instagram")
   const [pillarId, setPillarId] = useState<string | null>(null)
@@ -3762,6 +3783,10 @@ function StudioTab({
   const [caption, setCaption] = useState("")
   const [hashtags, setHashtags] = useState<string[]>([])
   const [scheduledDate, setScheduledDate] = useState("")
+
+  // ── Video-specific state (for Reel / Story) ────────────────────────────
+  const [reelDuration, setReelDuration] = useState<"15s" | "30s" | "60s" | "90s">("30s")
+  const [videoScript, setVideoScript] = useState("")
 
   const [loadingHooks, setLoadingHooks] = useState(false)
   const [loadingCaption, setLoadingCaption] = useState(false)
@@ -3774,6 +3799,14 @@ function StudioTab({
   const fileInputRef = useRef<HTMLInputElement | null>(null)
 
   const selectedPillar = pillars.find((p) => p.id === pillarId) ?? null
+  const isVideo = format === "reel" || format === "story"
+
+  // Pre-select pillar from URL param (?pillar=<id>) — runs once when pillars load
+  useEffect(() => {
+    if (!urlPillar) return
+    const match = pillars.find((p) => p.id === urlPillar)
+    if (match) setPillarId(match.id)
+  }, [urlPillar, pillars])
 
   // Load an existing idea when one is selected from Ideas tab
   useEffect(() => {
@@ -3792,6 +3825,12 @@ function StudioTab({
     setScheduledDate(loadedIdea.scheduled_date ?? "")
     setImageUrl(loadedIdea.media_url ?? null)
     setImagePrompt("")
+    // Restore video script if present
+    const script = loadedIdea.script as { duration?: string; script?: string } | null
+    if (script?.script) setVideoScript(script.script)
+    if (script?.duration && (script.duration === "15s" || script.duration === "30s" || script.duration === "60s" || script.duration === "90s")) {
+      setReelDuration(script.duration)
+    }
   }, [loadedIdea?.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleGenerateImage = () => {
@@ -3832,6 +3871,10 @@ function StudioTab({
   }
 
   const handleGenerateHooks = async () => {
+    if (pillars.length > 0 && !pillarId) {
+      toast({ title: "Pick a content pillar first", description: "Pillars ground the AI in your themes.", variant: "destructive" })
+      return
+    }
     if (!topic.trim()) {
       toast({ title: "Tell us what the post is about first", variant: "destructive" })
       return
@@ -3948,6 +3991,9 @@ function StudioTab({
     setSaving(true)
     const dbFormat: "post" | "carousel" | "reel" = format === "story" ? "post" : format
     const status: "idea" | "scheduled" = scheduledDate ? "scheduled" : "idea"
+    const scriptPayload = isVideo && videoScript.trim()
+      ? { duration: format === "reel" ? reelDuration : null, script: videoScript.trim(), format }
+      : null
     const basePayload = {
       user_id: userId,
       brand_id: brand.id,
@@ -3958,6 +4004,7 @@ function StudioTab({
       caption: caption || null,
       hashtags: hashtags.length ? hashtags.map((t) => (t.startsWith("#") ? t : `#${t}`)).join(" ") : null,
       media_url: imageUrl,
+      script: scriptPayload,
       status,
     }
     const fullPayload = scheduledDate ? { ...basePayload, scheduled_date: scheduledDate } : basePayload
@@ -3991,7 +4038,8 @@ function StudioTab({
     setSaving(false)
   }
 
-  const ready = topic.trim().length > 0
+  const pillarReady = pillars.length === 0 || !!pillarId
+  const ready = pillarReady && topic.trim().length > 0
   const captionReady = !!selectedHook
   const allHashtagsString = hashtags.map((t) => (t.startsWith("#") ? t : `#${t}`)).join(" ")
   const captionPlusTags = [caption, allHashtagsString].filter(Boolean).join("\n\n")
@@ -4019,9 +4067,101 @@ function StudioTab({
     <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-6">
       {/* ── Left: form ──────────────────────────────────────────── */}
       <div className="space-y-5 pb-24 lg:pb-0">
-        {/* Format selector */}
+        {/* ── STEP 1 — Pillar selector (REQUIRED) ──────────────────── */}
         <div>
-          <SectionLabel label="Format" icon={<LayoutGrid className="h-3 w-3" />} />
+          <div className="flex items-center gap-2 mb-3">
+            <span
+              className="h-5 w-5 rounded-full flex items-center justify-center text-[10px] font-bold text-white"
+              style={{ backgroundColor: "#F97066" }}
+            >1</span>
+            <span className="text-xs font-bold uppercase tracking-widest" style={{ color: "#8A7060" }}>
+              Pick a pillar
+            </span>
+            {pillars.length > 0 && (
+              <span className="text-[10px] font-medium" style={{ color: pillarId ? "#3A7D44" : "#D4432A" }}>
+                {pillarId ? "✓ Selected" : "Required"}
+              </span>
+            )}
+            <div className="flex-1 h-px" style={{ backgroundColor: "#E5DDD5" }} />
+          </div>
+          {pillars.length === 0 ? (
+            <div
+              className="rounded-2xl border-2 border-dashed p-4 text-center"
+              style={{ borderColor: "#E8D8D0", backgroundColor: "#FFF8F4" }}
+            >
+              <p className="text-xs" style={{ color: "#8A7060" }}>
+                No pillars yet — head to the <span className="font-semibold" style={{ color: "#D4432A" }}>Pillars</span> tab to generate yours first.
+              </p>
+            </div>
+          ) : (
+            <div className="flex flex-wrap gap-2">
+              {pillars.map((p) => {
+                const active = pillarId === p.id
+                return (
+                  <button
+                    key={p.id}
+                    type="button"
+                    onClick={() => setPillarId(active ? null : p.id)}
+                    className="rounded-2xl px-3.5 py-2 text-sm font-medium border min-h-[44px] inline-flex items-center gap-2 transition-all"
+                    style={
+                      active
+                        ? { borderColor: "#F97066", backgroundColor: "#FEF0EA", color: "#2D1810", boxShadow: "0 0 0 2px rgba(249,112,102,0.25)" }
+                        : { borderColor: "#E5DDD5", backgroundColor: "white", color: "#5A3825" }
+                    }
+                  >
+                    <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: p.color }} />
+                    {p.emoji && <span className="text-base leading-none">{p.emoji}</span>}
+                    <span>{p.name}</span>
+                  </button>
+                )
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* ── STEP 2 — Topic input ─────────────────────────────────── */}
+        <div className={cn(
+          "transition-opacity",
+          pillarReady ? "opacity-100" : "opacity-40 pointer-events-none"
+        )}>
+          <div className="flex items-center gap-2 mb-3">
+            <span
+              className="h-5 w-5 rounded-full flex items-center justify-center text-[10px] font-bold text-white"
+              style={{ backgroundColor: pillarReady ? "#F97066" : "#C4B5A5" }}
+            >2</span>
+            <span className="text-xs font-bold uppercase tracking-widest" style={{ color: "#8A7060" }}>
+              Your topic
+            </span>
+            <div className="flex-1 h-px" style={{ backgroundColor: "#E5DDD5" }} />
+          </div>
+          <Textarea
+            value={topic}
+            onChange={(e) => setTopic(e.target.value)}
+            placeholder={selectedPillar
+              ? `What's your post about — within the "${selectedPillar.name}" pillar?`
+              : "What's this post about? Be specific."
+            }
+            rows={3}
+            className="text-sm resize-none"
+            style={{ borderColor: "#E5DDD5", backgroundColor: "white" }}
+          />
+        </div>
+
+        {/* ── STEP 3 — Format selector ─────────────────────────────── */}
+        <div className={cn(
+          "transition-opacity",
+          ready ? "opacity-100" : "opacity-60"
+        )}>
+          <div className="flex items-center gap-2 mb-3">
+            <span
+              className="h-5 w-5 rounded-full flex items-center justify-center text-[10px] font-bold text-white"
+              style={{ backgroundColor: ready ? "#F97066" : "#C4B5A5" }}
+            >3</span>
+            <span className="text-xs font-bold uppercase tracking-widest" style={{ color: "#8A7060" }}>
+              Format
+            </span>
+            <div className="flex-1 h-px" style={{ backgroundColor: "#E5DDD5" }} />
+          </div>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
             {STUDIO_FORMATS.map((f) => {
               const active = format === f.key
@@ -4199,6 +4339,7 @@ function StudioTab({
         </div>
 
         {/* Generate hooks button */}
+        {/* ── STEP 4 — Generate hooks button ───────────────────────── */}
         <Button
           onClick={handleGenerateHooks}
           disabled={!ready || loadingHooks}
@@ -4206,7 +4347,7 @@ function StudioTab({
           style={{ backgroundColor: "#F97066", color: "white" }}
         >
           {loadingHooks ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-          {hooks ? "Regenerate Hooks" : "Generate Hooks"}
+          {hooks ? "Regenerate Hooks" : pillars.length > 0 && !pillarId ? "Pick a pillar first" : "Generate Hooks"}
         </Button>
 
         {/* Hooks */}
@@ -4299,6 +4440,76 @@ function StudioTab({
                 ))}
               </div>
             )}
+          </div>
+        )}
+
+        {/* ── Video-specific options (Reel / Story) ───────────────────── */}
+        {isVideo && (caption || selectedHook || hooks) && (
+          <div
+            className="rounded-2xl border p-4 space-y-4"
+            style={{ borderColor: "#E5DDD5", backgroundColor: "white" }}
+          >
+            <SectionLabel label={`${format === "reel" ? "Reel" : "Story"} options`} icon={<Film className="h-3 w-3" />} />
+
+            {/* Duration picker (Reel only) */}
+            {format === "reel" && (
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-widest mb-2" style={{ color: "#8A7060" }}>
+                  Duration
+                </p>
+                <div className="flex gap-2">
+                  {(["15s", "30s", "60s", "90s"] as const).map((d) => {
+                    const active = reelDuration === d
+                    return (
+                      <button
+                        key={d}
+                        type="button"
+                        onClick={() => setReelDuration(d)}
+                        className="flex-1 rounded-xl border px-3 py-2.5 text-sm font-medium transition-all min-h-[44px]"
+                        style={
+                          active
+                            ? { borderColor: "#F97066", backgroundColor: "#FEF0EA", color: "#D4432A" }
+                            : { borderColor: "#E5DDD5", backgroundColor: "white", color: "#5A3825" }
+                        }
+                      >
+                        {d}
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Aspect ratio (informational) */}
+            <div className="flex items-center gap-2 text-xs" style={{ color: "#8A7060" }}>
+              <span className="font-semibold" style={{ color: "#5A3825" }}>Aspect:</span>
+              <span className="inline-flex items-center px-2 py-0.5 rounded-full" style={{ backgroundColor: "#FEF0EA", color: "#D4432A" }}>
+                9:16 (vertical)
+              </span>
+              <span>· Mute-safe captions on screen recommended.</span>
+            </div>
+
+            {/* Script editor */}
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-widest mb-2" style={{ color: "#8A7060" }}>
+                Script / shot list
+              </p>
+              <Textarea
+                value={videoScript}
+                onChange={(e) => setVideoScript(e.target.value)}
+                placeholder={
+                  format === "reel"
+                    ? "0–3s: Hook on screen + spoken hook\n3–10s: Reveal / story / setup\n10–25s: Payoff or steps\n25–30s: CTA"
+                    : "Frame 1: Polling question\nFrame 2: Behind-the-scenes shot\nFrame 3: Reveal + swipe-up CTA"
+                }
+                rows={6}
+                className="text-sm leading-relaxed resize-none"
+                style={{ borderColor: "#E5DDD5", backgroundColor: "white", fontFamily: "ui-monospace, SFMono-Regular, monospace" }}
+              />
+              <p className="text-[10px] mt-1.5" style={{ color: "#8A7060" }}>
+                Use this as your shot list when filming. It's saved with your idea.
+              </p>
+            </div>
           </div>
         )}
 
@@ -4417,6 +4628,9 @@ function StudioTab({
               hashtags={hashtags}
               brandName={brand?.name ?? null}
               imageUrl={imageUrl}
+              topic={topic}
+              videoScript={videoScript}
+
             />
           </div>
         </div>
