@@ -110,11 +110,10 @@ export async function GET() {
       fetch(
         `${GRAPH}/${igId}/media?` +
           new URLSearchParams({
-            // `insights.metric(reach)` is the only per-media metric that works
-            // across all media types post-April-2025. `views` is reels-only and
-            // returns errors on image posts when requested in a field expansion.
-            fields:
-              "id,caption,media_type,timestamp,like_count,comments_count,insights.metric(reach)",
+            // Keep fields basic — insights.metric(reach) requires
+            // instagram_manage_insights which may not be granted. Per-post
+            // reach is nice-to-have; we get real likes/comments either way.
+            fields: "id,caption,media_type,timestamp,like_count,comments_count",
             limit: "10",
             access_token: token,
           }).toString(),
@@ -142,8 +141,8 @@ export async function GET() {
           timestamp: (m.timestamp as string | null) ?? null,
           like_count: Number(m.like_count ?? 0),
           comments_count: Number(m.comments_count ?? 0),
-          reach: sumInsight(m.insights, "reach"),
-          views: sumInsight(m.insights, "views"),
+          reach: 0,
+          views: 0,
         }))
       : []
 
