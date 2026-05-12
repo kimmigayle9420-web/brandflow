@@ -1,8 +1,23 @@
+// One connected social platform — manually-entered stats (we don't have API access
+// to pull real follower counts), structured so the dashboard can render per-platform
+// follower/engagement cards.
+export type SocialAccount = {
+  platform: string       // 'instagram' | 'tiktok' | 'youtube' | 'linkedin' | …
+  handle: string         // @username
+  followers: number      // 0 if the user hasn't entered a number yet
+  engagement: number     // avg engagement % (0 if not entered)
+  url?: string           // optional profile URL override
+}
+
+// Stored format in profiles.social_accounts. Older rows may still hold a bare
+// string (handle only) per platform — normalize via lib/social-accounts.ts.
+export type SocialAccountsMap = Record<string, SocialAccount | string>
+
 export type Profile = {
   id: string
   full_name: string | null
   avatar_url: string | null
-  social_accounts: Record<string, string> | null
+  social_accounts: SocialAccountsMap | null
   created_at: string
   updated_at: string
 }
@@ -83,6 +98,8 @@ export type Idea = {
   media_url: string | null
   status: IdeaStatus
   scheduled_date: string | null
+  scheduled_at: string | null
+  platform: PostPlatform | null
   created_at: string
   updated_at: string
 }

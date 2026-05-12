@@ -49,7 +49,7 @@ export default async function ContentPlannerPage() {
   }
 
   return (
-    <div className="flex flex-col min-h-full" style={{ backgroundColor: "#FAFAF5" }}>
+    <div className="flex flex-col min-h-full" style={{ backgroundColor: "#EDE6DC" }}>
       <Header
         title="Content Planner"
         description="Plan your week, rotate your pillars, and build content faster."

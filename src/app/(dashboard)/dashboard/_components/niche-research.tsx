@@ -60,7 +60,7 @@ function buildCards(niche: string): ResearchCard[] {
 }
 
 const tagStyles: Record<ResearchCard["tag"], string> = {
-  trending: "bg-orange-50 text-orange-600 border-orange-200",
+  trending: "bg-[#EDE6DC] text-[#C45A26] border-[#C45A26]",
   evergreen: "bg-emerald-50 text-emerald-600 border-emerald-200",
   seasonal: "bg-blue-50 text-blue-600 border-blue-200",
 }

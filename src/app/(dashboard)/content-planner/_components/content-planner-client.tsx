@@ -98,7 +98,7 @@ function PillarRotationBar({ slots, pillars }: { slots: WeekSlot[]; pillars: Con
 
   return (
     <div className="space-y-2">
-      <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: "#7A5C50" }}>Pillar rotation this week</p>
+      <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: "#8B7261" }}>Pillar rotation this week</p>
       <div className="flex rounded-full overflow-hidden h-2.5">
         {pillars.map((p, i) => {
           const count = counts[p.id] ?? 0
@@ -116,7 +116,7 @@ function PillarRotationBar({ slots, pillars }: { slots: WeekSlot[]; pillars: Con
           const count = counts[p.id] ?? 0
           if (count === 0) return null
           return (
-            <span key={p.id} className="inline-flex items-center gap-1.5 text-xs" style={{ color: "#5A3825" }}>
+            <span key={p.id} className="inline-flex items-center gap-1.5 text-xs" style={{ color: "#5A5A5A" }}>
               <span className="h-2 w-2 rounded-full inline-block" style={{ backgroundColor: PILLAR_COLORS[i % PILLAR_COLORS.length] }} />
               {p.name} × {count}
             </span>
@@ -158,7 +158,7 @@ function DaySlotCard({
 }) {
   const isEmpty = slot.status === "empty"
   const isPosted = slot.status === "posted"
-  const color = slot.pillarColor ?? (pillarIdx >= 0 ? PILLAR_COLORS[pillarIdx % PILLAR_COLORS.length] : "#E5DDD5")
+  const color = slot.pillarColor ?? (pillarIdx >= 0 ? PILLAR_COLORS[pillarIdx % PILLAR_COLORS.length] : "#C2B5A3")
 
   return (
     <div
@@ -169,7 +169,7 @@ function DaySlotCard({
       onDragEnd={onDragEnd}
       className="rounded-2xl border transition-all duration-200 relative overflow-hidden"
       style={{
-        borderColor: isDragOver ? "#F97066" : (isEmpty ? "#E5DDD5" : color),
+        borderColor: isDragOver ? "#E06A33" : (isEmpty ? "#C2B5A3" : color),
         backgroundColor: isDragOver ? "#FFF5F4" : (isEmpty ? "white" : `${color}22`),
         borderWidth: isDragOver ? "2px" : "1.5px",
         opacity: isPosted ? 0.6 : 1,
@@ -186,7 +186,7 @@ function DaySlotCard({
         {/* Day header */}
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
-            <span className="text-xs font-bold uppercase tracking-wider" style={{ color: "#7A5C50" }}>{slot.day}</span>
+            <span className="text-xs font-bold uppercase tracking-wider" style={{ color: "#8B7261" }}>{slot.day}</span>
             {isPosted && (
               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium"
                 style={{ backgroundColor: "#F0FDF4", color: "#16A34A" }}>
@@ -196,7 +196,7 @@ function DaySlotCard({
           </div>
           {!isEmpty && (
             <button onClick={onClear} className="text-xs rounded-lg px-2 py-1 transition-colors hover:bg-red-50"
-              style={{ color: "#C4B5A5" }} title="Clear slot">
+              style={{ color: "#C2B5A3" }} title="Clear slot">
               <Trash2 className="h-3.5 w-3.5" />
             </button>
           )}
@@ -205,11 +205,11 @@ function DaySlotCard({
         {isEmpty ? (
           <div className="flex flex-col items-center justify-center py-4 text-center">
             {isDragOver ? (
-              <p className="text-sm font-medium" style={{ color: "#F97066" }}>Drop here</p>
+              <p className="text-sm font-medium" style={{ color: "#E06A33" }}>Drop here</p>
             ) : (
               <>
-                <p className="text-xs" style={{ color: "#C4B5A5" }}>No content planned</p>
-                <p className="text-xs mt-0.5" style={{ color: "#D4C4BA" }}>Generate or drag an idea here</p>
+                <p className="text-xs" style={{ color: "#C2B5A3" }}>No content planned</p>
+                <p className="text-xs mt-0.5" style={{ color: "#C2B5A3" }}>Generate or drag an idea here</p>
               </>
             )}
           </div>
@@ -219,7 +219,7 @@ function DaySlotCard({
             <div className="flex items-center gap-2 flex-wrap">
               {slot.pillarName && (
                 <span className="text-xs font-medium px-2 py-0.5 rounded-full"
-                  style={{ backgroundColor: `${color}44`, color: "#5A3825" }}>
+                  style={{ backgroundColor: `${color}44`, color: "#5A5A5A" }}>
                   {slot.pillarName}
                 </span>
               )}
@@ -228,14 +228,14 @@ function DaySlotCard({
 
             {/* Hook */}
             {slot.hook && (
-              <p className="text-sm font-medium leading-snug line-clamp-2" style={{ color: "#2D1810" }}>
+              <p className="text-sm font-medium leading-snug line-clamp-2" style={{ color: "#2D2D2D" }}>
                 {slot.hook}
               </p>
             )}
 
             {/* Angle */}
             {slot.angle && (
-              <p className="text-xs leading-relaxed line-clamp-2" style={{ color: "#7A5C50" }}>
+              <p className="text-xs leading-relaxed line-clamp-2" style={{ color: "#8B7261" }}>
                 {slot.angle}
               </p>
             )}
@@ -244,7 +244,7 @@ function DaySlotCard({
             <div className="flex items-center gap-1.5 pt-1 flex-wrap">
               <button onClick={onDevelop}
                 className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all hover:-translate-y-0.5"
-                style={{ backgroundColor: "#F97066", color: "white" }}>
+                style={{ backgroundColor: "#E06A33", color: "white" }}>
                 <ExternalLink className="h-3 w-3" />
                 Develop
               </button>
@@ -295,22 +295,22 @@ function IdeasBankSidebar({
   })
 
   return (
-    <div className="rounded-2xl border overflow-hidden" style={{ borderColor: "#E5DDD5", backgroundColor: "white" }}>
+    <div className="rounded-2xl border overflow-hidden" style={{ borderColor: "#C2B5A3", backgroundColor: "white" }}>
       {/* Header */}
-      <div className="flex items-center justify-between px-5 py-4 border-b" style={{ borderColor: "#F0EBE5" }}>
+      <div className="flex items-center justify-between px-5 py-4 border-b" style={{ borderColor: "#EDE6DC" }}>
         <div className="flex items-center gap-2">
-          <Layers className="h-4 w-4" style={{ color: "#F97066" }} />
-          <span className="text-sm font-semibold" style={{ color: "#2D1810" }}>Ideas Bank</span>
-          <span className="text-xs px-2 py-0.5 rounded-full" style={{ backgroundColor: "#FEF3F2", color: "#F97066" }}>
+          <Layers className="h-4 w-4" style={{ color: "#E06A33" }} />
+          <span className="text-sm font-semibold" style={{ color: "#2D2D2D" }}>Ideas Bank</span>
+          <span className="text-xs px-2 py-0.5 rounded-full" style={{ backgroundColor: "#FEF3F2", color: "#E06A33" }}>
             {ideas.length}
           </span>
         </div>
         <div className="flex items-center gap-1">
           <button onClick={onRefresh} className="p-1.5 rounded-lg hover:bg-gray-50 transition-colors" title="Refresh">
-            <RefreshCw className="h-3.5 w-3.5" style={{ color: "#7A5C50" }} />
+            <RefreshCw className="h-3.5 w-3.5" style={{ color: "#8B7261" }} />
           </button>
           <button onClick={() => setCollapsed(c => !c)} className="p-1.5 rounded-lg hover:bg-gray-50 transition-colors">
-            {collapsed ? <ChevronDown className="h-4 w-4" style={{ color: "#7A5C50" }} /> : <ChevronUp className="h-4 w-4" style={{ color: "#7A5C50" }} />}
+            {collapsed ? <ChevronDown className="h-4 w-4" style={{ color: "#8B7261" }} /> : <ChevronUp className="h-4 w-4" style={{ color: "#8B7261" }} />}
           </button>
         </div>
       </div>
@@ -319,12 +319,12 @@ function IdeasBankSidebar({
         <div className="max-h-[600px] overflow-y-auto">
           {loading ? (
             <div className="flex items-center justify-center py-8">
-              <Loader2 className="h-5 w-5 animate-spin" style={{ color: "#C4B5A5" }} />
+              <Loader2 className="h-5 w-5 animate-spin" style={{ color: "#C2B5A3" }} />
             </div>
           ) : ideas.length === 0 ? (
             <div className="py-8 px-5 text-center">
-              <p className="text-sm" style={{ color: "#7A5C50" }}>No saved ideas yet</p>
-              <p className="text-xs mt-1" style={{ color: "#C4B5A5" }}>Save ideas from the Content Creator</p>
+              <p className="text-sm" style={{ color: "#8B7261" }}>No saved ideas yet</p>
+              <p className="text-xs mt-1" style={{ color: "#C2B5A3" }}>Save ideas from the Content Creator</p>
             </div>
           ) : (
             <div className="p-3 space-y-4">
@@ -336,7 +336,7 @@ function IdeasBankSidebar({
                   <div key={p.id} className="space-y-1.5">
                     <div className="flex items-center gap-1.5 px-1">
                       <span className="h-2 w-2 rounded-full" style={{ backgroundColor: color }} />
-                      <span className="text-xs font-semibold" style={{ color: "#5A3825" }}>{p.name}</span>
+                      <span className="text-xs font-semibold" style={{ color: "#5A5A5A" }}>{p.name}</span>
                     </div>
                     {pillarIdeas.map(idea => (
                       <IdeaBankCard key={idea.id} idea={idea} pillarColor={color} onDragStart={() => onDragStart(idea)} />
@@ -347,11 +347,11 @@ function IdeasBankSidebar({
               {(grouped._none?.length ?? 0) > 0 && (
                 <div className="space-y-1.5">
                   <div className="flex items-center gap-1.5 px-1">
-                    <span className="h-2 w-2 rounded-full" style={{ backgroundColor: "#E5DDD5" }} />
-                    <span className="text-xs font-semibold" style={{ color: "#5A3825" }}>No pillar</span>
+                    <span className="h-2 w-2 rounded-full" style={{ backgroundColor: "#C2B5A3" }} />
+                    <span className="text-xs font-semibold" style={{ color: "#5A5A5A" }}>No pillar</span>
                   </div>
                   {grouped._none?.map(idea => (
-                    <IdeaBankCard key={idea.id} idea={idea} pillarColor="#E5DDD5" onDragStart={() => onDragStart(idea)} />
+                    <IdeaBankCard key={idea.id} idea={idea} pillarColor="#C2B5A3" onDragStart={() => onDragStart(idea)} />
                   ))}
                 </div>
               )}
@@ -383,21 +383,21 @@ function IdeaBankCard({
       draggable
       onDragStart={onDragStart}
       className="rounded-xl border p-3 cursor-grab active:cursor-grabbing transition-all hover:shadow-sm hover:-translate-y-0.5 relative overflow-hidden"
-      style={{ borderColor: "#E5DDD5", backgroundColor: "white" }}
+      style={{ borderColor: "#C2B5A3", backgroundColor: "white" }}
     >
       <div className="absolute left-0 top-0 bottom-0 w-1 rounded-l-xl" style={{ backgroundColor: pillarColor }} />
       <div className="pl-2 space-y-1">
         <div className="flex items-center gap-1.5">
-          <span className="text-xs" style={{ color: "#7A5C50" }}>{formatIcon}</span>
-          <span className="text-xs capitalize font-medium" style={{ color: "#7A5C50" }}>{idea.format}</span>
+          <span className="text-xs" style={{ color: "#8B7261" }}>{formatIcon}</span>
+          <span className="text-xs capitalize font-medium" style={{ color: "#8B7261" }}>{idea.format}</span>
         </div>
-        <p className="text-xs font-medium leading-snug line-clamp-2" style={{ color: "#2D1810" }}>
+        <p className="text-xs font-medium leading-snug line-clamp-2" style={{ color: "#2D2D2D" }}>
           {idea.hook ?? idea.title ?? "Untitled"}
         </p>
         {idea.title && idea.hook && (
-          <p className="text-xs line-clamp-1" style={{ color: "#7A5C50" }}>{idea.title}</p>
+          <p className="text-xs line-clamp-1" style={{ color: "#8B7261" }}>{idea.title}</p>
         )}
-        <p className="text-xs" style={{ color: "#C4B5A5" }}>Drag to a day →</p>
+        <p className="text-xs" style={{ color: "#C2B5A3" }}>Drag to a day →</p>
       </div>
     </div>
   )
@@ -613,13 +613,13 @@ export function ContentPlannerClient({
   // ── No brand ──────────────────────────────────────────────────────────────
   if (!brand) {
     return (
-      <div className="rounded-2xl border border-dashed p-12 text-center" style={{ borderColor: "#E5DDD5" }}>
-        <Layers className="h-10 w-10 mx-auto mb-3" style={{ color: "#C4B5A5" }} />
-        <p className="text-base font-medium" style={{ color: "#5A3825" }}>No brand set up yet</p>
-        <p className="text-sm mt-1 mb-4" style={{ color: "#7A5C50" }}>Create a brand first to start planning your content week.</p>
+      <div className="rounded-2xl border border-dashed p-12 text-center" style={{ borderColor: "#C2B5A3" }}>
+        <Layers className="h-10 w-10 mx-auto mb-3" style={{ color: "#C2B5A3" }} />
+        <p className="text-base font-medium" style={{ color: "#5A5A5A" }}>No brand set up yet</p>
+        <p className="text-sm mt-1 mb-4" style={{ color: "#8B7261" }}>Create a brand first to start planning your content week.</p>
         <a href="/settings"
           className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold text-white"
-          style={{ backgroundColor: "#F97066" }}>
+          style={{ backgroundColor: "#E06A33" }}>
           Set up your brand →
         </a>
       </div>
@@ -634,12 +634,12 @@ export function ContentPlannerClient({
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div className="space-y-1">
           <div className="flex items-center gap-2">
-            <span className="text-sm font-medium" style={{ color: "#5A3825" }}>
+            <span className="text-sm font-medium" style={{ color: "#5A5A5A" }}>
               {filledCount}/7 days planned
             </span>
             {filledCount > 0 && (
               <span className="text-xs px-2 py-0.5 rounded-full"
-                style={{ backgroundColor: "#FEF3F2", color: "#F97066" }}>
+                style={{ backgroundColor: "#FEF3F2", color: "#E06A33" }}>
                 {slots.filter(s => s.status === "posted").length} posted
               </span>
             )}
@@ -651,7 +651,7 @@ export function ContentPlannerClient({
           <button
             onClick={() => setSlots(emptyWeek())}
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium border transition-all hover:-translate-y-0.5"
-            style={{ borderColor: "#E5DDD5", color: "#7A5C50", backgroundColor: "white" }}>
+            style={{ borderColor: "#C2B5A3", color: "#8B7261", backgroundColor: "white" }}>
             <RefreshCw className="h-4 w-4" />
             Clear Week
           </button>
@@ -659,7 +659,7 @@ export function ContentPlannerClient({
             onClick={handleGenerateWeek}
             disabled={generatingWeek || !pillars.length}
             className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold text-white transition-all hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed"
-            style={{ backgroundColor: "#F97066" }}>
+            style={{ backgroundColor: "#E06A33" }}>
             {generatingWeek
               ? <Loader2 className="h-4 w-4 animate-spin" />
               : <Sparkles className="h-4 w-4" />}
@@ -669,15 +669,15 @@ export function ContentPlannerClient({
       </div>
 
       {pillars.length === 0 && (
-        <div className="rounded-2xl border border-dashed p-6 text-center space-y-3" style={{ borderColor: "#E5DDD5" }}>
-          <p className="text-sm font-medium" style={{ color: "#5A3825" }}>No content pillars set up yet</p>
-          <p className="text-xs" style={{ color: "#7A5C50" }}>
+        <div className="rounded-2xl border border-dashed p-6 text-center space-y-3" style={{ borderColor: "#C2B5A3" }}>
+          <p className="text-sm font-medium" style={{ color: "#5A5A5A" }}>No content pillars set up yet</p>
+          <p className="text-xs" style={{ color: "#8B7261" }}>
             Generate your pillars in the Content Creator first, then come back here to plan your week.
           </p>
           <a
             href="/content-creator"
             className="inline-flex items-center gap-1.5 text-sm font-semibold transition-colors hover:opacity-80"
-            style={{ color: "#F97066" }}
+            style={{ color: "#E06A33" }}
           >
             Go to Content Creator →
           </a>

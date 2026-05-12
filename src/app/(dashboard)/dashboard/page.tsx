@@ -3,7 +3,8 @@ import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import { getInitials } from "@/lib/utils"
 import { SocialConnect } from "./_components/social-connect"
-import type { Brand, ContentPillar } from "@/types"
+import type { Brand, ContentPillar, SocialAccount, SocialAccountsMap } from "@/types"
+import { normalizeSocialAccounts } from "@/lib/social-accounts"
 import type { Metadata } from "next"
 
 export const metadata: Metadata = {
@@ -32,7 +33,9 @@ export default async function DashboardPage() {
 
   const firstName = profileResult.data?.full_name?.split(" ")[0] ?? "there"
   const primaryBrand = brands?.[0] ?? null
-  const socialAccounts = (profileResult.data?.social_accounts ?? {}) as Record<string, string>
+  const socialAccounts = normalizeSocialAccounts(
+    (profileResult.data?.social_accounts ?? {}) as SocialAccountsMap | null,
+  )
 
   // Fetch content pillars for the primary brand
   let pillars: ContentPillar[] | null = null
@@ -45,19 +48,56 @@ export default async function DashboardPage() {
     pillars = data ?? []
   }
 
+  // Fetch idea stats for the primary brand
+  let ideasSavedCount = 0
+  let postsScheduledCount = 0
+  if (primaryBrand) {
+    const [savedRes, scheduledRes] = await Promise.all([
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (supabase.from("ideas") as any)
+        .select("id", { count: "exact", head: true })
+        .eq("brand_id", primaryBrand.id)
+        .eq("status", "idea"),
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (supabase.from("ideas") as any)
+        .select("id", { count: "exact", head: true })
+        .eq("brand_id", primaryBrand.id)
+        .eq("status", "scheduled"),
+    ])
+    ideasSavedCount = savedRes.count ?? 0
+    postsScheduledCount = scheduledRes.count ?? 0
+  }
+  const pillarsActiveCount = pillars?.length ?? 0
+  const platformsConnectedCount = Object.keys(socialAccounts).length
+
   return (
-    <div className="flex flex-col min-h-full" style={{ backgroundColor: "#FAFAF5" }}>
+    <div className="flex flex-col min-h-full" style={{ backgroundColor: "#EDE6DC" }}>
       {/* Warm custom page header — looser and more personal than the generic Header */}
-      <div className="px-4 pt-6 pb-5 md:px-8 md:pt-8 md:pb-6" style={{ borderBottom: "1px solid #E8E0D5" }}>
-        <h1 className="text-2xl md:text-4xl font-semibold leading-tight" style={{ color: "#2D1810" }}>
+      <div className="px-4 pt-6 pb-5 md:px-8 md:pt-8 md:pb-6" style={{ borderBottom: "1px solid #C2B5A3" }}>
+        <h1 className="text-2xl md:text-4xl font-semibold leading-tight" style={{ color: "#2D2D2D" }}>
           Good to see you, {firstName} 👋
         </h1>
-        <p className="mt-1.5 text-base" style={{ color: "#8A7060" }}>
+        <p className="mt-1.5 text-base" style={{ color: "#8B7261" }}>
           Here&apos;s your creative brand hub
         </p>
       </div>
 
       <div className="flex-1 w-full max-w-5xl px-4 py-6 md:px-8 md:py-10 space-y-10 md:space-y-12">
+
+        {/* ─── Section 0: Platform Stats ────────────────────────────── */}
+        <section>
+          <SectionHeader
+            title="Platform Stats"
+            subtitle="A quick pulse on your content + connected platforms"
+          />
+          <PlatformStats
+            postsScheduled={postsScheduledCount}
+            ideasSaved={ideasSavedCount}
+            pillarsActive={pillarsActiveCount}
+            platformsConnected={platformsConnectedCount}
+            socialAccounts={socialAccounts}
+          />
+        </section>
 
         {/* ─── Section 1: Brand Profile ───────────────────────────── */}
         <section>
@@ -71,7 +111,7 @@ export default async function DashboardPage() {
                     variant="outline"
                     size="sm"
                     className="rounded-xl"
-                    style={{ borderColor: "#E8D8D0", color: "#7A5C50" }}
+                    style={{ borderColor: "#E8D8D0", color: "#8B7261" }}
                   >
                     Edit Brand
                   </Button>
@@ -101,7 +141,35 @@ export default async function DashboardPage() {
           </div>
         </section>
 
-        {/* ─── Section 3: Content Pillars ─────────────────────────── */}
+        {/* ─── Section 3: Platform Stats ──────────────────────────── */}
+        <section>
+          <SectionHeader
+            title="Platform Stats"
+            subtitle="Followers and average engagement across your platforms"
+            action={
+              Object.keys(socialAccounts).length > 0 ? (
+                <Link href="/settings">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="rounded-xl"
+                    style={{ borderColor: "#E8D8D0", color: "#7A5C50" }}
+                  >
+                    Edit stats
+                  </Button>
+                </Link>
+              ) : null
+            }
+          />
+          <div
+            className="p-6 rounded-3xl"
+            style={{ backgroundColor: "#FFFFFF", boxShadow: "0 4px 24px rgba(180, 100, 60, 0.09)" }}
+          >
+            <PlatformStats accounts={socialAccounts} />
+          </div>
+        </section>
+
+        {/* ─── Section 4: Content Pillars ─────────────────────────── */}
         <section>
           <SectionHeader
             title="Content Pillars"
@@ -122,6 +190,127 @@ export default async function DashboardPage() {
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
+const PLATFORM_META: Record<string, { label: string; emoji: string; bg: string }> = {
+  instagram: { label: "Instagram", emoji: "📸", bg: "linear-gradient(135deg, #F97066 0%, #E0A050 100%)" },
+  tiktok:    { label: "TikTok",    emoji: "🎵", bg: "linear-gradient(135deg, #2D1810 0%, #4A3428 100%)" },
+  youtube:   { label: "YouTube",   emoji: "▶️", bg: "linear-gradient(135deg, #E05050 0%, #C03030 100%)" },
+  twitter:   { label: "X",         emoji: "𝕏",  bg: "linear-gradient(135deg, #4A3428 0%, #2D1810 100%)" },
+  pinterest: { label: "Pinterest", emoji: "📌", bg: "linear-gradient(135deg, #E05070 0%, #C03050 100%)" },
+  facebook:  { label: "Facebook",  emoji: "👥", bg: "linear-gradient(135deg, #5070D0 0%, #3050A0 100%)" },
+  linkedin:  { label: "LinkedIn",  emoji: "💼", bg: "linear-gradient(135deg, #3050A0 0%, #1D3D80 100%)" },
+}
+
+function StatCard({
+  label, value, hint,
+}: {
+  label: string
+  value: number | string
+  hint?: string
+}) {
+  return (
+    <div
+      className="rounded-2xl p-4 flex flex-col gap-1"
+      style={{ backgroundColor: "#FFFFFF", boxShadow: "0 2px 12px rgba(180, 100, 60, 0.07)", border: "1px solid #F0E8E0" }}
+    >
+      <p className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: "#A89080" }}>
+        {label}
+      </p>
+      <p className="text-3xl font-bold leading-none" style={{ color: "#F97066" }}>
+        {value}
+      </p>
+      {hint && (
+        <p className="text-[11px]" style={{ color: "#8A7060" }}>{hint}</p>
+      )}
+    </div>
+  )
+}
+
+function PlatformStats({
+  postsScheduled,
+  ideasSaved,
+  pillarsActive,
+  platformsConnected,
+  socialAccounts,
+}: {
+  postsScheduled: number
+  ideasSaved: number
+  pillarsActive: number
+  platformsConnected: number
+  socialAccounts: Record<string, string>
+}) {
+  const platformEntries = Object.entries(socialAccounts).filter(([, h]) => !!h)
+
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <StatCard
+          label="Posts Scheduled"
+          value={postsScheduled}
+          hint={postsScheduled === 0 ? "Plan your first post" : "In your planner"}
+        />
+        <StatCard
+          label="Ideas Saved"
+          value={ideasSaved}
+          hint={ideasSaved === 0 ? "Save ideas as you go" : "In your ideas bank"}
+        />
+        <StatCard
+          label="Pillars Active"
+          value={pillarsActive}
+          hint={pillarsActive === 0 ? "Define 3–6 themes" : `of 6 themes`}
+        />
+        <StatCard
+          label="Platforms"
+          value={platformsConnected}
+          hint={platformsConnected === 0 ? "Connect a profile" : "Connected"}
+        />
+      </div>
+
+      {platformEntries.length > 0 ? (
+        <div
+          className="rounded-3xl p-5"
+          style={{ backgroundColor: "#FFFFFF", boxShadow: "0 4px 24px rgba(180, 100, 60, 0.09)" }}
+        >
+          <p className="text-[10px] font-semibold uppercase tracking-widest mb-3" style={{ color: "#A89080" }}>
+            Connected Profiles
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+            {platformEntries.map(([id, handle]) => {
+              const meta = PLATFORM_META[id] ?? { label: id, emoji: "🔗", bg: "linear-gradient(135deg, #8A7060 0%, #5A3828 100%)" }
+              return (
+                <div
+                  key={id}
+                  className="flex items-center gap-3 p-3 rounded-2xl"
+                  style={{ backgroundColor: "#FAFAF5", border: "1px solid #F0E8E0" }}
+                >
+                  <div
+                    className="w-10 h-10 rounded-xl flex items-center justify-center text-base shrink-0"
+                    style={{ background: meta.bg, color: "white" }}
+                  >
+                    {meta.emoji}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-xs font-semibold" style={{ color: "#2D1810" }}>{meta.label}</p>
+                    <p className="text-xs truncate" style={{ color: "#8A7060" }}>{handle}</p>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      ) : (
+        <div
+          className="rounded-3xl p-5"
+          style={{ backgroundColor: "#FFF8F4", border: "1px dashed #E8D8D0" }}
+        >
+          <p className="text-sm" style={{ color: "#8A7060" }}>
+            No platforms connected yet — connect Instagram, TikTok or YouTube below to see per-platform stats here.
+          </p>
+        </div>
+      )}
+    </div>
+  )
+}
+
 function SectionHeader({
   title,
   subtitle,
@@ -134,8 +323,8 @@ function SectionHeader({
   return (
     <div className="flex items-end justify-between mb-5">
       <div>
-        <h2 className="text-lg font-semibold" style={{ color: "#2D1810" }}>{title}</h2>
-        <p className="text-sm mt-0.5" style={{ color: "#8A7060" }}>{subtitle}</p>
+        <h2 className="text-lg font-semibold" style={{ color: "#2D2D2D" }}>{title}</h2>
+        <p className="text-sm mt-0.5" style={{ color: "#8B7261" }}>{subtitle}</p>
       </div>
       {action}
     </div>
@@ -146,24 +335,24 @@ function EmptyBrandState() {
   return (
     <div
       className="flex flex-col items-center justify-center py-16 rounded-3xl border-2 border-dashed text-center"
-      style={{ borderColor: "#E8D8D0", backgroundColor: "#FFF8F4" }}
+      style={{ borderColor: "#E8D8D0", backgroundColor: "#FFFFFF" }}
     >
       <div
         className="w-14 h-14 rounded-2xl flex items-center justify-center mb-5 text-2xl"
-        style={{ backgroundColor: "#FEE8E4" }}
+        style={{ backgroundColor: "#EDE6DC" }}
       >
         ✨
       </div>
-      <h3 className="text-base font-semibold mb-1.5" style={{ color: "#2D1810" }}>
+      <h3 className="text-base font-semibold mb-1.5" style={{ color: "#2D2D2D" }}>
         Set up your brand profile
       </h3>
-      <p className="text-sm max-w-sm mb-6" style={{ color: "#8A7060" }}>
+      <p className="text-sm max-w-sm mb-6" style={{ color: "#8B7261" }}>
         Define your brand identity — niche, audience, tone, and colors — to unlock all content planning tools.
       </p>
       <Link href="/settings">
         <Button
           className="rounded-xl font-medium hover:opacity-90"
-          style={{ backgroundColor: "#F97066", color: "white" }}
+          style={{ backgroundColor: "#E06A33", color: "white" }}
         >
           Set up your brand →
         </Button>
@@ -184,7 +373,7 @@ function BrandProfileCard({ brand }: { brand: Brand }) {
       <div
         className="h-1.5 rounded-full mb-5"
         style={{
-          background: `linear-gradient(to right, ${brand.primary_color ?? "#F97066"}, ${brand.secondary_color ?? "#E8956D"})`,
+          background: `linear-gradient(to right, ${brand.primary_color ?? "#E06A33"}, ${brand.secondary_color ?? "#C45A26"})`,
         }}
       />
 
@@ -201,7 +390,7 @@ function BrandProfileCard({ brand }: { brand: Brand }) {
         ) : (
           <div
             className="w-14 h-14 rounded-2xl flex items-center justify-center text-white text-lg font-bold flex-shrink-0 shadow-sm"
-            style={{ backgroundColor: brand.primary_color || "#F97066" }}
+            style={{ backgroundColor: brand.primary_color || "#E06A33" }}
           >
             {initials}
           </div>
@@ -212,7 +401,7 @@ function BrandProfileCard({ brand }: { brand: Brand }) {
           <div className="flex items-center gap-2.5 flex-wrap">
             <h3
               className="text-xl md:text-3xl font-semibold leading-tight"
-              style={{ color: "#2D1810" }}
+              style={{ color: "#2D2D2D" }}
             >
               {brand.name}
             </h3>
@@ -225,8 +414,8 @@ function BrandProfileCard({ brand }: { brand: Brand }) {
           </div>
 
           {/* Tone of voice */}
-          <p className="text-sm mt-1.5" style={{ color: "#8A7060" }}>
-            <span className="font-medium" style={{ color: "#6A5048" }}>Tone: </span>
+          <p className="text-sm mt-1.5" style={{ color: "#8B7261" }}>
+            <span className="font-medium" style={{ color: "#5A5A5A" }}>Tone: </span>
             {brand.tone_of_voice ?? "Not specified"}
           </p>
         </div>
@@ -235,15 +424,15 @@ function BrandProfileCard({ brand }: { brand: Brand }) {
       {/* Target audience */}
       <div
         className="mt-5 pt-4 flex items-start gap-4"
-        style={{ borderTop: "1px solid #F0E8E0" }}
+        style={{ borderTop: "1px solid #EDE6DC" }}
       >
         <p
           className="text-[10px] font-semibold uppercase tracking-widest shrink-0 mt-0.5 w-28"
-          style={{ color: "#A89080" }}
+          style={{ color: "#C2B5A3" }}
         >
           Target Audience
         </p>
-        <p className="text-sm font-medium leading-snug whitespace-pre-line" style={{ color: "#4A3428" }}>
+        <p className="text-sm font-medium leading-snug whitespace-pre-line" style={{ color: "#2D2D2D" }}>
           {(brand.target_audience ?? "Not specified").replace(/\* /g, "• ").replace(/\*/g, "")}
         </p>
       </div>
@@ -251,14 +440,125 @@ function BrandProfileCard({ brand }: { brand: Brand }) {
   )
 }
 
+// ─── Platform Stats ───────────────────────────────────────────────────────────
+
+const PLATFORM_META: Record<string, { name: string; emoji: string; bg: string }> = {
+  instagram: { name: "Instagram", emoji: "📸", bg: "bg-gradient-to-br from-pink-500 to-orange-400" },
+  tiktok:    { name: "TikTok",    emoji: "🎵", bg: "bg-gradient-to-br from-slate-800 to-slate-900" },
+  youtube:   { name: "YouTube",   emoji: "▶️", bg: "bg-gradient-to-br from-red-500 to-red-600" },
+  twitter:   { name: "X / Twitter", emoji: "𝕏", bg: "bg-gradient-to-br from-slate-700 to-slate-900" },
+  pinterest: { name: "Pinterest", emoji: "📌", bg: "bg-gradient-to-br from-rose-500 to-red-600" },
+  facebook:  { name: "Facebook",  emoji: "👥", bg: "bg-gradient-to-br from-blue-500 to-blue-700" },
+  linkedin:  { name: "LinkedIn",  emoji: "💼", bg: "bg-gradient-to-br from-blue-700 to-blue-800" },
+}
+
+function formatFollowers(n: number): string {
+  if (!Number.isFinite(n) || n <= 0) return "0"
+  return n.toLocaleString("en-US")
+}
+
+function formatEngagement(n: number): string {
+  if (!Number.isFinite(n) || n <= 0) return "0%"
+  return `${n.toFixed(1)}%`
+}
+
+function PlatformStats({ accounts }: { accounts: Record<string, SocialAccount> }) {
+  const entries = Object.entries(accounts)
+
+  if (entries.length === 0) {
+    return (
+      <div className="text-center py-6">
+        <p className="text-sm mb-3" style={{ color: "#8A7060" }}>
+          No platforms connected yet — connect your social accounts to see follower and engagement stats here.
+        </p>
+        <Link href="/settings">
+          <Button
+            variant="outline"
+            size="sm"
+            className="rounded-xl"
+            style={{ borderColor: "#E8D8D0", color: "#7A5C50" }}
+          >
+            Go to Settings →
+          </Button>
+        </Link>
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-2.5">
+      {entries.map(([platformId, account]) => {
+        const meta = PLATFORM_META[platformId] ?? { name: platformId, emoji: "🌐", bg: "bg-slate-500" }
+        const hasStats = (account.followers ?? 0) > 0 || (account.engagement ?? 0) > 0
+        return (
+          <div
+            key={platformId}
+            className="flex items-center gap-4 px-4 py-3.5 rounded-2xl"
+            style={{ backgroundColor: "#FAFAF5", border: "1px solid #F0E8E0" }}
+          >
+            {/* Platform identity (left) */}
+            <div className="flex items-center gap-3 flex-1 min-w-0">
+              <div className={`w-9 h-9 rounded-xl ${meta.bg} flex items-center justify-center text-sm shadow-sm shrink-0`}>
+                <span role="img" aria-label={meta.name}>{meta.emoji}</span>
+              </div>
+              <div className="min-w-0">
+                <p className="text-sm font-semibold truncate" style={{ color: "#2D1810" }}>
+                  {meta.name}
+                </p>
+                <p className="text-xs truncate" style={{ color: "#8A7060" }}>
+                  {account.handle.startsWith("@") || account.handle.startsWith("http")
+                    ? account.handle
+                    : `@${account.handle}`}
+                </p>
+              </div>
+            </div>
+
+            {hasStats ? (
+              <>
+                {/* Followers (middle) */}
+                <div className="text-right shrink-0">
+                  <p className="text-base md:text-lg font-bold leading-none" style={{ color: "#2D1810" }}>
+                    {formatFollowers(account.followers)}
+                  </p>
+                  <p className="text-[10px] mt-1 uppercase tracking-wide" style={{ color: "#A89080" }}>
+                    followers
+                  </p>
+                </div>
+
+                {/* Engagement (right) */}
+                <div className="text-right shrink-0 w-20">
+                  <p className="text-base md:text-lg font-bold leading-none" style={{ color: "#F97066" }}>
+                    {formatEngagement(account.engagement)}
+                  </p>
+                  <p className="text-[10px] mt-1 uppercase tracking-wide" style={{ color: "#A89080" }}>
+                    avg engagement
+                  </p>
+                </div>
+              </>
+            ) : (
+              <Link
+                href="/settings"
+                className="text-xs font-medium px-3 py-1.5 rounded-full hover:opacity-80 shrink-0 transition-opacity"
+                style={{ backgroundColor: "#FEF0EA", color: "#D4432A", border: "1px solid #F5C4BC" }}
+              >
+                + Add stats
+              </Link>
+            )}
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
 // Distinct warm pastel backgrounds cycling per pillar index
 const PILLAR_PALETTES = [
-  { bg: "#FEE8E4", text: "#B03020", dot: "#F97066" }, // coral
+  { bg: "#EDE6DC", text: "#C45A26", dot: "#E06A33" }, // coral
   { bg: "#E4F0E8", text: "#2D6040", dot: "#4CAF70" }, // sage
   { bg: "#FEF3DC", text: "#8B5E10", dot: "#F0A020" }, // amber
   { bg: "#EEE8F8", text: "#5040A0", dot: "#9070E0" }, // lavender
-  { bg: "#FEF0E0", text: "#C05820", dot: "#E88040" }, // peach
-  { bg: "#FDEAEF", text: "#B03050", dot: "#E05070" }, // rose
+  { bg: "#EDE6DC", text: "#C45A26", dot: "#E06A33" }, // peach
+  { bg: "#EDE6DC", text: "#B03050", dot: "#E05070" }, // rose
 ]
 
 function ContentPillarsSummary({
@@ -270,7 +570,7 @@ function ContentPillarsSummary({
 }) {
   if (!hasBrand) {
     return (
-      <p className="text-sm" style={{ color: "#8A7060" }}>
+      <p className="text-sm" style={{ color: "#8B7261" }}>
         Create your brand first to start building content pillars.
       </p>
     )
@@ -278,12 +578,12 @@ function ContentPillarsSummary({
 
   if (!pillars || pillars.length === 0) {
     return (
-      <p className="text-sm" style={{ color: "#8A7060" }}>
+      <p className="text-sm" style={{ color: "#8B7261" }}>
         No pillars saved yet —{" "}
         <Link
           href="/content-creator"
           className="hover:underline transition-colors"
-          style={{ color: "#F97066" }}
+          style={{ color: "#E06A33" }}
         >
           go to Content Creator to generate some
         </Link>
@@ -316,10 +616,10 @@ function ContentPillarsSummary({
       {pillars.length < 6 && (
         <Link href="/content-pillars" className="block">
           <div
-            className="p-4 rounded-2xl border-2 border-dashed flex items-center justify-center gap-2 min-h-[56px] transition-all hover:border-[#F97066]"
+            className="p-4 rounded-2xl border-2 border-dashed flex items-center justify-center gap-2 min-h-[56px] transition-all hover:border-[#E06A33]"
             style={{ borderColor: "#E8D8D0" }}
           >
-            <span className="text-sm" style={{ color: "#A08070" }}>+ Add pillar</span>
+            <span className="text-sm" style={{ color: "#8B7261" }}>+ Add pillar</span>
           </div>
         </Link>
       )}
