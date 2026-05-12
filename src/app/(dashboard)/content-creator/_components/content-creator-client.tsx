@@ -15,8 +15,11 @@ import {
   FileText, Film, LayoutGrid, Save, Download, Wand2,
   Hash, AlignLeft, Music, Globe, Search, Layers, Plus, Trash2,
   Bookmark, BookmarkCheck, ArrowLeft, Zap, Type, Mic2, Pencil,
+  Calendar, Eye, X, Smartphone, Target,
+  Users, TrendingUp, Lightbulb,
 } from "lucide-react"
 import type { Brand, ContentPillar, Idea } from "@/types"
+import { ContentPlannerClient } from "@/app/(dashboard)/content-planner/_components/content-planner-client"
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -2079,14 +2082,16 @@ function IdeasBank({
   onLoad,
   onDelete,
   onRefresh,
+  defaultOpen = false,
 }: {
   ideas: Idea[]
   pillars: ContentPillar[]
   onLoad: (idea: Idea) => void
   onDelete: (id: string) => void
   onRefresh: () => void
+  defaultOpen?: boolean
 }) {
-  const [open, setOpen] = useState(false)
+  const [open, setOpen] = useState(defaultOpen)
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
 
   // Group ideas by pillar
@@ -3469,6 +3474,1229 @@ function GenerationStrip({
   )
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// ContentOS — Studio + Research tabs
+// ─────────────────────────────────────────────────────────────────────────────
+
+type StudioFormat = "post" | "carousel" | "reel" | "story"
+type StudioPlatform = "instagram" | "tiktok" | "linkedin" | "youtube"
+
+const STUDIO_FORMATS: Array<{
+  key: StudioFormat
+  label: string
+  aspect: string
+  desc: string
+  icon: React.ReactNode
+}> = [
+  { key: "post",     label: "Post",     aspect: "1:1",  desc: "Single image",     icon: <FileText className="h-5 w-5" /> },
+  { key: "carousel", label: "Carousel", aspect: "1:1",  desc: "Multi-slide",      icon: <LayoutGrid className="h-5 w-5" /> },
+  { key: "reel",     label: "Reel",     aspect: "9:16", desc: "Short-form video", icon: <Film className="h-5 w-5" /> },
+  { key: "story",    label: "Story",    aspect: "9:16", desc: "24hr content",     icon: <Zap className="h-5 w-5" /> },
+]
+
+const STUDIO_PLATFORMS: Array<{ key: StudioPlatform; label: string }> = [
+  { key: "instagram", label: "Instagram" },
+  { key: "tiktok",    label: "TikTok" },
+  { key: "linkedin",  label: "LinkedIn" },
+  { key: "youtube",   label: "YT Shorts" },
+]
+
+const PLATFORM_CAPTION_RULES: Record<StudioPlatform, string> = {
+  instagram: "Instagram: 150–300 words, warm and authentic, end with a clear question CTA that invites comments.",
+  tiktok:    "TikTok: 1–3 sentences only, ultra casual, lowercase ok, no formality. Match the trend energy.",
+  linkedin:  "LinkedIn: 100–200 words, professional but human, insight-driven. Open with a punchy line, use line breaks, finish with a thought-provoking takeaway.",
+  youtube:   "YouTube Shorts: very short caption, prioritise searchable keywords and a one-line description of the value.",
+}
+
+const FORMAT_TIPS: Record<StudioFormat, string[]> = {
+  post: [
+    "Front-load value in the first 2 lines — that's all that shows above the fold.",
+    "One single image. Make sure it earns the stop.",
+    "Caption can run long if it delivers genuine insight.",
+  ],
+  carousel: [
+    "Slide 1 is your hook — design it like a cover.",
+    "Aim for 5–10 slides. Each slide = one idea.",
+    "Last slide should drive an action (save, follow, comment).",
+  ],
+  reel: [
+    "Hook in the first 1.5 seconds — written and spoken.",
+    "Keep it under 30 seconds for max replay rate.",
+    "Add captions on-screen; most viewers watch muted.",
+  ],
+  story: [
+    "Use polls, questions or sliders to drive interaction.",
+    "Stories are casual — don't over-polish.",
+    "Tag relevant accounts and locations for reach.",
+  ],
+}
+
+// ── Phone Preview ─────────────────────────────────────────────────────────────
+
+function PhonePreview({
+  format,
+  platform,
+  pillar,
+  hook,
+  caption,
+  hashtags,
+  brandName,
+}: {
+  format: StudioFormat
+  platform: StudioPlatform
+  pillar: ContentPillar | null
+  hook: string | null
+  caption: string
+  hashtags: string[]
+  brandName: string | null
+}) {
+  const isVertical = format === "reel" || format === "story"
+  const aspectClass = isVertical ? "aspect-[9/16]" : "aspect-square"
+  const pillarColor = pillar?.color ?? "#F97066"
+  const platformLabel = STUDIO_PLATFORMS.find((p) => p.key === platform)?.label ?? "Instagram"
+  const formatMeta = STUDIO_FORMATS.find((f) => f.key === format)!
+  const tagsLine = hashtags.length
+    ? hashtags.map((h) => (h.startsWith("#") ? h : `#${h}`)).join(" ")
+    : ""
+  const handle = brandName ? brandName.toLowerCase().replace(/\s+/g, "_") : "your_brand"
+
+  return (
+    <div className="space-y-3">
+      <div
+        className="rounded-[2rem] overflow-hidden bg-white mx-auto"
+        style={{
+          maxWidth: isVertical ? 260 : 320,
+          border: "4px solid #2D1810",
+          boxShadow: "0 8px 24px rgba(45,24,16,0.18)",
+        }}
+      >
+        {/* Top bar */}
+        <div
+          className="px-3 py-2 flex items-center justify-between text-[10px] font-medium"
+          style={{ backgroundColor: "#FEFCF8", borderBottom: "1px solid #E5DDD5", color: "#2D1810" }}
+        >
+          <span>{platformLabel}</span>
+          <span style={{ color: "#8A7060" }}>{formatMeta.label} · {formatMeta.aspect}</span>
+        </div>
+
+        {/* Visual area */}
+        <div
+          className={cn("relative", aspectClass)}
+          style={{
+            background: `linear-gradient(135deg, ${pillarColor}1F 0%, ${pillarColor}0A 60%, #FAFAF5 100%)`,
+          }}
+        >
+          {pillar && (
+            <div
+              className="absolute top-3 left-3 inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-[10px] font-medium"
+              style={{ backgroundColor: "rgba(255,255,255,0.92)", color: "#2D1810" }}
+            >
+              <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: pillar.color }} />
+              {pillar.name}
+            </div>
+          )}
+
+          {format === "story" && (
+            <div className="absolute top-3 right-3 flex gap-1">
+              {[0, 1, 2].map((i) => (
+                <div key={i} className="h-1 w-6 rounded-full" style={{ backgroundColor: "rgba(255,255,255,0.6)" }} />
+              ))}
+            </div>
+          )}
+
+          <div className="absolute inset-0 flex items-center justify-center p-5">
+            {hook ? (
+              <p
+                className={cn(
+                  "text-center font-bold leading-tight",
+                  isVertical ? "text-lg" : "text-base"
+                )}
+                style={{ color: "#2D1810" }}
+              >
+                {hook}
+              </p>
+            ) : (
+              <div className="flex flex-col items-center gap-2 opacity-60">
+                <ImageIcon className="h-10 w-10" style={{ color: pillarColor }} />
+                <p className="text-xs" style={{ color: "#8A7060" }}>
+                  Your {formatMeta.label.toLowerCase()} preview
+                </p>
+              </div>
+            )}
+          </div>
+
+          {format === "carousel" && (
+            <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1">
+              {[0, 1, 2, 3, 4].map((i) => (
+                <div
+                  key={i}
+                  className="h-1.5 w-1.5 rounded-full"
+                  style={{ backgroundColor: i === 0 ? "#2D1810" : "rgba(45,24,16,0.3)" }}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Caption strip (only for post/carousel — story/reel hide caption in preview) */}
+        {!isVertical && (caption || tagsLine) && (
+          <div className="px-3 py-2.5 space-y-1" style={{ borderTop: "1px solid #E5DDD5" }}>
+            {caption && (
+              <p className="text-[11px] leading-snug" style={{ color: "#2D1810" }}>
+                <span className="font-semibold">{handle}</span>{" "}
+                {caption.length > 90 ? caption.substring(0, 90) + "…" : caption}
+              </p>
+            )}
+            {tagsLine && (
+              <p className="text-[10px] leading-snug" style={{ color: "#7B9ED9" }}>
+                {tagsLine.length > 80 ? tagsLine.substring(0, 80) + "…" : tagsLine}
+              </p>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Format tips */}
+      <div className="rounded-2xl bg-white p-3 space-y-1.5" style={{ border: "1px solid #E5DDD5" }}>
+        <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: "#8A7060" }}>
+          {formatMeta.label} tips
+        </p>
+        <ul className="space-y-1">
+          {FORMAT_TIPS[format].map((tip, i) => (
+            <li key={i} className="text-[11px] leading-snug flex gap-1.5" style={{ color: "#5A3825" }}>
+              <span style={{ color: "#F97066" }}>•</span>
+              <span>{tip}</span>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </div>
+  )
+}
+
+// ── Pill button (shared) ──────────────────────────────────────────────────────
+
+function StudioPill({
+  active,
+  onClick,
+  children,
+  className,
+  fullWidth,
+}: {
+  active: boolean
+  onClick: () => void
+  children: React.ReactNode
+  className?: string
+  fullWidth?: boolean
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        "rounded-2xl px-4 py-2.5 text-sm font-medium transition-all border min-h-[44px]",
+        fullWidth && "w-full",
+        className
+      )}
+      style={
+        active
+          ? { backgroundColor: "#F97066", color: "white", borderColor: "#F97066" }
+          : { backgroundColor: "white", color: "#5A3825", borderColor: "#E5DDD5" }
+      }
+    >
+      {children}
+    </button>
+  )
+}
+
+// ── Studio Tab ────────────────────────────────────────────────────────────────
+
+function StudioTab({
+  brand,
+  pillars,
+  userId,
+  loadedIdea,
+  onIdeaSaved,
+  setMigrationBanner,
+}: {
+  brand: Brand | null
+  pillars: ContentPillar[]
+  userId: string
+  loadedIdea: Idea | null
+  onIdeaSaved: () => void
+  setMigrationBanner: (v: boolean) => void
+}) {
+  const supabase = createClient()
+  const { toast } = useToast()
+
+  const [format, setFormat] = useState<StudioFormat>("post")
+  const [platform, setPlatform] = useState<StudioPlatform>("instagram")
+  const [pillarId, setPillarId] = useState<string | null>(null)
+  const [topic, setTopic] = useState("")
+  const [hooks, setHooks] = useState<string[] | null>(null)
+  const [selectedHook, setSelectedHook] = useState<string | null>(null)
+  const [caption, setCaption] = useState("")
+  const [hashtags, setHashtags] = useState<string[]>([])
+  const [scheduledDate, setScheduledDate] = useState("")
+
+  const [loadingHooks, setLoadingHooks] = useState(false)
+  const [loadingCaption, setLoadingCaption] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [showPreviewSheet, setShowPreviewSheet] = useState(false)
+
+  const selectedPillar = pillars.find((p) => p.id === pillarId) ?? null
+
+  // Load an existing idea when one is selected from Ideas tab
+  useEffect(() => {
+    if (!loadedIdea) return
+    const fmt = (loadedIdea.format === "carousel" ? "carousel" : loadedIdea.format === "reel" ? "reel" : "post") as StudioFormat
+    setFormat(fmt)
+    setPillarId(loadedIdea.pillar_id)
+    setTopic(loadedIdea.title || "")
+    setSelectedHook(loadedIdea.hook ?? null)
+    setHooks(loadedIdea.hook ? [loadedIdea.hook] : null)
+    setCaption(loadedIdea.caption ?? "")
+    const tags = loadedIdea.hashtags
+      ? loadedIdea.hashtags.split(/\s+/).filter(Boolean).slice(0, 5)
+      : []
+    setHashtags(tags)
+    setScheduledDate(loadedIdea.scheduled_date ?? "")
+  }, [loadedIdea?.id]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleGenerateHooks = async () => {
+    if (!topic.trim()) {
+      toast({ title: "Tell us what the post is about first", variant: "destructive" })
+      return
+    }
+    setLoadingHooks(true)
+    setSelectedHook(null)
+    try {
+      const res = await fetch("/api/generate-hooks", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          topic,
+          brandName: brand?.name,
+          niche: brand?.niche,
+          tone: brand?.tone_of_voice,
+          targetAudience: brand?.target_audience,
+          pillarName: selectedPillar?.name,
+          pillarVoiceDirection: selectedPillar?.voice_direction,
+          pillarFormatPreference: format,
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error ?? "Failed to generate hooks")
+      const list: string[] = Array.isArray(data.hooks) ? data.hooks.slice(0, 3) : []
+      setHooks(list)
+    } catch (err) {
+      toast({
+        title: "Couldn't generate hooks",
+        description: err instanceof Error ? err.message : "Try again in a moment.",
+        variant: "destructive",
+      })
+    } finally {
+      setLoadingHooks(false)
+    }
+  }
+
+  const handleGenerateCaption = async () => {
+    if (!selectedHook) return
+    setLoadingCaption(true)
+    try {
+      const platformNotes = PLATFORM_CAPTION_RULES[platform]
+      const [capRes, hashRes] = await Promise.all([
+        fetch("/api/generate-caption", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            hook: selectedHook,
+            notes: `${platformNotes}\nTopic: ${topic}\nFormat: ${format}`,
+            brandName: brand?.name,
+            niche: brand?.niche,
+            tone: brand?.tone_of_voice,
+            targetAudience: brand?.target_audience,
+            pillarName: selectedPillar?.name,
+            pillarVoiceDirection: selectedPillar?.voice_direction,
+            pillarFormatPreference: format,
+          }),
+        }),
+        fetch("/api/generate-hashtags", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            niche: brand?.niche,
+            caption: selectedHook,
+            brandName: brand?.name,
+          }),
+        }),
+      ])
+      const capData = await capRes.json()
+      const hashData = await hashRes.json()
+      if (!capRes.ok) throw new Error(capData.error ?? "Caption failed")
+      setCaption(capData.caption ?? "")
+      const all: string[] = [
+        ...(hashData?.niche ?? []),
+        ...(hashData?.broad ?? []),
+        ...(hashData?.engagement ?? []),
+      ]
+        .map((t: string) => t.replace(/^#/, ""))
+        .filter(Boolean)
+      // Deduplicate, take 5
+      const seen = new Set<string>()
+      const uniq: string[] = []
+      for (const t of all) {
+        const k = t.toLowerCase()
+        if (!seen.has(k)) {
+          seen.add(k)
+          uniq.push(t)
+        }
+        if (uniq.length === 5) break
+      }
+      setHashtags(uniq)
+    } catch (err) {
+      toast({
+        title: "Couldn't generate caption",
+        description: err instanceof Error ? err.message : "Try again in a moment.",
+        variant: "destructive",
+      })
+    } finally {
+      setLoadingCaption(false)
+    }
+  }
+
+  const handleSaveToPlanner = async () => {
+    if (!brand) {
+      toast({ title: "Set up a brand first", variant: "destructive" })
+      return
+    }
+    if (!selectedHook && !caption) {
+      toast({ title: "Generate a hook or caption first", variant: "destructive" })
+      return
+    }
+    setSaving(true)
+    const dbFormat: "post" | "carousel" | "reel" = format === "story" ? "post" : format
+    const status: "idea" | "scheduled" = scheduledDate ? "scheduled" : "idea"
+    const basePayload = {
+      user_id: userId,
+      brand_id: brand.id,
+      pillar_id: pillarId,
+      format: dbFormat,
+      title: topic.trim() || (selectedHook ?? "Untitled idea").slice(0, 80),
+      hook: selectedHook,
+      caption: caption || null,
+      hashtags: hashtags.length ? hashtags.map((t) => (t.startsWith("#") ? t : `#${t}`)).join(" ") : null,
+      status,
+    }
+    const fullPayload = scheduledDate ? { ...basePayload, scheduled_date: scheduledDate } : basePayload
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let { error } = await (supabase.from("ideas") as any).insert(fullPayload)
+
+    // If the scheduled_date column doesn't exist yet, fall back to inserting without it.
+    if (error && /scheduled_date/i.test(error.message ?? "")) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const retry = await (supabase.from("ideas") as any).insert(basePayload)
+      error = retry.error
+      if (!error && scheduledDate) {
+        toast({
+          title: "Saved (without date)",
+          description: "Run migration 005 to enable scheduling.",
+        })
+      }
+    }
+
+    if (error) {
+      const msg = error.message ?? ""
+      if (msg.includes("relation") && msg.includes("does not exist")) {
+        setMigrationBanner(true)
+      }
+      toast({ title: "Couldn't save idea", description: msg, variant: "destructive" })
+    } else {
+      toast({ title: scheduledDate ? "Scheduled to planner!" : "Saved to ideas!" })
+      onIdeaSaved()
+    }
+    setSaving(false)
+  }
+
+  const ready = topic.trim().length > 0
+  const captionReady = !!selectedHook
+  const allHashtagsString = hashtags.map((t) => (t.startsWith("#") ? t : `#${t}`)).join(" ")
+  const captionPlusTags = [caption, allHashtagsString].filter(Boolean).join("\n\n")
+
+  if (!brand) {
+    return (
+      <div className="flex flex-col items-center justify-center py-16 gap-4">
+        <div className="h-16 w-16 rounded-2xl flex items-center justify-center" style={{ backgroundColor: "#FEF0EA" }}>
+          <Sparkles className="h-8 w-8" style={{ color: "#F97066" }} />
+        </div>
+        <div className="text-center">
+          <h2 className="text-lg font-semibold" style={{ color: "#2D1810" }}>No brand set up yet</h2>
+          <p className="text-sm mt-1" style={{ color: "#8A7060" }}>
+            Create a brand profile so the AI can generate content tailored to your niche and tone.
+          </p>
+        </div>
+        <Button asChild style={{ backgroundColor: "#F97066", color: "white" }}>
+          <a href="/settings">Set up your brand →</a>
+        </Button>
+      </div>
+    )
+  }
+
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-6">
+      {/* ── Left: form ──────────────────────────────────────────── */}
+      <div className="space-y-5 pb-24 lg:pb-0">
+        {/* Format selector */}
+        <div>
+          <SectionLabel label="Format" icon={<LayoutGrid className="h-3 w-3" />} />
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            {STUDIO_FORMATS.map((f) => {
+              const active = format === f.key
+              return (
+                <button
+                  key={f.key}
+                  type="button"
+                  onClick={() => setFormat(f.key)}
+                  className="rounded-2xl border p-3 text-left transition-all min-h-[88px]"
+                  style={
+                    active
+                      ? { borderColor: "#F97066", backgroundColor: "#FEF0EA", boxShadow: "0 0 0 2px rgba(249,112,102,0.25)" }
+                      : { borderColor: "#E5DDD5", backgroundColor: "white" }
+                  }
+                >
+                  <div
+                    className="h-8 w-8 rounded-lg flex items-center justify-center mb-2"
+                    style={{ backgroundColor: active ? "white" : "#FAFAF5", color: active ? "#D4432A" : "#8A7060" }}
+                  >
+                    {f.icon}
+                  </div>
+                  <p className="text-sm font-semibold" style={{ color: "#2D1810" }}>
+                    {f.label}
+                  </p>
+                  <p className="text-[11px]" style={{ color: "#8A7060" }}>
+                    {f.aspect} · {f.desc}
+                  </p>
+                </button>
+              )
+            })}
+          </div>
+        </div>
+
+        {/* Platform selector */}
+        <div>
+          <SectionLabel label="Platform" icon={<Globe className="h-3 w-3" />} />
+          <div className="flex gap-2 overflow-x-auto -mx-1 px-1 pb-1">
+            {STUDIO_PLATFORMS.map((p) => (
+              <StudioPill
+                key={p.key}
+                active={platform === p.key}
+                onClick={() => setPlatform(p.key)}
+                className="whitespace-nowrap shrink-0"
+              >
+                {p.label}
+              </StudioPill>
+            ))}
+          </div>
+        </div>
+
+        {/* Pillar selector */}
+        <div>
+          <SectionLabel label="Pillar" icon={<Layers className="h-3 w-3" />} />
+          {pillars.length === 0 ? (
+            <p className="text-xs italic" style={{ color: "#8A7060" }}>
+              No pillars yet. Add some in the Pillars tab to ground the AI in your themes.
+            </p>
+          ) : (
+            <div className="flex flex-wrap gap-2">
+              {pillars.map((p) => {
+                const active = pillarId === p.id
+                return (
+                  <button
+                    key={p.id}
+                    type="button"
+                    onClick={() => setPillarId(active ? null : p.id)}
+                    className="rounded-2xl px-3.5 py-2 text-sm font-medium border min-h-[44px] inline-flex items-center gap-2 transition-all"
+                    style={
+                      active
+                        ? { borderColor: p.color, backgroundColor: p.color + "1A", color: "#2D1810" }
+                        : { borderColor: "#E5DDD5", backgroundColor: "white", color: "#5A3825" }
+                    }
+                  >
+                    <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: p.color }} />
+                    {p.emoji && <span className="text-base leading-none">{p.emoji}</span>}
+                    <span>{p.name}</span>
+                  </button>
+                )
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* Topic input */}
+        <div>
+          <SectionLabel label="Topic" icon={<AlignLeft className="h-3 w-3" />} />
+          <Textarea
+            value={topic}
+            onChange={(e) => setTopic(e.target.value)}
+            placeholder="What's this post about? Be specific. e.g. 'how I doubled my engagement after switching from polished content to behind-the-scenes'"
+            rows={3}
+            className="text-sm resize-none"
+            style={{ borderColor: "#E5DDD5", backgroundColor: "white" }}
+          />
+        </div>
+
+        {/* Generate hooks button */}
+        <Button
+          onClick={handleGenerateHooks}
+          disabled={!ready || loadingHooks}
+          className="w-full gap-2 font-medium min-h-[48px] hidden lg:inline-flex"
+          style={{ backgroundColor: "#F97066", color: "white" }}
+        >
+          {loadingHooks ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+          {hooks ? "Regenerate Hooks" : "Generate Hooks"}
+        </Button>
+
+        {/* Hooks */}
+        {hooks && hooks.length > 0 && (
+          <div className="space-y-3">
+            <SectionLabel label="Pick a hook" icon={<Wand2 className="h-3 w-3" />} />
+            <div className="space-y-2">
+              {hooks.map((h, i) => {
+                const active = selectedHook === h
+                return (
+                  <div
+                    key={i}
+                    className="rounded-2xl border p-3 transition-all flex items-start gap-3"
+                    style={
+                      active
+                        ? { borderColor: "#F97066", backgroundColor: "#FEF0EA", boxShadow: "0 0 0 2px rgba(249,112,102,0.25)" }
+                        : { borderColor: "#E5DDD5", backgroundColor: "white" }
+                    }
+                  >
+                    <button
+                      type="button"
+                      onClick={() => setSelectedHook(h)}
+                      className="flex-1 text-left text-sm leading-snug"
+                      style={{ color: "#2D1810" }}
+                    >
+                      <span
+                        className="inline-flex items-center justify-center h-5 w-5 rounded-full text-[10px] font-bold mr-2 align-text-bottom"
+                        style={{
+                          backgroundColor: active ? "#F97066" : "#FEF0EA",
+                          color: active ? "white" : "#D4432A",
+                        }}
+                      >
+                        {i + 1}
+                      </span>
+                      {h}
+                    </button>
+                    <CopyButton text={h} />
+                  </div>
+                )
+              })}
+            </div>
+
+            {selectedHook && !caption && (
+              <Button
+                onClick={handleGenerateCaption}
+                disabled={loadingCaption}
+                className="w-full gap-2 font-medium min-h-[48px]"
+                style={{ backgroundColor: "#F97066", color: "white" }}
+              >
+                {loadingCaption ? <Loader2 className="h-4 w-4 animate-spin" /> : <ChevronRight className="h-4 w-4" />}
+                Generate Caption →
+              </Button>
+            )}
+          </div>
+        )}
+
+        {/* Caption + hashtags */}
+        {(caption || captionReady) && (
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <SectionLabel label="Caption" icon={<Type className="h-3 w-3" />} />
+              {captionPlusTags && <CopyButton text={captionPlusTags} label="Copy all" />}
+            </div>
+            <Textarea
+              value={caption}
+              onChange={(e) => setCaption(e.target.value)}
+              placeholder={loadingCaption ? "Writing your caption…" : "Tap 'Generate Caption' or write your own here."}
+              rows={8}
+              className="text-sm leading-relaxed"
+              style={{ borderColor: "#E5DDD5", backgroundColor: "white" }}
+            />
+            {hashtags.length > 0 && (
+              <div className="flex flex-wrap gap-1.5">
+                {hashtags.map((tag, i) => (
+                  <span
+                    key={i}
+                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium"
+                    style={{ backgroundColor: "#EFF6FF", color: "#2563EB" }}
+                  >
+                    #{tag.replace(/^#/, "")}
+                    <button
+                      type="button"
+                      onClick={() => setHashtags((prev) => prev.filter((_, idx) => idx !== i))}
+                      className="opacity-50 hover:opacity-100"
+                      title="Remove"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Schedule + save */}
+        {(caption || selectedHook) && (
+          <div
+            className="rounded-2xl border p-4 space-y-3"
+            style={{ borderColor: "#E5DDD5", backgroundColor: "white" }}
+          >
+            <SectionLabel label="Schedule" icon={<Calendar className="h-3 w-3" />} />
+            <div className="flex flex-col sm:flex-row gap-2">
+              <Input
+                type="date"
+                value={scheduledDate}
+                onChange={(e) => setScheduledDate(e.target.value)}
+                className="sm:flex-1 min-h-[44px]"
+                style={{ borderColor: "#E5DDD5" }}
+              />
+              <Button
+                onClick={handleSaveToPlanner}
+                disabled={saving}
+                className="gap-2 min-h-[44px]"
+                style={{ backgroundColor: "#F97066", color: "white" }}
+              >
+                {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                {scheduledDate ? "Save to Planner" : "Save to Ideas"}
+              </Button>
+            </div>
+            <p className="text-[11px]" style={{ color: "#8A7060" }}>
+              {scheduledDate
+                ? "Marked as scheduled. You'll see it in the Planner tab on that date."
+                : "Saved with no date stays in the Ideas Bank for later."}
+            </p>
+          </div>
+        )}
+      </div>
+
+      {/* ── Right: sticky preview (desktop only) ──────────────────────── */}
+      <aside className="hidden lg:block lg:sticky lg:top-4 self-start">
+        <PhonePreview
+          format={format}
+          platform={platform}
+          pillar={selectedPillar}
+          hook={selectedHook}
+          caption={caption}
+          hashtags={hashtags}
+          brandName={brand?.name ?? null}
+        />
+      </aside>
+
+      {/* ── Mobile sticky CTA ──────────────────────────────────────────── */}
+      <div
+        className="lg:hidden fixed left-0 right-0 z-30 px-4 py-3 flex items-center gap-2"
+        style={{
+          bottom: "60px", // above mobile bottom nav (60px)
+          backgroundColor: "rgba(250,250,245,0.96)",
+          borderTop: "1px solid #E5DDD5",
+          paddingBottom: "max(12px, env(safe-area-inset-bottom))",
+          backdropFilter: "blur(8px)",
+        }}
+      >
+        <Button
+          variant="outline"
+          onClick={() => setShowPreviewSheet(true)}
+          className="gap-2 shrink-0 min-h-[44px]"
+          style={{ borderColor: "#E5DDD5", color: "#5A3825", backgroundColor: "white" }}
+        >
+          <Eye className="h-4 w-4" />
+          Preview
+        </Button>
+        <Button
+          onClick={handleGenerateHooks}
+          disabled={!ready || loadingHooks}
+          className="flex-1 gap-2 min-h-[44px]"
+          style={{ backgroundColor: "#F97066", color: "white" }}
+        >
+          {loadingHooks ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+          {hooks ? "Regenerate" : "Generate Hooks"}
+        </Button>
+      </div>
+
+      {/* ── Mobile bottom sheet ──────────────────────────────────────── */}
+      {showPreviewSheet && (
+        <div
+          className="lg:hidden fixed inset-0 z-50 flex flex-col justify-end"
+          style={{ backgroundColor: "rgba(45,24,16,0.5)" }}
+          onClick={() => setShowPreviewSheet(false)}
+        >
+          <div
+            className="rounded-t-3xl bg-[#FAFAF5] max-h-[85vh] overflow-y-auto px-4 py-5"
+            onClick={(e) => e.stopPropagation()}
+            style={{ paddingBottom: "max(20px, env(safe-area-inset-bottom))" }}
+          >
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <Smartphone className="h-4 w-4" style={{ color: "#F97066" }} />
+                <h3 className="text-sm font-semibold" style={{ color: "#2D1810" }}>
+                  Preview
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowPreviewSheet(false)}
+                className="h-10 w-10 rounded-xl flex items-center justify-center hover:bg-[#F5F0EA]"
+              >
+                <X className="h-5 w-5" style={{ color: "#5A3825" }} />
+              </button>
+            </div>
+            <PhonePreview
+              format={format}
+              platform={platform}
+              pillar={selectedPillar}
+              hook={selectedHook}
+              caption={caption}
+              hashtags={hashtags}
+              brandName={brand?.name ?? null}
+            />
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ── Research Tab ──────────────────────────────────────────────────────────────
+
+type ResearchMode = "competitor" | "niche" | "audit"
+
+function ResearchTab({
+  brand,
+  socialAccounts,
+}: {
+  brand: Brand | null
+  socialAccounts: Record<string, string>
+}) {
+  const { toast } = useToast()
+  const [mode, setMode] = useState<ResearchMode>("competitor")
+  const [competitorHandle, setCompetitorHandle] = useState("")
+  const [competitorPlatform, setCompetitorPlatform] = useState<StudioPlatform>("instagram")
+  const [nicheKeyword, setNicheKeyword] = useState(brand?.niche ?? "")
+  const [loading, setLoading] = useState(false)
+
+  const [competitorResult, setCompetitorResult] = useState<ProfileAnalysis | null>(null)
+  const [nicheResult, setNicheResult] = useState<NicheResearchResult | null>(null)
+  const [auditResult, setAuditResult] = useState<ContentOpportunity | null>(null)
+
+  const runCompetitor = async () => {
+    const handle = competitorHandle.trim()
+    if (!handle) {
+      toast({ title: "Enter a competitor handle first", variant: "destructive" })
+      return
+    }
+    const url = buildProfileUrl(competitorPlatform, handle)
+    if (!url) {
+      toast({ title: "Unsupported platform", variant: "destructive" })
+      return
+    }
+    setLoading(true)
+    setCompetitorResult(null)
+    try {
+      const res = await fetch("/api/research-profile", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error ?? "Research failed")
+      setCompetitorResult(data as ProfileAnalysis)
+    } catch (err) {
+      toast({
+        title: "Couldn't run competitor analysis",
+        description: err instanceof Error ? err.message : "Try again.",
+        variant: "destructive",
+      })
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const runNiche = async () => {
+    const topic = nicheKeyword.trim()
+    if (!topic) {
+      toast({ title: "Enter a niche or keyword first", variant: "destructive" })
+      return
+    }
+    setLoading(true)
+    setNicheResult(null)
+    try {
+      const res = await fetch("/api/research-niche", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ topic }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error ?? "Research failed")
+      setNicheResult(data as NicheResearchResult)
+    } catch (err) {
+      toast({
+        title: "Couldn't research niche",
+        description: err instanceof Error ? err.message : "Try again.",
+        variant: "destructive",
+      })
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const runAudit = async () => {
+    if (!brand) {
+      toast({ title: "Set up a brand first", variant: "destructive" })
+      return
+    }
+    setLoading(true)
+    setAuditResult(null)
+    try {
+      const socialUrls = Object.entries(socialAccounts)
+        .map(([plat, handle]) => buildProfileUrl(plat, handle ?? ""))
+        .filter((u): u is string => !!u)
+      const res = await fetch("/api/research-opportunity", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          niche: brand.niche,
+          targetAudience: brand.target_audience,
+          tone: brand.tone_of_voice,
+          socialUrls,
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error ?? "Audit failed")
+      setAuditResult(data as ContentOpportunity)
+    } catch (err) {
+      toast({
+        title: "Couldn't run audit",
+        description: err instanceof Error ? err.message : "Try again.",
+        variant: "destructive",
+      })
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const modes: Array<{ key: ResearchMode; label: string; icon: React.ReactNode; desc: string }> = [
+    { key: "competitor", label: "Competitor", icon: <Target className="h-4 w-4" />,    desc: "Analyse a competitor's profile" },
+    { key: "niche",      label: "Niche Trends", icon: <TrendingUp className="h-4 w-4" />, desc: "What's trending for a keyword" },
+    { key: "audit",      label: "Brand Audit", icon: <Users className="h-4 w-4" />,    desc: "Where your brand can grow" },
+  ]
+
+  return (
+    <div className="space-y-5">
+      {/* Mode selector */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+        {modes.map((m) => {
+          const active = mode === m.key
+          return (
+            <button
+              key={m.key}
+              type="button"
+              onClick={() => setMode(m.key)}
+              className="rounded-2xl border p-3 text-left transition-all min-h-[72px] flex items-start gap-3"
+              style={
+                active
+                  ? { borderColor: "#F97066", backgroundColor: "#FEF0EA", boxShadow: "0 0 0 2px rgba(249,112,102,0.25)" }
+                  : { borderColor: "#E5DDD5", backgroundColor: "white" }
+              }
+            >
+              <div
+                className="h-8 w-8 rounded-lg flex items-center justify-center shrink-0"
+                style={{ backgroundColor: active ? "white" : "#FAFAF5", color: active ? "#D4432A" : "#8A7060" }}
+              >
+                {m.icon}
+              </div>
+              <div>
+                <p className="text-sm font-semibold" style={{ color: "#2D1810" }}>
+                  {m.label}
+                </p>
+                <p className="text-[11px]" style={{ color: "#8A7060" }}>
+                  {m.desc}
+                </p>
+              </div>
+            </button>
+          )
+        })}
+      </div>
+
+      {/* Mode-specific inputs */}
+      {mode === "competitor" && (
+        <div className="rounded-2xl border bg-white p-4 space-y-3" style={{ borderColor: "#E5DDD5" }}>
+          <SectionLabel label="Competitor profile" icon={<Target className="h-3 w-3" />} />
+          <div className="flex flex-col sm:flex-row gap-2">
+            <select
+              value={competitorPlatform}
+              onChange={(e) => setCompetitorPlatform(e.target.value as StudioPlatform)}
+              className="rounded-xl border px-3 py-2 text-sm min-h-[44px] bg-white"
+              style={{ borderColor: "#E5DDD5", color: "#2D1810" }}
+            >
+              {STUDIO_PLATFORMS.map((p) => (
+                <option key={p.key} value={p.key}>{p.label}</option>
+              ))}
+            </select>
+            <Input
+              value={competitorHandle}
+              onChange={(e) => setCompetitorHandle(e.target.value)}
+              placeholder="@theirhandle"
+              className="flex-1 min-h-[44px]"
+              style={{ borderColor: "#E5DDD5" }}
+            />
+            <Button
+              onClick={runCompetitor}
+              disabled={loading}
+              className="gap-2 min-h-[44px]"
+              style={{ backgroundColor: "#F97066", color: "white" }}
+            >
+              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+              Analyse
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {mode === "niche" && (
+        <div className="rounded-2xl border bg-white p-4 space-y-3" style={{ borderColor: "#E5DDD5" }}>
+          <SectionLabel label="Niche keyword" icon={<TrendingUp className="h-3 w-3" />} />
+          <div className="flex flex-col sm:flex-row gap-2">
+            <Input
+              value={nicheKeyword}
+              onChange={(e) => setNicheKeyword(e.target.value)}
+              placeholder="e.g. 'wellness for busy professionals'"
+              className="flex-1 min-h-[44px]"
+              style={{ borderColor: "#E5DDD5" }}
+            />
+            <Button
+              onClick={runNiche}
+              disabled={loading}
+              className="gap-2 min-h-[44px]"
+              style={{ backgroundColor: "#F97066", color: "white" }}
+            >
+              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+              Find trends
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {mode === "audit" && (
+        <div className="rounded-2xl border bg-white p-4 space-y-3" style={{ borderColor: "#E5DDD5" }}>
+          <SectionLabel label="Audit your brand" icon={<Users className="h-3 w-3" />} />
+          {brand ? (
+            <>
+              <p className="text-sm" style={{ color: "#5A3825" }}>
+                Uses <strong>{brand.name}</strong>'s niche
+                {brand.niche ? ` ("${brand.niche}")` : ""}
+                {Object.keys(socialAccounts).length > 0
+                  ? ` and ${Object.keys(socialAccounts).length} connected social profile${Object.keys(socialAccounts).length > 1 ? "s" : ""}`
+                  : ""}.
+              </p>
+              <Button
+                onClick={runAudit}
+                disabled={loading}
+                className="gap-2 min-h-[44px]"
+                style={{ backgroundColor: "#F97066", color: "white" }}
+              >
+                {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+                Run audit
+              </Button>
+            </>
+          ) : (
+            <p className="text-sm italic" style={{ color: "#8A7060" }}>
+              Set up a brand first to run the audit.
+            </p>
+          )}
+        </div>
+      )}
+
+      {/* Results */}
+      {mode === "competitor" && competitorResult && (
+        <CompetitorResultCard result={competitorResult} />
+      )}
+      {mode === "niche" && nicheResult && (
+        <NicheResultCard result={nicheResult} />
+      )}
+      {mode === "audit" && auditResult && (
+        <AuditResultCard result={auditResult} />
+      )}
+    </div>
+  )
+}
+
+function ResultBlock({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div className="space-y-2">
+      <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: "#8A7060" }}>
+        {title}
+      </p>
+      <div>{children}</div>
+    </div>
+  )
+}
+
+function CompetitorResultCard({ result }: { result: ProfileAnalysis }) {
+  return (
+    <div className="rounded-2xl border bg-white p-5 space-y-4" style={{ borderColor: "#E5DDD5" }}>
+      <h3 className="text-base font-semibold" style={{ color: "#2D1810" }}>Competitor breakdown</h3>
+      <ResultBlock title="Content strategy">
+        <p className="text-sm leading-relaxed" style={{ color: "#5A3825" }}>{result.contentStrategy}</p>
+      </ResultBlock>
+      <ResultBlock title="Posting patterns">
+        <p className="text-sm leading-relaxed" style={{ color: "#5A3825" }}>{result.postingPatterns}</p>
+      </ResultBlock>
+      <ResultBlock title="Hook styles to steal">
+        <ul className="space-y-1">
+          {result.hookStyles.map((h, i) => (
+            <li key={i} className="text-sm flex gap-2" style={{ color: "#5A3825" }}>
+              <span style={{ color: "#F97066" }}>→</span>
+              <span>{h}</span>
+            </li>
+          ))}
+        </ul>
+      </ResultBlock>
+      <ResultBlock title="Topic clusters">
+        <div className="flex flex-wrap gap-1.5">
+          {result.topicClusters.map((t, i) => (
+            <span key={i} className="text-xs px-2.5 py-1 rounded-full" style={{ backgroundColor: "#FEF0EA", color: "#D4432A" }}>
+              {t}
+            </span>
+          ))}
+        </div>
+      </ResultBlock>
+      <ResultBlock title="Tone & voice">
+        <p className="text-sm leading-relaxed" style={{ color: "#5A3825" }}>{result.toneAndVoice}</p>
+      </ResultBlock>
+      <ResultBlock title="Gaps you can fill">
+        <ul className="space-y-1">
+          {result.gaps.map((g, i) => (
+            <li key={i} className="text-sm flex gap-2" style={{ color: "#5A3825" }}>
+              <Lightbulb className="h-3.5 w-3.5 mt-0.5 shrink-0" style={{ color: "#F97066" }} />
+              <span>{g}</span>
+            </li>
+          ))}
+        </ul>
+      </ResultBlock>
+    </div>
+  )
+}
+
+function NicheResultCard({ result }: { result: NicheResearchResult }) {
+  return (
+    <div className="rounded-2xl border bg-white p-5 space-y-4" style={{ borderColor: "#E5DDD5" }}>
+      <h3 className="text-base font-semibold" style={{ color: "#2D1810" }}>Niche trends</h3>
+      <ResultBlock title="Content angles">
+        <div className="space-y-2">
+          {result.contentAngles.map((a, i) => (
+            <div key={i} className="rounded-xl p-3" style={{ backgroundColor: "#FAFAF5" }}>
+              <p className="text-sm font-medium" style={{ color: "#2D1810" }}>{a.angle}</p>
+              <p className="text-xs mt-1" style={{ color: "#8A7060" }}>{a.rationale}</p>
+            </div>
+          ))}
+        </div>
+      </ResultBlock>
+      <ResultBlock title="Pain points">
+        <ul className="space-y-1">
+          {result.painPoints.map((p, i) => (
+            <li key={i} className="text-sm flex gap-2" style={{ color: "#5A3825" }}>
+              <span style={{ color: "#F97066" }}>•</span>
+              <span>{p}</span>
+            </li>
+          ))}
+        </ul>
+      </ResultBlock>
+      <ResultBlock title="Trending topics">
+        <div className="flex flex-wrap gap-1.5">
+          {result.trendingTopics.map((t, i) => (
+            <span key={i} className="text-xs px-2.5 py-1 rounded-full" style={{ backgroundColor: "#EFF6FF", color: "#2563EB" }}>
+              {t}
+            </span>
+          ))}
+        </div>
+      </ResultBlock>
+      <ResultBlock title="Recommended formats">
+        <div className="space-y-1.5">
+          {result.postingFormats.map((f, i) => (
+            <div key={i} className="flex items-center justify-between gap-2 text-sm">
+              <span style={{ color: "#2D1810" }} className="font-medium">{f.format}</span>
+              <span className="text-xs" style={{ color: "#8A7060" }}>{f.reasoning}</span>
+            </div>
+          ))}
+        </div>
+      </ResultBlock>
+      <ResultBlock title="Content gaps">
+        <ul className="space-y-1">
+          {result.contentGaps.map((g, i) => (
+            <li key={i} className="text-sm flex gap-2" style={{ color: "#5A3825" }}>
+              <Lightbulb className="h-3.5 w-3.5 mt-0.5 shrink-0" style={{ color: "#F97066" }} />
+              <span>{g}</span>
+            </li>
+          ))}
+        </ul>
+      </ResultBlock>
+    </div>
+  )
+}
+
+function AuditResultCard({ result }: { result: ContentOpportunity }) {
+  return (
+    <div className="rounded-2xl border bg-white p-5 space-y-4" style={{ borderColor: "#E5DDD5" }}>
+      <h3 className="text-base font-semibold" style={{ color: "#2D1810" }}>Your brand audit</h3>
+      <ResultBlock title="Content gaps">
+        <ul className="space-y-1">
+          {result.contentGaps.map((g, i) => (
+            <li key={i} className="text-sm flex gap-2" style={{ color: "#5A3825" }}>
+              <span style={{ color: "#F97066" }}>•</span>
+              <span>{g}</span>
+            </li>
+          ))}
+        </ul>
+      </ResultBlock>
+      <ResultBlock title="Top opportunities">
+        <div className="space-y-2">
+          {result.topOpportunities.map((o, i) => (
+            <div key={i} className="rounded-xl p-3" style={{ backgroundColor: "#FAFAF5" }}>
+              <div className="flex items-start justify-between gap-2">
+                <p className="text-sm font-medium" style={{ color: "#2D1810" }}>{o.angle}</p>
+                <span
+                  className="text-[10px] px-2 py-0.5 rounded-full font-medium shrink-0"
+                  style={{ backgroundColor: FORMAT_COLORS[o.format.toLowerCase()]?.bg ?? "#FAFAF5", color: FORMAT_COLORS[o.format.toLowerCase()]?.text ?? "#5A3825" }}
+                >
+                  {o.format}
+                </span>
+              </div>
+              <p className="text-xs mt-1" style={{ color: "#8A7060" }}>{o.why}</p>
+            </div>
+          ))}
+        </div>
+      </ResultBlock>
+      <ResultBlock title="Audience insights">
+        <p className="text-sm leading-relaxed" style={{ color: "#5A3825" }}>{result.audienceInsights}</p>
+      </ResultBlock>
+      <ResultBlock title="Suggested pillars">
+        <div className="flex flex-wrap gap-1.5">
+          {result.suggestedPillars.map((p, i) => (
+            <span key={i} className="text-xs px-2.5 py-1 rounded-full" style={{ backgroundColor: "#FEF0EA", color: "#D4432A" }}>
+              {p}
+            </span>
+          ))}
+        </div>
+      </ResultBlock>
+    </div>
+  )
+}
+
 // ── Main Component ────────────────────────────────────────────────────────────
 
 export function ContentCreatorClient({
@@ -3519,85 +4747,128 @@ export function ContentCreatorClient({
     toast({ title: "Idea deleted" })
   }
 
+  const [activeTab, setActiveTab] = useState<string>("studio")
+
+  const handleLoadIdea = (idea: Idea) => {
+    setLoadedIdea(idea)
+    setActiveTab("studio")
+    window.scrollTo({ top: 0, behavior: "smooth" })
+    toast({ title: "Idea loaded into Studio" })
+  }
+
   // ── Render ────────────────────────────────────────────────────────────────
 
+  const tabs: Array<{ key: string; label: string; icon: React.ReactNode }> = [
+    { key: "studio",   label: "Studio",   icon: <Sparkles className="h-3.5 w-3.5" /> },
+    { key: "research", label: "Research", icon: <Search className="h-3.5 w-3.5" /> },
+    { key: "ideas",    label: "Ideas",    icon: <Bookmark className="h-3.5 w-3.5" /> },
+    { key: "planner",  label: "Planner",  icon: <Calendar className="h-3.5 w-3.5" /> },
+    { key: "pillars",  label: "Pillars",  icon: <Layers className="h-3.5 w-3.5" /> },
+  ]
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
 
       {/* Migration banner */}
       {showMigrationBanner && (
         <MigrationBanner onDismiss={() => setShowMigrationBanner(false)} />
       )}
 
-      {/* ══ Research sections ══ */}
-      <ResearchStrip
-        brand={brand}
-        socialAccounts={socialAccounts}
-        userId={userId}
-        onSaveInsight={handleSaveInsight}
-      />
+      {/* ── ContentOS tabs ─────────────────────────────────────────── */}
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <div
+          className="overflow-x-auto -mx-4 px-4 md:mx-0 md:px-0"
+          style={{ scrollbarWidth: "none" }}
+        >
+          <TabsList
+            className="inline-flex h-auto gap-1 bg-transparent p-0 w-max"
+            style={{ minWidth: "100%" }}
+          >
+            {tabs.map((t) => (
+              <TabsTrigger
+                key={t.key}
+                value={t.key}
+                className="rounded-2xl px-4 py-2.5 text-sm font-medium min-h-[44px] gap-1.5 border data-[state=inactive]:bg-white data-[state=active]:bg-[#F97066] data-[state=active]:text-white data-[state=inactive]:text-[#5A3825] data-[state=active]:shadow-sm whitespace-nowrap"
+                style={{ borderColor: activeTab === t.key ? "#F97066" : "#E5DDD5" }}
+              >
+                {t.icon}
+                {t.label}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+        </div>
 
-      <div style={{ borderTop: "1px solid #E5DDD5" }} />
-
-      {/* ══ Content Pillars ══ */}
-      <CollapsibleSection id="content-pillars" title="Content Pillars" icon={<Layers className="h-3.5 w-3.5" />}>
-        <PillarsStrip
-          brand={brand}
-          initialPillars={initialPillars}
-          onPillarsChange={(p) => {
-            setPillars(p)
-            // Check for migration needed after save attempt
-          }}
-        />
-      </CollapsibleSection>
-
-      <div style={{ borderTop: "1px solid #E5DDD5" }} />
-
-      {/* ══ Content Generation ══ */}
-      <CollapsibleSection id="content-generation" title="Content Generation" icon={<Sparkles className="h-3.5 w-3.5" />}>
-        {!brand ? (
-          <div className="flex flex-col items-center justify-center py-16 gap-4">
-            <div className="h-16 w-16 rounded-2xl flex items-center justify-center"
-              style={{ backgroundColor: "#FEF0EA" }}>
-              <Sparkles className="h-8 w-8" style={{ color: "#F97066" }} />
-            </div>
-            <div className="text-center">
-              <h2 className="text-lg font-semibold" style={{ color: "#2D1810" }}>No brand set up yet</h2>
-              <p className="text-sm mt-1" style={{ color: "#8A7060" }}>
-                Create a brand profile so the AI can generate content tailored to your niche and tone.
-              </p>
-            </div>
-            <Button asChild style={{ backgroundColor: "#F97066", color: "white" }}>
-              <a href="/settings">Set up your brand →</a>
-            </Button>
-          </div>
-        ) : (
-          <GenerationStrip
+        <TabsContent value="studio" className="mt-5 focus-visible:ring-0">
+          <StudioTab
             brand={brand}
             pillars={pillars}
-            savedInsights={savedInsights}
             userId={userId}
             loadedIdea={loadedIdea}
             onIdeaSaved={fetchIdeas}
+            setMigrationBanner={setShowMigrationBanner}
           />
-        )}
-      </CollapsibleSection>
+        </TabsContent>
 
-      <div style={{ borderTop: "1px solid #E5DDD5" }} />
+        <TabsContent value="research" className="mt-5 focus-visible:ring-0">
+          <ResearchTab brand={brand} socialAccounts={socialAccounts} />
+        </TabsContent>
 
-      {/* ══ Ideas Bank ══ */}
-      {brand && (
-        <IdeasBank
-          ideas={ideas}
-          pillars={pillars}
-          onLoad={(idea) => {
-            setLoadedIdea(idea)
-            window.scrollTo({ top: 0, behavior: "smooth" })
-            toast({ title: "Idea loaded — scroll up to continue editing" })
-          }}
-          onDelete={handleDeleteIdea}
-          onRefresh={fetchIdeas}
-        />
+        <TabsContent value="ideas" className="mt-5 focus-visible:ring-0">
+          {brand ? (
+            <IdeasBank
+              ideas={ideas}
+              pillars={pillars}
+              onLoad={handleLoadIdea}
+              onDelete={handleDeleteIdea}
+              onRefresh={fetchIdeas}
+              defaultOpen
+            />
+          ) : (
+            <div className="rounded-2xl border bg-white p-8 text-center" style={{ borderColor: "#E5DDD5" }}>
+              <p className="text-sm" style={{ color: "#8A7060" }}>
+                Set up a brand first to save and revisit ideas.
+              </p>
+            </div>
+          )}
+        </TabsContent>
+
+        <TabsContent value="planner" className="mt-5 focus-visible:ring-0">
+          <ContentPlannerClient
+            brand={brand}
+            pillars={pillars}
+            initialIdeas={ideas}
+            userId={userId}
+          />
+        </TabsContent>
+
+        <TabsContent value="pillars" className="mt-5 focus-visible:ring-0">
+          <PillarsStrip
+            brand={brand}
+            initialPillars={initialPillars}
+            onPillarsChange={(p) => setPillars(p)}
+          />
+        </TabsContent>
+      </Tabs>
+
+      {/* Legacy advanced workflow (Carousel/Reel generators) — collapsed by default */}
+      {brand && activeTab === "studio" && (
+        <div className="mt-8">
+          <CollapsibleSection
+            id="content-generation-advanced"
+            title="Advanced Generators (Carousel / Reel)"
+            icon={<Wand2 className="h-3.5 w-3.5" />}
+            defaultOpen={false}
+          >
+            <GenerationStrip
+              brand={brand}
+              pillars={pillars}
+              savedInsights={savedInsights}
+              userId={userId}
+              loadedIdea={loadedIdea}
+              onIdeaSaved={fetchIdeas}
+            />
+          </CollapsibleSection>
+        </div>
       )}
     </div>
   )

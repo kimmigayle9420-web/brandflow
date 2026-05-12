@@ -82,6 +82,7 @@ export type Idea = {
   script: Record<string, unknown> | null
   media_url: string | null
   status: IdeaStatus
+  scheduled_date: string | null
   created_at: string
   updated_at: string
 }
