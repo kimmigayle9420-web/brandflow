@@ -141,18 +141,44 @@ export async function GET() {
     if (media?.error) {
       console.warn("[instagram/stats] media error", media.error)
     }
-    const recentPosts: RecentPost[] = Array.isArray(media?.data)
-      ? media.data.map((m: Record<string, unknown>) => ({
-          id: String(m.id ?? ""),
-          caption: (m.caption as string | null) ?? null,
-          media_type: (m.media_type as string | null) ?? null,
-          timestamp: (m.timestamp as string | null) ?? null,
-          like_count: Number(m.like_count ?? 0),
-          comments_count: Number(m.comments_count ?? 0),
-          reach: 0,
-          views: 0,
-        }))
-      : []
+    const mediaItems: Record<string, unknown>[] = Array.isArray(media?.data) ? media.data : []
+
+    // 3. Per-post insights — reach and views for each post. Requires
+    //    instagram_manage_insights. Uses `views` (the v21+ replacement for the
+    //    deprecated impressions/plays/video_views metrics per April 2025 docs).
+    //    Run all in parallel; use allSettled so one failure doesn't block the rest.
+    const postInsightResults = await Promise.allSettled(
+      mediaItems.map((m) =>
+        fetch(
+          `${GRAPH}/${m.id}/insights?` +
+            new URLSearchParams({
+              metric: "reach,views",
+              access_token: token,
+            }).toString(),
+          { cache: "no-store" },
+        ).then((r) => r.json()),
+      ),
+    )
+
+    const recentPosts: RecentPost[] = mediaItems.map((m, i) => {
+      let postReach = 0
+      let postViews = 0
+      const result = postInsightResults[i]
+      if (result.status === "fulfilled" && !result.value?.error) {
+        postReach = sumInsight(result.value, "reach")
+        postViews = sumInsight(result.value, "views")
+      }
+      return {
+        id: String(m.id ?? ""),
+        caption: (m.caption as string | null) ?? null,
+        media_type: (m.media_type as string | null) ?? null,
+        timestamp: (m.timestamp as string | null) ?? null,
+        like_count: Number(m.like_count ?? 0),
+        comments_count: Number(m.comments_count ?? 0),
+        reach: postReach,
+        views: postViews,
+      }
+    })
 
     const payload = {
       connected: true,
