@@ -154,7 +154,7 @@ export async function GET() {
         }))
       : []
 
-    return NextResponse.json({
+    const payload = {
       connected: true,
       username: account.username ?? null,
       profilePictureUrl: account.profile_picture_url ?? null,
@@ -164,7 +164,13 @@ export async function GET() {
       views,
       profileViews,
       recentPosts,
+    }
+    console.error("[instagram/stats] SUCCESS returning", {
+      connected: payload.connected,
+      followers: payload.followers,
+      posts: payload.recentPosts.length,
     })
+    return NextResponse.json(payload)
   } catch (err) {
     console.error("[instagram/stats] fetch failed", err)
     return NextResponse.json({ connected: false, error: "fetch_failed" })
