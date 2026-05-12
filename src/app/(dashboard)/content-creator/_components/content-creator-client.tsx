@@ -2345,6 +2345,7 @@ function GenerationStrip({
 
   const pillarCtx = useCallback(() => ({
     pillarName: selectedPillar?.name ?? undefined,
+    pillarDescription: selectedPillar?.description ?? undefined,
     pillarVoiceDirection: selectedPillar?.voice_direction ?? undefined,
     pillarFormatPreference: selectedPillar?.format_preference ?? undefined,
   }), [selectedPillar])
@@ -2409,6 +2410,7 @@ function GenerationStrip({
     try {
       const data = await callApi<{ caption: string }>("/api/generate-caption", {
         hook: selectedHook || topic,
+        topic,
         notes: keyMessage ? `Key message to convey: ${keyMessage}` : undefined,
         ...brandCtx(), ...pillarCtx(),
       })
@@ -3552,6 +3554,7 @@ function PhonePreview({
   caption: string
   hashtags: string[]
   brandName: string | null
+  imageUrl: string | null
   topic?: string
   videoScript?: string
 }) {
@@ -3590,9 +3593,26 @@ function PhonePreview({
         <div
           className={cn("relative", aspectClass)}
           style={{
-            background: `linear-gradient(135deg, ${pillarColor}1F 0%, ${pillarColor}0A 60%, #FAFAF5 100%)`,
+            background: imageUrl
+              ? "#FAFAF5"
+              : `linear-gradient(135deg, ${pillarColor}1F 0%, ${pillarColor}0A 60%, #FAFAF5 100%)`,
           }}
         >
+          {imageUrl && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={imageUrl}
+              alt="Post visual"
+              className="absolute inset-0 w-full h-full object-cover"
+            />
+          )}
+          {imageUrl && hook && (
+            <div
+              className="absolute inset-0"
+              style={{ background: "linear-gradient(180deg, rgba(0,0,0,0.05) 0%, rgba(0,0,0,0.45) 100%)" }}
+            />
+          )}
+
           {pillar && (
             <div
               className="absolute top-3 left-3 inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-[10px] font-medium"
@@ -3618,18 +3638,21 @@ function PhonePreview({
                   "text-center font-bold leading-tight",
                   isVertical ? "text-lg" : "text-base"
                 )}
-                style={{ color: "#2D1810", opacity: hook ? 1 : 0.7 }}
+                style={{
+                  color: imageUrl ? "#FFFFFF" : "#2D1810",
+                  textShadow: imageUrl ? "0 1px 8px rgba(0,0,0,0.6)" : undefined,
+                }}
               >
                 {previewText.length > 140 ? previewText.substring(0, 140) + "…" : previewText}
               </p>
-            ) : (
+            ) : !imageUrl ? (
               <div className="flex flex-col items-center gap-2 opacity-60">
                 <ImageIcon className="h-10 w-10" style={{ color: pillarColor }} />
                 <p className="text-xs" style={{ color: "#8A7060" }}>
                   Your {formatMeta.label.toLowerCase()} preview
                 </p>
               </div>
-            )}
+            ) : null}
           </div>
 
           {/* Video script chip overlay (Reel/Story) */}
@@ -3770,6 +3793,11 @@ function StudioTab({
   const [saving, setSaving] = useState(false)
   const [showPreviewSheet, setShowPreviewSheet] = useState(false)
 
+  const [imageUrl, setImageUrl] = useState<string | null>(null)
+  const [imagePrompt, setImagePrompt] = useState("")
+  const [imageLoading, setImageLoading] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement | null>(null)
+
   const selectedPillar = pillars.find((p) => p.id === pillarId) ?? null
   const isVideo = format === "reel" || format === "story"
 
@@ -3795,6 +3823,8 @@ function StudioTab({
       : []
     setHashtags(tags)
     setScheduledDate(loadedIdea.scheduled_date ?? "")
+    setImageUrl(loadedIdea.media_url ?? null)
+    setImagePrompt("")
     // Restore video script if present
     const script = loadedIdea.script as { duration?: string; script?: string } | null
     if (script?.script) setVideoScript(script.script)
@@ -3802,6 +3832,43 @@ function StudioTab({
       setReelDuration(script.duration)
     }
   }, [loadedIdea?.id]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleGenerateImage = () => {
+    const prompt = imagePrompt.trim() || topic.trim()
+    if (!prompt) {
+      toast({ title: "Add a topic or image prompt first", variant: "destructive" })
+      return
+    }
+    const seed = Math.floor(Math.random() * 99999)
+    setImageLoading(true)
+    setImageUrl(buildPollinationsUrl(prompt, brand?.niche, seed))
+  }
+
+  const handleUploadImage = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    if (!file.type.startsWith("image/")) {
+      toast({ title: "Please upload an image file", variant: "destructive" })
+      return
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast({ title: "Image too large", description: "Keep it under 5 MB.", variant: "destructive" })
+      return
+    }
+    const reader = new FileReader()
+    reader.onload = () => {
+      setImageUrl(typeof reader.result === "string" ? reader.result : null)
+      setImageLoading(false)
+    }
+    reader.readAsDataURL(file)
+    // Reset input so the same file can be re-selected
+    e.target.value = ""
+  }
+
+  const handleClearImage = () => {
+    setImageUrl(null)
+    setImageLoading(false)
+  }
 
   const handleGenerateHooks = async () => {
     if (pillars.length > 0 && !pillarId) {
@@ -3825,6 +3892,7 @@ function StudioTab({
           tone: brand?.tone_of_voice,
           targetAudience: brand?.target_audience,
           pillarName: selectedPillar?.name,
+          pillarDescription: selectedPillar?.description,
           pillarVoiceDirection: selectedPillar?.voice_direction,
           pillarFormatPreference: format,
         }),
@@ -3855,12 +3923,14 @@ function StudioTab({
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             hook: selectedHook,
-            notes: `${platformNotes}\nTopic: ${topic}\nFormat: ${format}`,
+            topic,
+            notes: `${platformNotes}\nFormat: ${format}`,
             brandName: brand?.name,
             niche: brand?.niche,
             tone: brand?.tone_of_voice,
             targetAudience: brand?.target_audience,
             pillarName: selectedPillar?.name,
+            pillarDescription: selectedPillar?.description,
             pillarVoiceDirection: selectedPillar?.voice_direction,
             pillarFormatPreference: format,
           }),
@@ -3933,6 +4003,7 @@ function StudioTab({
       hook: selectedHook,
       caption: caption || null,
       hashtags: hashtags.length ? hashtags.map((t) => (t.startsWith("#") ? t : `#${t}`)).join(" ") : null,
+      media_url: imageUrl,
       script: scriptPayload,
       status,
     }
@@ -4141,6 +4212,133 @@ function StudioTab({
           </div>
         </div>
 
+        {/* Pillar selector */}
+        <div>
+          <SectionLabel label="Pillar" icon={<Layers className="h-3 w-3" />} />
+          {pillars.length === 0 ? (
+            <p className="text-xs italic" style={{ color: "#8A7060" }}>
+              No pillars yet. Add some in the Pillars tab to ground the AI in your themes.
+            </p>
+          ) : (
+            <div className="flex flex-wrap gap-2">
+              {pillars.map((p) => {
+                const active = pillarId === p.id
+                return (
+                  <button
+                    key={p.id}
+                    type="button"
+                    onClick={() => setPillarId(active ? null : p.id)}
+                    className="rounded-2xl px-3.5 py-2 text-sm font-medium border min-h-[44px] inline-flex items-center gap-2 transition-all"
+                    style={
+                      active
+                        ? { borderColor: p.color, backgroundColor: p.color + "1A", color: "#2D1810" }
+                        : { borderColor: "#E5DDD5", backgroundColor: "white", color: "#5A3825" }
+                    }
+                  >
+                    <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: p.color }} />
+                    {p.emoji && <span className="text-base leading-none">{p.emoji}</span>}
+                    <span>{p.name}</span>
+                  </button>
+                )
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* Topic input */}
+        <div>
+          <SectionLabel label="Topic" icon={<AlignLeft className="h-3 w-3" />} />
+          <Textarea
+            value={topic}
+            onChange={(e) => setTopic(e.target.value)}
+            placeholder="What's this post about? Be specific. e.g. 'how I doubled my engagement after switching from polished content to behind-the-scenes'"
+            rows={3}
+            className="text-sm resize-none"
+            style={{ borderColor: "#E5DDD5", backgroundColor: "white" }}
+          />
+        </div>
+
+        {/* Image (optional) */}
+        <div>
+          <SectionLabel label="Image (optional)" icon={<ImageIcon className="h-3 w-3" />} />
+          <div className="rounded-2xl border p-3 space-y-3" style={{ borderColor: "#E5DDD5", backgroundColor: "white" }}>
+            <div className="flex flex-col sm:flex-row gap-2">
+              <Input
+                value={imagePrompt}
+                onChange={(e) => setImagePrompt(e.target.value)}
+                placeholder={topic ? `Image idea (defaults to topic)` : `Describe the image you want…`}
+                className="flex-1 text-sm min-h-[44px]"
+                style={{ borderColor: "#E5DDD5" }}
+              />
+              <Button
+                type="button"
+                onClick={handleGenerateImage}
+                disabled={imageLoading || (!imagePrompt.trim() && !topic.trim())}
+                className="gap-1.5 shrink-0 min-h-[44px]"
+                style={{ backgroundColor: "#F97066", color: "white" }}
+              >
+                {imageLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
+                Generate AI
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => fileInputRef.current?.click()}
+                className="gap-1.5 shrink-0 min-h-[44px]"
+                style={{ borderColor: "#E5DDD5", color: "#5A3825", backgroundColor: "white" }}
+              >
+                <Download className="h-3.5 w-3.5 rotate-180" />
+                Upload
+              </Button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleUploadImage}
+                className="hidden"
+              />
+            </div>
+            {imageUrl ? (
+              <div className="flex items-center gap-3">
+                <div
+                  className="h-16 w-16 rounded-xl overflow-hidden shrink-0"
+                  style={{ border: "1px solid #E5DDD5", backgroundColor: "#F5F0EA" }}
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={imageUrl}
+                    alt="Preview"
+                    className="w-full h-full object-cover"
+                    onLoad={() => setImageLoading(false)}
+                    onError={() => setImageLoading(false)}
+                  />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-medium" style={{ color: "#2D1810" }}>
+                    {imageUrl.startsWith("data:") ? "Uploaded image" : "AI-generated image"}
+                  </p>
+                  <p className="text-[11px]" style={{ color: "#8A7060" }}>
+                    Visible in the preview on the right.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleClearImage}
+                  className="text-xs font-medium px-2 py-1 rounded-lg hover:bg-[#F5F0EA]"
+                  style={{ color: "#8A7060" }}
+                >
+                  Remove
+                </button>
+              </div>
+            ) : (
+              <p className="text-[11px] leading-relaxed" style={{ color: "#8A7060" }}>
+                Generate a free AI image (no API key needed) or upload your own. The preview falls back to a styled placeholder when empty.
+              </p>
+            )}
+          </div>
+        </div>
+
+        {/* Generate hooks button */}
         {/* ── STEP 4 — Generate hooks button ───────────────────────── */}
         <Button
           onClick={handleGenerateHooks}
@@ -4359,6 +4557,7 @@ function StudioTab({
           caption={caption}
           hashtags={hashtags}
           brandName={brand?.name ?? null}
+          imageUrl={imageUrl}
         />
       </aside>
 
@@ -4428,8 +4627,10 @@ function StudioTab({
               caption={caption}
               hashtags={hashtags}
               brandName={brand?.name ?? null}
+              imageUrl={imageUrl}
               topic={topic}
               videoScript={videoScript}
+
             />
           </div>
         </div>
